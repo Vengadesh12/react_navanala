@@ -1,0 +1,460 @@
+import React, { useEffect, useState, useMemo } from "react";
+import {
+  Add,
+  Edit,
+  Delete,
+  People,
+  Shield,
+  Refresh,
+  CheckCircle,
+  Phone,
+  Email,
+  FilterList,
+  RestoreFromTrash,
+} from "@mui/icons-material";
+import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
+import { MetricCard } from "../../components/common/MetricCard";
+import { SearchInput } from "../../components/common/SearchInput";
+import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { EmptyState } from "../../components/common/EmptyState";
+import { UserModal } from "./components/UserModal";
+import { userService } from "../../api/user.service";
+import { roleService } from "../../api/role.service";
+import { useAuth } from "../../hooks/useAuth";
+import { getRoleMeta } from "../../config/workspace.config";
+import { showConfirmDialog, showErrorAlert, showSuccessAlert } from "../../utils/alerts";
+import type { Role, User, UserFormData, UserStatusFilter } from "../../types";
+
+export const UsersPage: React.FC = () => {
+  const { can } = useAuth();
+
+  const canCreateUsers = can("users.create") || can("users.manage");
+  const canEditUsers = can("users.edit") || can("users.manage");
+  const canDeleteUsers = can("users.delete") || can("users.manage");
+
+  const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [usersError, setUsersError] = useState("");
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [statusFilter, setStatusFilter] = useState<UserStatusFilter>("ALL");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+
+  const fetchRoles = async () => {
+    try {
+      const data = await roleService.getRoles();
+      setRoles(data);
+    } catch (error) {
+      console.error("GET Roles API Error:", error);
+    }
+  };
+
+  const fetchUsers = async () => {
+    setLoading(true);
+    setUsersError("");
+    try {
+      const data = await userService.getUsers();
+      setUsers(data);
+    } catch (error) {
+      console.error("GET Users API Error:", error);
+      setUsersError("Could not load users. Check that the C# backend is running.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+    fetchRoles();
+  }, []);
+
+  const isUserActive = (user: User): boolean => {
+    const rawFlag = user.deletedFlag ?? user.DeletedFlag ?? user.deletedflag;
+    const deletedFlag = typeof rawFlag === "string" ? Number(rawFlag.trim()) : Number(rawFlag);
+    return deletedFlag !== 0;
+  };
+
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    return users.filter((u) => {
+      const userRoleId = u.roleId ?? u.RoleId;
+      const userRole = roles.find((r) => String(r.id) === String(userRoleId));
+      const roleName = userRole?.name || "";
+      const ageStr = String(u.age ?? u.Age ?? "");
+
+      const matchesSearch =
+        !q ||
+        u.name?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.phone?.toLowerCase().includes(q) ||
+        u.address?.toLowerCase().includes(q) ||
+        ageStr.includes(q) ||
+        roleName.toLowerCase().includes(q);
+
+      const matchesRole =
+        roleFilter === "ALL" || String(userRoleId) === String(roleFilter);
+
+      const active = isUserActive(u);
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        (statusFilter === "ACTIVE" && active) ||
+        (statusFilter === "DELETED" && !active);
+
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, roles, searchQuery, roleFilter, statusFilter]);
+
+  const openAddModal = () => {
+    setEditingUser(null);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (user: User) => {
+    setEditingUser(user);
+    setModalOpen(true);
+  };
+
+  const handleSaveUser = async (formData: UserFormData, isEditing: boolean) => {
+    setSaving(true);
+    try {
+      if (isEditing && editingUser) {
+        const userId = editingUser.id ?? editingUser.Id;
+        const res = await userService.updateUser(userId!, formData);
+        await fetchUsers();
+        setModalOpen(false);
+        await showSuccessAlert(
+          "Member Updated",
+          res.message || "User directory record updated successfully."
+        );
+      } else {
+        const res = await userService.createUser(formData);
+        await fetchUsers();
+        setModalOpen(false);
+        await showSuccessAlert(
+          "Member Added",
+          res.message || "New directory member added successfully."
+        );
+      }
+    } catch (error: any) {
+      console.error("Save User Error:", error);
+      await showErrorAlert("Could Not Save", error.message || "Please verify backend connectivity.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (user: User) => {
+    const userId = user.id ?? user.Id;
+    const userName = user.name || user.Name || "this member";
+    const result = await showConfirmDialog(
+      `Delete ${userName}?`,
+      "This member account will be marked as deleted and lose system access.",
+      "Yes, Delete Member",
+      "Cancel",
+      true
+    );
+
+    if (!result.isConfirmed || !userId) return;
+
+    try {
+      await userService.deleteUser(userId);
+      await fetchUsers();
+      await showSuccessAlert("Member Deleted", `${userName} has been marked as deleted.`);
+    } catch (error: any) {
+      console.error("DELETE User Error:", error);
+      await showErrorAlert("Delete Failed", error.message || "Could not complete deletion.");
+    }
+  };
+
+  const handleRestore = async (user: User) => {
+    const userId = user.id ?? user.Id;
+    const userName = user.name || user.Name || "this member";
+    if (!userId) return;
+
+    try {
+      await userService.restoreUser(userId);
+      await fetchUsers();
+      await showSuccessAlert("Member Restored", `${userName} has been reactivated.`);
+    } catch (error: any) {
+      console.error("Restore User Error:", error);
+      await showErrorAlert("Restore Failed", error.message || "Could not restore member.");
+    }
+  };
+
+  return (
+    <WorkspaceLayout permission="users.view" label="User Directory" icon="▦" showHero={false}>
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* Stats Row */}
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <MetricCard
+            label="Total Members"
+            value={users.length}
+            note="Registered directory records"
+            icon={<People sx={{ fontSize: 24 }} />}
+            iconBgColor="bg-indigo-50 text-indigo-600"
+          />
+
+          <MetricCard
+            label="Active Users"
+            value={users.filter(isUserActive).length}
+            note="Currently active in workspace"
+            icon={<CheckCircle sx={{ fontSize: 24 }} />}
+            iconBgColor="bg-emerald-50 text-emerald-600"
+          />
+
+          <MetricCard
+            label="Roles Assigned"
+            value={roles.length}
+            note="Configured role options"
+            icon={<Shield sx={{ fontSize: 24 }} />}
+            iconBgColor="bg-purple-50 text-purple-600"
+          />
+        </div>
+
+        {/* Filter Controls & Actions Bar */}
+        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:flex-row xl:items-center xl:justify-between">
+          <div className="flex-1 min-w-[260px]">
+            <SearchInput
+              className="w-full"
+              placeholder="Search by name, email, phone, age, address, or role..."
+              value={searchQuery}
+              onChange={setSearchQuery}
+            />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <FilterList sx={{ fontSize: 18, color: "#64748b" }} />
+              <select
+                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-all focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+              >
+                <option value="ALL">All Roles</option>
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <select
+              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-all focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as UserStatusFilter)}
+            >
+              <option value="ALL">All Status</option>
+              <option value="ACTIVE">Active Only</option>
+              <option value="DELETED">Deleted Only</option>
+            </select>
+
+            <button
+              type="button"
+              onClick={fetchUsers}
+              disabled={loading}
+              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 disabled:opacity-50"
+            >
+              <Refresh sx={{ fontSize: 18 }} className={loading ? "animate-spin" : ""} />
+              <span>{loading ? "Syncing..." : "Refresh"}</span>
+            </button>
+
+            {canCreateUsers && (
+              <button
+                type="button"
+                onClick={openAddModal}
+                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:from-indigo-700 hover:to-indigo-800 hover:shadow-md hover:-translate-y-0.5"
+              >
+                <Add sx={{ fontSize: 18 }} />
+                <span>Add User</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Loading / Error States */}
+        {loading && <LoadingSpinner message="Loading user directory..." />}
+
+        {!loading && usersError && (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-center text-rose-800">
+            <p className="font-semibold">{usersError}</p>
+            <button
+              onClick={fetchUsers}
+              className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 mt-3"
+              type="button"
+            >
+              Retry Connection
+            </button>
+          </div>
+        )}
+
+        {/* Table Display */}
+        {!loading && !usersError && (
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            {filteredUsers.length === 0 ? (
+              <EmptyState
+                icon={<People sx={{ fontSize: 28 }} />}
+                title="No members found"
+                description={
+                  searchQuery || roleFilter !== "ALL"
+                    ? "Try adjusting your search criteria or role filters."
+                    : "Add your first user to build the directory."
+                }
+                actionText={canCreateUsers && !searchQuery ? "Add First Member" : undefined}
+                onAction={canCreateUsers && !searchQuery ? openAddModal : undefined}
+                actionIcon={<Add sx={{ fontSize: 18 }} />}
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm text-slate-600">
+                  <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500">
+                    <tr>
+                      <th className="px-6 py-4">#</th>
+                      <th className="px-6 py-4">Member</th>
+                      <th className="px-6 py-4">Role</th>
+                      <th className="px-6 py-4">Contact</th>
+                      <th className="px-6 py-4">Age</th>
+                      <th className="px-6 py-4">Address</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredUsers.map((u, idx) => {
+                      const userRoleId = u.roleId ?? u.RoleId;
+                      const role = roles.find((r) => String(r.id) === String(userRoleId));
+                      const meta = getRoleMeta(userRoleId, role?.name);
+                      const userName = u.name || u.Name || "User";
+                      const userEmail = u.email || u.Email || "";
+                      const userPhone = u.phone || u.Phone || "—";
+                      const userAge = u.age || u.Age;
+                      const userAddress = u.address || u.Address || "—";
+                      const initial = userName.charAt(0).toUpperCase();
+                      const isActive = isUserActive(u);
+
+                      return (
+                        <tr key={u.id ?? u.Id ?? idx} className="transition-colors hover:bg-slate-50/80">
+                          <td className="px-6 py-4 font-mono text-xs text-slate-400">
+                            {String(idx + 1).padStart(2, "0")}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 text-xs font-bold text-white shadow-sm">
+                                {initial}
+                              </div>
+                              <div>
+                                <strong className="block font-semibold text-slate-900">
+                                  {userName}
+                                </strong>
+                                <span className="flex items-center gap-1 text-xs text-slate-400">
+                                  <Email sx={{ fontSize: 12 }} />
+                                  {userEmail}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${meta.color}`}
+                            >
+                              <Shield sx={{ fontSize: 12 }} />
+                              {role?.name || "Unassigned"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="flex items-center gap-1 text-xs text-slate-700">
+                              <Phone sx={{ fontSize: 12, color: "#64748b" }} />
+                              {userPhone}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                              {userAge ? `${userAge} yrs` : "—"}
+                            </span>
+                          </td>
+                          <td
+                            className="max-w-[200px] truncate px-6 py-4 text-xs text-slate-500"
+                            title={userAddress}
+                          >
+                            {userAddress}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span
+                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                isActive
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border border-rose-200"
+                              }`}
+                            >
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${
+                                  isActive ? "bg-emerald-500 shadow-sm" : "bg-rose-500"
+                                }`}
+                              />
+                              {isActive ? "Active" : "Deleted"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-1.5">
+                              {canEditUsers && (
+                                <button
+                                  type="button"
+                                  onClick={() => openEditModal(u)}
+                                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                                  title="Edit Member"
+                                >
+                                  <Edit sx={{ fontSize: 16 }} />
+                                </button>
+                              )}
+                              {canDeleteUsers && isActive && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDelete(u)}
+                                  className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                                  title="Delete Member"
+                                >
+                                  <Delete sx={{ fontSize: 16 }} />
+                                </button>
+                              )}
+                              {canEditUsers && !isActive && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleRestore(u)}
+                                  className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                                  title="Restore / Reactivate Member"
+                                >
+                                  <RestoreFromTrash sx={{ fontSize: 16 }} />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* User Modal Component */}
+        <UserModal
+          isOpen={modalOpen}
+          onClose={() => setModalOpen(false)}
+          onSave={handleSaveUser}
+          editingUser={editingUser}
+          roles={roles}
+          saving={saving}
+        />
+      </div>
+    </WorkspaceLayout>
+  );
+};
+
+export default UsersPage;
