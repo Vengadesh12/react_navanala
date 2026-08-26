@@ -13,17 +13,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
     headers.set("Content-Type", "application/json");
   }
 
-  const isAuthEndpoint =
-    endpoint.includes("/api/auth/login") ||
-    endpoint.includes("/api/auth/validate-password") ||
-    endpoint.includes("/api/auth/evaluate-password") ||
-    endpoint.includes("/api/auth/forgot-password") ||
-    endpoint.includes("/api/auth/verify-otp") ||
-    endpoint.includes("/api/auth/reset-password") ||
-    endpoint.includes("/api/auth/login-2fa-verify") ||
-    endpoint.includes("/api/auth/resend-2fa-otp");
-
-  if (token && !isAuthEndpoint && !headers.has("Authorization")) {
+  if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
 
@@ -39,7 +29,7 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
 
   if (!response.ok) {
     const errorMessage = data?.message || `Request failed with status ${response.status}`;
-    if (response.status === 401 && token && !isAuthEndpoint) {
+    if (response.status === 401 && token) {
       window.dispatchEvent(new CustomEvent("auth:force-logout", { detail: errorMessage }));
     }
     throw new Error(errorMessage);
