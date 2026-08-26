@@ -253,7 +253,7 @@ export const LoginPage: React.FC = () => {
       });
 
       await showSuccessAlert("Password Reset Complete", response.message || "Your password has been changed.");
-      
+
       // Auto fill new credentials into login form
       setFormData({
         email: forgotEmail,
@@ -344,7 +344,7 @@ export const LoginPage: React.FC = () => {
       {/* Right Form Panel */}
       <section className="col-span-1 lg:col-span-5 flex flex-col justify-center items-center p-6 sm:p-12 bg-white">
         <div className="w-full max-w-md">
-          
+
           {/* ========================================================================= */}
           {/* STEP A: Two-Factor Authentication OTP Verification                       */}
           {/* ========================================================================= */}
@@ -483,13 +483,12 @@ export const LoginPage: React.FC = () => {
                       id="password"
                       name="password"
                       type={showPassword ? "text" : "password"}
-                      className={`w-full rounded-xl border bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 shadow-sm transition-all placeholder:text-slate-400 focus:outline-none focus:ring-2 ${
-                        formData.password.length > 0
+                      className={`w-full rounded-xl border bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 shadow-sm transition-all placeholder:text-slate-400 focus:outline-none focus:ring-2 ${formData.password.length > 0
                           ? loginPasswordEval?.isStrong
                             ? "border-emerald-500 focus:border-emerald-600 focus:ring-emerald-500/20"
                             : "border-amber-400 focus:border-amber-500 focus:ring-amber-500/20"
                           : "border-slate-300 focus:border-indigo-600 focus:ring-indigo-500/20"
-                      }`}
+                        }`}
                       placeholder="••••••••••••"
                       value={formData.password}
                       onChange={handleChange}
@@ -536,28 +535,26 @@ export const LoginPage: React.FC = () => {
                       {/* Animated Strength Progress Bar */}
                       <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden mb-2.5">
                         <div
-                          className={`h-full transition-all duration-300 ${
-                            (loginPasswordEval?.score || 0) <= 20
+                          className={`h-full transition-all duration-300 ${(loginPasswordEval?.score || 0) <= 20
                               ? "bg-rose-500 w-1/5"
                               : (loginPasswordEval?.score || 0) <= 40
-                              ? "bg-rose-400 w-2/5"
-                              : (loginPasswordEval?.score || 0) <= 60
-                              ? "bg-amber-500 w-3/5"
-                              : (loginPasswordEval?.score || 0) <= 80
-                              ? "bg-blue-500 w-4/5"
-                              : "bg-emerald-500 w-full"
-                          }`}
+                                ? "bg-rose-400 w-2/5"
+                                : (loginPasswordEval?.score || 0) <= 60
+                                  ? "bg-amber-500 w-3/5"
+                                  : (loginPasswordEval?.score || 0) <= 80
+                                    ? "bg-blue-500 w-4/5"
+                                    : "bg-emerald-500 w-full"
+                            }`}
                         />
                       </div>
 
                       {/* Criteria Checklist Items */}
                       <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                         <div
-                          className={`flex items-center gap-1.5 transition-colors ${
-                            loginPasswordEval?.criteria?.minLength
+                          className={`flex items-center gap-1.5 transition-colors ${loginPasswordEval?.criteria?.minLength
                               ? "text-emerald-700 font-semibold"
                               : "text-slate-500"
-                          }`}
+                            }`}
                         >
                           {loginPasswordEval?.criteria?.minLength ? (
                             <Check sx={{ fontSize: 13 }} className="text-emerald-600 shrink-0" />
@@ -568,11 +565,10 @@ export const LoginPage: React.FC = () => {
                         </div>
 
                         <div
-                          className={`flex items-center gap-1.5 transition-colors ${
-                            loginPasswordEval?.criteria?.hasUpper
+                          className={`flex items-center gap-1.5 transition-colors ${loginPasswordEval?.criteria?.hasUpper
                               ? "text-emerald-700 font-semibold"
                               : "text-slate-500"
-                          }`}
+                            }`}
                         >
                           {loginPasswordEval?.criteria?.hasUpper ? (
                             <Check sx={{ fontSize: 13 }} className="text-emerald-600 shrink-0" />
@@ -583,11 +579,10 @@ export const LoginPage: React.FC = () => {
                         </div>
 
                         <div
-                          className={`flex items-center gap-1.5 transition-colors ${
-                            loginPasswordEval?.criteria?.hasLower
+                          className={`flex items-center gap-1.5 transition-colors ${loginPasswordEval?.criteria?.hasLower
                               ? "text-emerald-700 font-semibold"
                               : "text-slate-500"
-                          }`}
+                            }`}
                         >
                           {loginPasswordEval?.criteria?.hasLower ? (
                             <Check sx={{ fontSize: 13 }} className="text-emerald-600 shrink-0" />
@@ -598,11 +593,10 @@ export const LoginPage: React.FC = () => {
                         </div>
 
                         <div
-                          className={`flex items-center gap-1.5 transition-colors ${
-                            loginPasswordEval?.criteria?.hasNumber
+                          className={`flex items-center gap-1.5 transition-colors ${loginPasswordEval?.criteria?.hasNumber
                               ? "text-emerald-700 font-semibold"
                               : "text-slate-500"
-                          }`}
+                            }`}
                         >
                           {loginPasswordEval?.criteria?.hasNumber ? (
                             <Check sx={{ fontSize: 13 }} className="text-emerald-600 shrink-0" />
@@ -613,11 +607,10 @@ export const LoginPage: React.FC = () => {
                         </div>
 
                         <div
-                          className={`col-span-2 flex items-center gap-1.5 transition-colors ${
-                            loginPasswordEval?.criteria?.hasSpecial
+                          className={`col-span-2 flex items-center gap-1.5 transition-colors ${loginPasswordEval?.criteria?.hasSpecial
                               ? "text-emerald-700 font-semibold"
                               : "text-slate-500"
-                          }`}
+                            }`}
                         >
                           {loginPasswordEval?.criteria?.hasSpecial ? (
                             <Check sx={{ fontSize: 13 }} className="text-emerald-600 shrink-0" />
@@ -647,24 +640,13 @@ export const LoginPage: React.FC = () => {
                 <div>
                   <button
                     type="submit"
-                    disabled={
-                      loggingIn ||
-                      !formData.email.trim() ||
-                      !formData.password.trim() ||
-                      !loginPasswordEval?.isStrong ||
-                      isValidatingLoginPassword
-                    }
+                    disabled={loggingIn || !formData.email.trim() || !formData.password.trim()}
                     className="inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:from-indigo-700 hover:to-indigo-800 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {loggingIn ? (
                       <>
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                         <span>Authenticating...</span>
-                      </>
-                    ) : isValidatingLoginPassword ? (
-                      <>
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                        <span>Evaluating Password...</span>
                       </>
                     ) : (
                       <>
@@ -673,72 +655,8 @@ export const LoginPage: React.FC = () => {
                       </>
                     )}
                   </button>
-
-                  {/* Helper hint when button is disabled due to password requirements */}
-                  {formData.password.length > 0 && !loginPasswordEval?.isStrong && !isValidatingLoginPassword && (
-                    <p className="mt-2 text-[11px] text-amber-600 text-center font-medium flex items-center justify-center gap-1">
-                      <ErrorOutline sx={{ fontSize: 13 }} />
-                      Sign in is disabled until password meets all strong security requirements.
-                    </p>
-                  )}
                 </div>
               </form>
-
-              {/* Quick Demo Credentials Card */}
-              <div className="mt-6 border-t border-slate-100 pt-5">
-                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5 text-center">
-                  Quick Login Presets (Click to Fill)
-                </p>
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormData({
-                        email: "admin@example.com",
-                        password: "Admin@123",
-                        remember: true,
-                      })
-                    }
-                    className="flex flex-col items-center rounded-xl border border-indigo-100 bg-indigo-50/60 p-2 text-left hover:bg-indigo-100/80 hover:border-indigo-200 transition-all cursor-pointer shadow-2xs"
-                  >
-                    <span className="text-[11px] font-bold text-indigo-700">Super Admin</span>
-                    <span className="text-[10px] text-slate-500 truncate max-w-full">admin@example.com</span>
-                    <span className="text-[9px] text-indigo-500 font-mono mt-0.5">Admin@123</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormData({
-                        email: "manager@example.com",
-                        password: "Manager@123",
-                        remember: true,
-                      })
-                    }
-                    className="flex flex-col items-center rounded-xl border border-amber-100 bg-amber-50/60 p-2 text-left hover:bg-amber-100/80 hover:border-amber-200 transition-all cursor-pointer shadow-2xs"
-                  >
-                    <span className="text-[11px] font-bold text-amber-700">Manager</span>
-                    <span className="text-[10px] text-slate-500 truncate max-w-full">manager@example.com</span>
-                    <span className="text-[9px] text-amber-500 font-mono mt-0.5">Manager@123</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormData({
-                        email: "user@example.com",
-                        password: "User@123",
-                        remember: true,
-                      })
-                    }
-                    className="flex flex-col items-center rounded-xl border border-emerald-100 bg-emerald-50/60 p-2 text-left hover:bg-emerald-100/80 hover:border-emerald-200 transition-all cursor-pointer shadow-2xs"
-                  >
-                    <span className="text-[11px] font-bold text-emerald-700">Employee</span>
-                    <span className="text-[10px] text-slate-500 truncate max-w-full">user@example.com</span>
-                    <span className="text-[9px] text-emerald-500 font-mono mt-0.5">User@123</span>
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 
@@ -938,7 +856,7 @@ export const LoginPage: React.FC = () => {
                   <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1">
                     Password Security Checklist:
                   </span>
-                  
+
                   <div className="grid grid-cols-2 gap-1.5 text-xs">
                     <div className={`flex items-center gap-1.5 ${passwordCriteria.minLength ? "text-emerald-600 font-semibold" : "text-slate-400"}`}>
                       {passwordCriteria.minLength ? <Check sx={{ fontSize: 14 }} /> : <ErrorOutline sx={{ fontSize: 14 }} />}

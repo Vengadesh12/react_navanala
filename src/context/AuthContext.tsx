@@ -192,6 +192,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (credentials: LoginCredentials): Promise<LoginResult> => {
     setLoading(true);
     try {
+      clearSession();
       const response = await authService.login(credentials);
       if (response.requiresTwoFactor) {
         return {
