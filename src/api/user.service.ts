@@ -18,6 +18,7 @@ export const userService = {
         age: Number(userData.age),
         address: userData.address.trim(),
         roleId: Number(userData.roleId),
+        designationId: Number(userData.designationId),
       }),
     });
   },
@@ -34,6 +35,7 @@ export const userService = {
         age: Number(userData.age),
         address: userData.address.trim(),
         roleId: Number(userData.roleId),
+        designationId: Number(userData.designationId),
       }),
     });
   },

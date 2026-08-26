@@ -1,3 +1,5 @@
+import type { MenuItemDto } from "./navigation";
+
 export interface LoggedInUser {
   id: number;
   name: string;
@@ -5,6 +7,7 @@ export interface LoggedInUser {
   roleId: number | string;
   roleName?: string;
   permissions: string[];
+  menus?: MenuItemDto[];
   token?: string;
   phone?: string;
   age?: number;
@@ -24,15 +27,37 @@ export interface AuthResponseData {
   roleId: number;
   roleName?: string;
   permissions: string[];
+  menus?: MenuItemDto[];
   token: string;
 }
 
 export interface AuthResponse {
   success?: boolean;
   message?: string;
+  requiresTwoFactor?: boolean;
   data: AuthResponseData;
 }
 
 export interface PermissionCheckResponse {
   permissions: string[];
 }
+
+export interface PasswordCriteriaStatus {
+  minLength: boolean;
+  hasUpper: boolean;
+  hasLower: boolean;
+  hasNumber: boolean;
+  hasSpecial: boolean;
+}
+
+export interface PasswordEvaluationResult {
+  isValid: boolean;
+  isStrong: boolean;
+  score: number;
+  strengthLabel: "Empty" | "Very Weak" | "Weak" | "Fair" | "Good" | "Strong" | string;
+  criteria: PasswordCriteriaStatus;
+  errors: string[];
+  message?: string;
+}
+
+

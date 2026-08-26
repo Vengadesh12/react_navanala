@@ -5,7 +5,7 @@ import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { getFirstAccessiblePath } from "../config/workspace.config";
 
 export interface ProtectedRouteProps {
-  permission: string;
+  permission?: string;
   children: React.ReactElement;
 }
 
@@ -39,7 +39,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permission, chil
   }
 
   if (status === "denied") {
-    return <Navigate to={getFirstAccessiblePath(user)} replace />;
+    const targetPath = getFirstAccessiblePath(user);
+    const safePath = !targetPath || targetPath === "/login" ? "/profile" : targetPath;
+    return <Navigate to={safePath} replace />;
   }
 
   return children;

@@ -59,8 +59,8 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
     return null;
   }
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    await logout();
     navigate("/login", { replace: true });
   };
 

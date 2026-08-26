@@ -11,6 +11,7 @@ import {
   Email,
   FilterList,
   RestoreFromTrash,
+  WorkOutline,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { MetricCard } from "../../components/common/MetricCard";
@@ -18,12 +19,15 @@ import { SearchInput } from "../../components/common/SearchInput";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { EmptyState } from "../../components/common/EmptyState";
 import { UserModal } from "./components/UserModal";
+import { CreateDesignationModal } from "./components/CreateDesignationModal";
 import { userService } from "../../api/user.service";
 import { roleService } from "../../api/role.service";
+import { designationService } from "../../api/designation.service";
+import { userActivityService } from "../../api/userActivity.service";
 import { useAuth } from "../../hooks/useAuth";
 import { getRoleMeta } from "../../config/workspace.config";
 import { showConfirmDialog, showErrorAlert, showSuccessAlert } from "../../utils/alerts";
-import type { Role, User, UserFormData, UserStatusFilter } from "../../types";
+import type { Role, Designation, User, UserFormData, UserStatusFilter, UserSessionItem } from "../../types";
 
 export const UsersPage: React.FC = () => {
   const { can } = useAuth();
@@ -34,6 +38,8 @@ export const UsersPage: React.FC = () => {
 
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [designations, setDesignations] = useState<Designation[]>([]);
+  const [activeSessions, setActiveSessions] = useState<UserSessionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [usersError, setUsersError] = useState("");
@@ -43,6 +49,7 @@ export const UsersPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<UserStatusFilter>("ALL");
 
   const [modalOpen, setModalOpen] = useState(false);
+  const [designationModalOpen, setDesignationModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const fetchRoles = async () => {
@@ -54,12 +61,34 @@ export const UsersPage: React.FC = () => {
     }
   };
 
+  const fetchDesignations = async () => {
+    try {
+      const data = await designationService.getDesignations();
+      setDesignations(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("GET Designations API Error:", error);
+    }
+  };
+
+  const fetchActiveUsers = async () => {
+    try {
+      const data = await userActivityService.getActiveUsers();
+      setActiveSessions(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("GET Active Users API Error:", error);
+      setActiveSessions([]);
+    }
+  };
+
   const fetchUsers = async () => {
     setLoading(true);
     setUsersError("");
     try {
-      const data = await userService.getUsers();
-      setUsers(data);
+      const [userData] = await Promise.all([
+        userService.getUsers(),
+        fetchActiveUsers(),
+      ]);
+      setUsers(userData);
     } catch (error) {
       console.error("GET Users API Error:", error);
       setUsersError("Could not load users. Check that the C# backend is running.");
@@ -71,20 +100,37 @@ export const UsersPage: React.FC = () => {
   useEffect(() => {
     fetchUsers();
     fetchRoles();
+    fetchDesignations();
   }, []);
 
   const isUserActive = (user: User): boolean => {
     const rawFlag = user.deletedFlag ?? user.DeletedFlag ?? user.deletedflag;
+    if (rawFlag === undefined || rawFlag === null) return true;
     const deletedFlag = typeof rawFlag === "string" ? Number(rawFlag.trim()) : Number(rawFlag);
-    return deletedFlag !== 0;
+    return !isNaN(deletedFlag) && deletedFlag !== 0;
   };
+
+  const activeUserIds = useMemo(() => {
+    return new Set(activeSessions.map((s) => Number(s.userId)).filter((id) => id > 0));
+  }, [activeSessions]);
+
+  const activeUsersCount = useMemo(() => {
+    if (activeSessions.length === 0) return 0;
+    return activeUserIds.size > 0 ? activeUserIds.size : activeSessions.length;
+  }, [activeSessions, activeUserIds]);
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     return users.filter((u) => {
+      const userId = Number(u.id ?? u.Id);
       const userRoleId = u.roleId ?? u.RoleId;
       const userRole = roles.find((r) => String(r.id) === String(userRoleId));
       const roleName = userRole?.name || "";
+
+      const userDesId = u.designationId ?? u.DesignationId;
+      const userDes = designations.find((d) => String(d.id ?? d.Id) === String(userDesId));
+      const designationName = u.designationName ?? u.DesignationName ?? userDes?.name ?? "";
+
       const ageStr = String(u.age ?? u.Age ?? "");
 
       const matchesSearch =
@@ -94,20 +140,24 @@ export const UsersPage: React.FC = () => {
         u.phone?.toLowerCase().includes(q) ||
         u.address?.toLowerCase().includes(q) ||
         ageStr.includes(q) ||
-        roleName.toLowerCase().includes(q);
+        roleName.toLowerCase().includes(q) ||
+        designationName.toLowerCase().includes(q);
 
       const matchesRole =
         roleFilter === "ALL" || String(userRoleId) === String(roleFilter);
 
       const active = isUserActive(u);
+      const isOnline = activeUserIds.has(userId);
+
       const matchesStatus =
         statusFilter === "ALL" ||
         (statusFilter === "ACTIVE" && active) ||
+        (statusFilter === "ONLINE" && isOnline) ||
         (statusFilter === "DELETED" && !active);
 
       return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [users, roles, searchQuery, roleFilter, statusFilter]);
+  }, [users, roles, designations, searchQuery, roleFilter, statusFilter, activeUserIds]);
 
   const openAddModal = () => {
     setEditingUser(null);
@@ -176,10 +226,20 @@ export const UsersPage: React.FC = () => {
     const userName = user.name || user.Name || "this member";
     if (!userId) return;
 
+    const result = await showConfirmDialog(
+      `Restore ${userName}?`,
+      `Are you sure you want to restore and reactivate ${userName}'s account? They will regain access to the workspace.`,
+      "Yes, Restore Member",
+      "Cancel",
+      false
+    );
+
+    if (!result.isConfirmed) return;
+
     try {
       await userService.restoreUser(userId);
       await fetchUsers();
-      await showSuccessAlert("Member Restored", `${userName} has been reactivated.`);
+      await showSuccessAlert("Member Restored", `${userName} has been reactivated successfully.`);
     } catch (error: any) {
       console.error("Restore User Error:", error);
       await showErrorAlert("Restore Failed", error.message || "Could not restore member.");
@@ -201,7 +261,7 @@ export const UsersPage: React.FC = () => {
 
           <MetricCard
             label="Active Users"
-            value={users.filter(isUserActive).length}
+            value={activeUsersCount}
             note="Currently active in workspace"
             icon={<CheckCircle sx={{ fontSize: 24 }} />}
             iconBgColor="bg-emerald-50 text-emerald-600"
@@ -250,7 +310,8 @@ export const UsersPage: React.FC = () => {
               onChange={(e) => setStatusFilter(e.target.value as UserStatusFilter)}
             >
               <option value="ALL">All Status</option>
-              <option value="ACTIVE">Active Only</option>
+              <option value="ACTIVE">Active Accounts</option>
+              <option value="ONLINE">Currently Online ({activeUsersCount})</option>
               <option value="DELETED">Deleted Only</option>
             </select>
 
@@ -262,6 +323,16 @@ export const UsersPage: React.FC = () => {
             >
               <Refresh sx={{ fontSize: 18 }} className={loading ? "animate-spin" : ""} />
               <span>{loading ? "Syncing..." : "Refresh"}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setDesignationModalOpen(true)}
+              className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-xs transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+              title="Create a new job designation"
+            >
+              <WorkOutline sx={{ fontSize: 16, color: "#4f46e5" }} />
+              <span>Add Designation</span>
             </button>
 
             {canCreateUsers && (
@@ -314,21 +385,28 @@ export const UsersPage: React.FC = () => {
                 <table className="w-full text-left text-sm text-slate-600">
                   <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500">
                     <tr>
-                      <th className="px-6 py-4">#</th>
-                      <th className="px-6 py-4">Member</th>
-                      <th className="px-6 py-4">Role</th>
-                      <th className="px-6 py-4">Contact</th>
-                      <th className="px-6 py-4">Age</th>
-                      <th className="px-6 py-4">Address</th>
-                      <th className="px-6 py-4">Status</th>
-                      <th className="px-6 py-4 text-right">Actions</th>
+                      <th className="px-6 py-4 whitespace-nowrap">#</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Member</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Role</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Designation</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Contact</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Age</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Address</th>
+                      <th className="px-6 py-4 whitespace-nowrap">Status</th>
+                      <th className="px-6 py-4 text-right whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredUsers.map((u, idx) => {
+                      const userId = Number(u.id ?? u.Id);
                       const userRoleId = u.roleId ?? u.RoleId;
                       const role = roles.find((r) => String(r.id) === String(userRoleId));
                       const meta = getRoleMeta(userRoleId, role?.name);
+
+                      const userDesId = u.designationId ?? u.DesignationId;
+                      const userDes = designations.find((d) => String(d.id ?? d.Id) === String(userDesId));
+                      const designationName = u.designationName ?? u.DesignationName ?? userDes?.name ?? "";
+
                       const userName = u.name || u.Name || "User";
                       const userEmail = u.email || u.Email || "";
                       const userPhone = u.phone || u.Phone || "—";
@@ -336,16 +414,25 @@ export const UsersPage: React.FC = () => {
                       const userAddress = u.address || u.Address || "—";
                       const initial = userName.charAt(0).toUpperCase();
                       const isActive = isUserActive(u);
+                      const isOnline = activeUserIds.has(userId);
 
                       return (
                         <tr key={u.id ?? u.Id ?? idx} className="transition-colors hover:bg-slate-50/80">
-                          <td className="px-6 py-4 font-mono text-xs text-slate-400">
+                          <td className="px-6 py-4 font-mono text-xs text-slate-400 whitespace-nowrap">
                             {String(idx + 1).padStart(2, "0")}
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center gap-3">
-                              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 text-xs font-bold text-white shadow-sm">
-                                {initial}
+                              <div className="relative">
+                                <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gradient-to-br from-indigo-500 to-pink-500 text-xs font-bold text-white shadow-sm">
+                                  {initial}
+                                </div>
+                                {isOnline && (
+                                  <span
+                                    className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white"
+                                    title="Online in workspace"
+                                  />
+                                )}
                               </div>
                               <div>
                                 <strong className="block font-semibold text-slate-900">
@@ -358,74 +445,83 @@ export const UsersPage: React.FC = () => {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4">
+                          <td className="px-6 py-4 whitespace-nowrap">
                             <span
-                              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${meta.color}`}
+                              className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${meta.color}`}
                             >
                               <Shield sx={{ fontSize: 12 }} />
                               {role?.name || "Unassigned"}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className="flex items-center gap-1 text-xs text-slate-700">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 rounded-full border border-blue-200 bg-blue-50/70 px-2.5 py-0.5 text-xs font-semibold text-blue-700 whitespace-nowrap">
+                              {designationName || "Unassigned"}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="flex items-center gap-1 text-xs text-slate-700 whitespace-nowrap">
                               <Phone sx={{ fontSize: 12, color: "#64748b" }} />
                               {userPhone}
                             </span>
                           </td>
-                          <td className="px-6 py-4">
-                            <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 whitespace-nowrap">
                               {userAge ? `${userAge} yrs` : "—"}
                             </span>
                           </td>
                           <td
-                            className="max-w-[200px] truncate px-6 py-4 text-xs text-slate-500"
+                            className="max-w-[200px] truncate px-6 py-4 text-xs text-slate-500 whitespace-nowrap"
                             title={userAddress}
                           >
                             {userAddress}
                           </td>
-                          <td className="px-6 py-4">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                                isActive
-                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                                  : "bg-rose-50 text-rose-700 border border-rose-200"
-                              }`}
-                            >
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex flex-col gap-1">
                               <span
-                                className={`h-1.5 w-1.5 rounded-full ${
-                                  isActive ? "bg-emerald-500 shadow-sm" : "bg-rose-500"
+                                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold w-fit whitespace-nowrap ${
+                                  isActive
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    : "bg-rose-50 text-rose-700 border border-rose-200"
                                 }`}
-                              />
-                              {isActive ? "Active" : "Deleted"}
-                            </span>
+                              >
+                                <span
+                                  className={`h-1.5 w-1.5 rounded-full ${
+                                    isActive ? "bg-emerald-500 shadow-sm" : "bg-rose-500"
+                                  }`}
+                                />
+                                {isActive ? "Active" : "Deleted"}
+                              </span>
+                            </div>
                           </td>
-                          <td className="px-6 py-4 text-right">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <td className="px-6 py-4 text-right whitespace-nowrap">
+                            <div className="flex items-center justify-end gap-2">
                               {canEditUsers && (
                                 <button
                                   type="button"
                                   onClick={() => openEditModal(u)}
-                                  className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                                  className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-slate-600 shadow-xs transition-all hover:border-slate-300 hover:bg-slate-50 cursor-pointer"
                                   title="Edit Member"
                                 >
                                   <Edit sx={{ fontSize: 16 }} />
                                 </button>
                               )}
+
                               {canDeleteUsers && isActive && (
                                 <button
                                   type="button"
                                   onClick={() => handleDelete(u)}
-                                  className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
-                                  title="Delete Member"
+                                  className="grid h-8 w-8 place-items-center rounded-lg border border-slate-200 bg-white text-rose-600 shadow-xs transition-all hover:border-rose-300 hover:bg-rose-50 cursor-pointer"
+                                  title="Deactivate / Soft-Delete Member"
                                 >
                                   <Delete sx={{ fontSize: 16 }} />
                                 </button>
                               )}
-                              {canEditUsers && !isActive && (
+
+                              {canDeleteUsers && !isActive && (
                                 <button
                                   type="button"
                                   onClick={() => handleRestore(u)}
-                                  className="rounded-lg p-1.5 text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                                  className="grid h-8 w-8 place-items-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-xs transition-all hover:bg-emerald-100 cursor-pointer"
                                   title="Restore / Reactivate Member"
                                 >
                                   <RestoreFromTrash sx={{ fontSize: 16 }} />
@@ -450,11 +546,22 @@ export const UsersPage: React.FC = () => {
           onSave={handleSaveUser}
           editingUser={editingUser}
           roles={roles}
+          designations={designations}
           saving={saving}
+        />
+
+        {/* Create Designation Modal Dialog */}
+        <CreateDesignationModal
+          isOpen={designationModalOpen}
+          onClose={() => setDesignationModalOpen(false)}
+          onCreated={async () => {
+            await fetchDesignations();
+          }}
         />
       </div>
     </WorkspaceLayout>
   );
 };
+
 
 export default UsersPage;

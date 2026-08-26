@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   Key,
   Shield,
@@ -60,16 +60,16 @@ const PERMISSION_CATEGORIES: PermissionCategory[] = [
   {
     id: "system",
     name: "System Security & Audit",
-    desc: "System configurations, preferences, and immutable audit logs",
+    desc: "System configurations, live user activity monitoring, session force logout, and immutable audit logs",
     icon: <Tune sx={{ fontSize: 20 }} />,
     color: "bg-amber-50 text-amber-700 border-amber-200",
-    keys: ["settings.view", "audit.view"],
+    keys: ["settings.view", "audit.view", "user_activity.view", "user_activity.force_logout", "user_activity.manage"],
   },
 ];
 
 export const PermissionsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user, can } = useAuth();
+  const { user, can, refreshPermissions } = useAuth();
 
   const [data, setData] = useState<PermissionsApiResponse>({ permissions: [], roles: [] });
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
@@ -145,8 +145,8 @@ export const PermissionsPage: React.FC = () => {
     const role = data.roles.find((item) => String(item.roleId) === String(roleId));
     setSelectedRoleId(String(roleId));
     const keys = role?.permissionKeys || [];
-    setSelectedKeys(keys);
-    setOriginalKeys(keys);
+    setSelectedKeys([...keys]);
+    setOriginalKeys([...keys]);
   };
 
   const togglePermission = (key: string) => {
@@ -175,7 +175,7 @@ export const PermissionsPage: React.FC = () => {
   };
 
   const handleDiscardChanges = () => {
-    setSelectedKeys(originalKeys);
+    setSelectedKeys([...originalKeys]);
   };
 
   const handleSavePermissions = async () => {
@@ -187,10 +187,13 @@ export const PermissionsPage: React.FC = () => {
       setData((current) => ({
         ...current,
         roles: current.roles.map((r) =>
-          String(r.roleId) === String(selectedRoleId) ? { ...r, permissionKeys: selectedKeys } : r
+          String(r.roleId) === String(selectedRoleId) ? { ...r, permissionKeys: [...selectedKeys] } : r
         ),
       }));
-      setOriginalKeys(selectedKeys);
+      setOriginalKeys([...selectedKeys]);
+
+      // Instantly sync the current authenticated user's permissions and dynamic menus
+      await refreshPermissions(true);
 
       await showSuccessAlert(
         "Permissions Saved",
@@ -206,7 +209,10 @@ export const PermissionsPage: React.FC = () => {
 
   const filteredCategories: CategoryWithPermissions[] = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    return PERMISSION_CATEGORIES.map((cat) => {
+    const mappedKeys = new Set(PERMISSION_CATEGORIES.flatMap((c) => c.keys));
+    const unmappedPerms = data.permissions.filter((p) => !mappedKeys.has(p.permissionKey));
+
+    const categories: CategoryWithPermissions[] = PERMISSION_CATEGORIES.map((cat) => {
       const catPerms = data.permissions.filter((p) => cat.keys.includes(p.permissionKey));
       const filtered = catPerms.filter(
         (p) =>
@@ -221,6 +227,30 @@ export const PermissionsPage: React.FC = () => {
         totalInCat: catPerms.length,
       };
     }).filter((cat) => cat.permissions.length > 0);
+
+    if (unmappedPerms.length > 0) {
+      const filteredUnmapped = unmappedPerms.filter(
+        (p) =>
+          !q ||
+          p.name?.toLowerCase().includes(q) ||
+          p.description?.toLowerCase().includes(q) ||
+          p.permissionKey?.toLowerCase().includes(q)
+      );
+      if (filteredUnmapped.length > 0) {
+        categories.push({
+          id: "other",
+          name: "Additional Capabilities",
+          desc: "Other permissions configured in the workspace",
+          icon: <Layers sx={{ fontSize: 20 }} />,
+          color: "bg-slate-50 text-slate-700 border-slate-200",
+          keys: unmappedPerms.map((p) => p.permissionKey),
+          permissions: filteredUnmapped,
+          totalInCat: unmappedPerms.length,
+        });
+      }
+    }
+
+    return categories;
   }, [data.permissions, searchQuery]);
 
   if (!user || !(Number(user.roleId) === 2 || can("permissions.manage"))) {
@@ -354,37 +384,6 @@ export const PermissionsPage: React.FC = () => {
                 >
                   <Refresh sx={{ fontSize: 18 }} className={loading ? "animate-spin" : ""} />
                   <span>{loading ? "Syncing..." : "Refresh"}</span>
-                </button>
-
-                <Link
-                  to="/roles"
-                  className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
-                >
-                  <Shield sx={{ fontSize: 18 }} />
-                  <span>Roles List</span>
-                </Link>
-
-                {hasUnsavedChanges && (
-                  <button
-                    type="button"
-                    onClick={handleDiscardChanges}
-                    className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2 text-xs font-semibold text-amber-800 shadow-sm transition-all hover:bg-amber-100"
-                  >
-                    <Undo sx={{ fontSize: 18 }} />
-                    <span>Discard</span>
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={handleSavePermissions}
-                  disabled={saving || !hasUnsavedChanges}
-                  className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-indigo-200 transition-all hover:from-indigo-700 hover:to-indigo-800 disabled:opacity-50 ${
-                    hasUnsavedChanges ? "!bg-indigo-600 shadow-md shadow-indigo-200 ring-2 ring-indigo-500/20" : ""
-                  }`}
-                >
-                  <Save sx={{ fontSize: 18 }} />
-                  <span>{saving ? "Saving..." : "Save Changes"}</span>
                 </button>
               </div>
             </div>

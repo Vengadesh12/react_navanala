@@ -10,7 +10,9 @@ import { ReportsPage } from "../pages/overview/ReportsPage";
 import { ProjectsPage } from "../pages/overview/ProjectsPage";
 import { CalendarPage } from "../pages/overview/CalendarPage";
 import { SettingsPage } from "../pages/overview/SettingsPage";
+import { ProfilePage } from "../pages/overview/ProfilePage";
 import { AuditPage } from "../pages/overview/AuditPage";
+import { UserActivityPage } from "../pages/activity/UserActivityPage";
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -92,10 +94,26 @@ export const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/audit"
         element={
           <ProtectedRoute permission="audit.view">
             <AuditPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/user-activity"
+        element={
+          <ProtectedRoute permission="user_activity.view">
+            <UserActivityPage />
           </ProtectedRoute>
         }
       />

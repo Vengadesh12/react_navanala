@@ -1,3 +1,14 @@
+export interface Designation {
+  id: number;
+  Id?: number;
+  name: string;
+  Name?: string;
+  description?: string;
+  Description?: string;
+  deletedFlag?: number;
+  DeletedFlag?: number;
+}
+
 export interface User {
   id: number;
   Id?: number;
@@ -13,6 +24,12 @@ export interface User {
   Address?: string;
   roleId: number | string;
   RoleId?: number | string;
+  roleName?: string;
+  RoleName?: string;
+  designationId?: number | string;
+  DesignationId?: number | string;
+  designationName?: string;
+  DesignationName?: string;
   deletedFlag?: number | string;
   DeletedFlag?: number | string;
   deletedflag?: number | string;
@@ -26,6 +43,7 @@ export interface UserFormData {
   age: number | string;
   address: string;
   roleId: number | string;
+  designationId: number | string;
 }
 
 export interface UserFormErrors {
@@ -36,6 +54,7 @@ export interface UserFormErrors {
   age?: string;
   address?: string;
   roleId?: string;
+  designationId?: string;
 }
 
-export type UserStatusFilter = "ALL" | "ACTIVE" | "DELETED";
+export type UserStatusFilter = "ALL" | "ACTIVE" | "ONLINE" | "DELETED";

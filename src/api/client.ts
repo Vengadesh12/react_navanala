@@ -29,8 +29,12 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
 
   if (!response.ok) {
     const errorMessage = data?.message || `Request failed with status ${response.status}`;
+    if (response.status === 401 && token) {
+      window.dispatchEvent(new CustomEvent("auth:force-logout", { detail: errorMessage }));
+    }
     throw new Error(errorMessage);
   }
 
   return data as T;
 }
+

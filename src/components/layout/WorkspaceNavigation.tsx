@@ -1,7 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
 import { canAccess, workspaceMenus } from "../../config/workspace.config";
-import type { LoggedInUser, NavGroup } from "../../types";
+import type { LoggedInUser, NavMenuItem } from "../../types";
 
 export interface WorkspaceNavigationProps {
   user: LoggedInUser | null;
@@ -9,36 +10,65 @@ export interface WorkspaceNavigationProps {
   onNavigate?: () => void;
 }
 
-const groups: NavGroup[] = [
-  {
-    title: "Core Access",
-    keys: ["dashboard.view", "users.view", "roles.view", "permissions.manage"],
-  },
-  {
-    title: "Operations & Audit",
-    keys: ["audit.view", "reports.view", "projects.view", "calendar.view"],
-  },
-  {
-    title: "Preferences",
-    keys: ["settings.view"],
-  },
-];
-
 export const WorkspaceNavigation: React.FC<WorkspaceNavigationProps> = ({
   user,
   activeKey,
   onNavigate,
 }) => {
-  const allowed = workspaceMenus.filter((menu) => canAccess(user, menu.key));
+  const { menus: authMenus } = useAuth();
+
+  const activeMenus =
+    authMenus && authMenus.length > 0
+      ? authMenus
+      : user?.menus && user.menus.length > 0
+      ? user.menus
+      : [];
+
+  // Use dynamic menus returned from backend database via JWT, with fallback to workspace config
+  const navItems: NavMenuItem[] =
+    activeMenus.length > 0
+      ? activeMenus.map((m) => ({
+          key: m.menuKey,
+          label: m.label,
+          icon: m.icon || "◫",
+          to: m.route,
+          group: m.groupName || "General",
+          desc: m.description || "",
+          order: m.orderIndex,
+          permissionKey: m.permissionKey,
+        }))
+      : workspaceMenus.filter((menu) => canAccess(user, menu.key));
+
+  // Dynamically group menu items preserving database order
+  const groupMap = new Map<string, NavMenuItem[]>();
+  navItems.forEach((item) => {
+    const groupName = item.group || "General";
+    if (!groupMap.has(groupName)) {
+      groupMap.set(groupName, []);
+    }
+    groupMap.get(groupName)!.push(item);
+  });
+
+  const groupedList = Array.from(groupMap.entries()).map(([title, items]) => ({
+    title,
+    items,
+  }));
+
+  if (groupedList.length === 0) {
+    return (
+      <div className="px-3 py-4 text-xs text-slate-500 italic">
+        No accessible workspace modules.
+      </div>
+    );
+  }
 
   return (
     <nav
       className="flex-1 space-y-6 overflow-y-auto pr-1"
       aria-label="Main navigation"
     >
-      {groups.map((group) => {
-        const groupMenus = allowed.filter((menu) => group.keys.includes(menu.key));
-        if (groupMenus.length === 0) return null;
+      {groupedList.map((group) => {
+        if (group.items.length === 0) return null;
 
         return (
           <div key={group.title} className="space-y-1">
@@ -46,7 +76,7 @@ export const WorkspaceNavigation: React.FC<WorkspaceNavigationProps> = ({
               {group.title}
             </p>
             <div className="space-y-1 pt-1">
-              {groupMenus.map((menu) => {
+              {group.items.map((menu) => {
                 const isActive = activeKey === menu.key;
                 return (
                   <Link
