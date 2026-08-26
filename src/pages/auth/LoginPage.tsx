@@ -683,6 +683,62 @@ export const LoginPage: React.FC = () => {
                   )}
                 </div>
               </form>
+
+              {/* Quick Demo Credentials Card */}
+              <div className="mt-6 border-t border-slate-100 pt-5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5 text-center">
+                  Quick Login Presets (Click to Fill)
+                </p>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        email: "admin@example.com",
+                        password: "Admin@123",
+                        remember: true,
+                      })
+                    }
+                    className="flex flex-col items-center rounded-xl border border-indigo-100 bg-indigo-50/60 p-2 text-left hover:bg-indigo-100/80 hover:border-indigo-200 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <span className="text-[11px] font-bold text-indigo-700">Super Admin</span>
+                    <span className="text-[10px] text-slate-500 truncate max-w-full">admin@example.com</span>
+                    <span className="text-[9px] text-indigo-500 font-mono mt-0.5">Admin@123</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        email: "manager@example.com",
+                        password: "Manager@123",
+                        remember: true,
+                      })
+                    }
+                    className="flex flex-col items-center rounded-xl border border-amber-100 bg-amber-50/60 p-2 text-left hover:bg-amber-100/80 hover:border-amber-200 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <span className="text-[11px] font-bold text-amber-700">Manager</span>
+                    <span className="text-[10px] text-slate-500 truncate max-w-full">manager@example.com</span>
+                    <span className="text-[9px] text-amber-500 font-mono mt-0.5">Manager@123</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData({
+                        email: "user@example.com",
+                        password: "User@123",
+                        remember: true,
+                      })
+                    }
+                    className="flex flex-col items-center rounded-xl border border-emerald-100 bg-emerald-50/60 p-2 text-left hover:bg-emerald-100/80 hover:border-emerald-200 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <span className="text-[11px] font-bold text-emerald-700">Employee</span>
+                    <span className="text-[10px] text-slate-500 truncate max-w-full">user@example.com</span>
+                    <span className="text-[9px] text-emerald-500 font-mono mt-0.5">User@123</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
