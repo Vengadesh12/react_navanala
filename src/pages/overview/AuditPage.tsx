@@ -123,13 +123,80 @@ export const AuditPage: React.FC = () => {
     }
   };
 
+  const q = searchTerm.toLowerCase().trim();
+
+  const matchTotalEvents =
+    !q ||
+    [
+      "total events",
+      "events",
+      "recorded",
+      "system logs",
+      String(stats.totalEvents),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchSuccessfulLogins =
+    !q ||
+    [
+      "access grants",
+      "successful logins",
+      "logins",
+      "access",
+      "grants",
+      String(stats.successfulLogins),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchPrivilegeChanges =
+    !q ||
+    [
+      "privilege changes",
+      "privilege",
+      "changes",
+      "role assignment",
+      String(stats.privilegeChanges),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const visibleMetricCount =
+    (matchTotalEvents ? 1 : 0) +
+    (matchSuccessfulLogins ? 1 : 0) +
+    (matchPrivilegeChanges ? 1 : 0);
+
   return (
-    <WorkspaceLayout permission="audit.view" label="Audit Logs" icon="◌" showHero={false}>
+    <WorkspaceLayout
+      permission="audit.view"
+      label="Audit Logs"
+      icon="◌"
+      showHero={false}
+      searchValue={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder="Search audit action, module, or user..."
+    >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+        {/* Active Search Results Banner */}
+        {q && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/60 dark:bg-indigo-950/40 px-4 py-3 text-xs">
+            <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+              <Search sx={{ fontSize: 18, color: "#6366f1" }} />
+              <span>
+                Showing <strong>{logs.length}</strong> matching audit event{logs.length === 1 ? "" : "s"} for{" "}
+                <span className="rounded-md bg-white dark:bg-slate-900 px-2 py-0.5 font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  &ldquo;{searchTerm}&rdquo;
+                </span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSearchTerm("")}
+              className="inline-flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              <Close sx={{ fontSize: 15 }} />
+              <span>Clear Filter</span>
+            </button>
+          </div>
+        )}
+
         {/* Header Title */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-
-
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -150,59 +217,75 @@ export const AuditPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 3 Metric Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {/* Card 1: Total Events */}
-          <div className="relative overflow-hidden rounded-2xl border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-500/10 via-white to-white dark:from-indigo-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">Total Events</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.totalEvents}</span>
-                  <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">+18% activity</span>
+        {/* 3 Metric Cards - rendered dynamically when matching */}
+        {visibleMetricCount > 0 && (
+          <div
+            className={`grid grid-cols-1 gap-4 ${
+              visibleMetricCount === 1
+                ? "sm:grid-cols-1 md:max-w-md"
+                : visibleMetricCount === 2
+                ? "sm:grid-cols-2"
+                : "sm:grid-cols-3"
+            }`}
+          >
+            {/* Card 1: Total Events */}
+            {matchTotalEvents && (
+              <div className="relative overflow-hidden rounded-2xl border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-500/10 via-white to-white dark:from-indigo-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">Total Events</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.totalEvents}</span>
+                      <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">recorded</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Immutable system logs</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
+                    <History sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Audit trail log entries</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
-                <History sx={{ fontSize: 24 }} />
-              </div>
-            </div>
-          </div>
+            )}
 
-          {/* Card 2: Successful Logins */}
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-200/70 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-500/10 via-white to-white dark:from-emerald-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Successful Logins</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.successfulLogins}</span>
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">98.8% rate</span>
+            {/* Card 2: Successful Logins */}
+            {matchSuccessfulLogins && (
+              <div className="relative overflow-hidden rounded-2xl border border-emerald-200/70 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-500/10 via-white to-white dark:from-emerald-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Access Grants</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.successfulLogins}</span>
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">allowed</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Successful authentication</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
+                    <CheckCircleOutline sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Verified authentications</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
-                <CheckCircleOutline sx={{ fontSize: 24 }} />
-              </div>
-            </div>
-          </div>
+            )}
 
-          {/* Card 3: Privilege Changes */}
-          <div className="relative overflow-hidden rounded-2xl border border-purple-200/70 dark:border-purple-900/60 bg-gradient-to-br from-purple-500/10 via-white to-white dark:from-purple-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Privilege Changes</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.privilegeChanges}</span>
-                  <span className="text-xs font-medium text-purple-600 dark:text-purple-400">verified</span>
+            {/* Card 3: Privilege Changes */}
+            {matchPrivilegeChanges && (
+              <div className="relative overflow-hidden rounded-2xl border border-purple-200/70 dark:border-purple-900/60 bg-gradient-to-br from-purple-500/10 via-white to-white dark:from-purple-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Privilege Changes</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.privilegeChanges}</span>
+                      <span className="text-xs font-medium text-purple-600 dark:text-purple-400">verified</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Role assignment modifications</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-purple-500 text-white shadow-md shadow-purple-500/25">
+                    <History sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Role assignment modifications</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-purple-500 text-white shadow-md shadow-purple-500/25">
-                <History sx={{ fontSize: 24 }} />
-              </div>
-            </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Filter Controls & Search */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">

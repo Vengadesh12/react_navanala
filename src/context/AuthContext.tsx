@@ -22,6 +22,7 @@ interface AuthContextType {
   refreshPermissions: (force?: boolean) => Promise<string[]>;
   refreshMenus: () => Promise<MenuItemDto[]>;
   can: (permission?: string) => boolean;
+  completeFirstLoginPasswordChange: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -67,6 +68,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => clearInterval(interval);
   }, [user?.token]);
 
+  const completeFirstLoginPasswordChange = useCallback(() => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated: LoggedInUser = { ...prev, isFirstLogin: false };
+      setStoredUser(updated);
+      return updated;
+    });
+  }, []);
+
   const saveAuthSession = async (data: AuthResponseData): Promise<string> => {
     // Save token first
     setStoredToken(data.token);
@@ -93,6 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       permissions: data.permissions || [],
       menus: userMenus,
       token: data.token,
+      isFirstLogin: data.isFirstLogin ?? false,
     };
 
     setStoredUser(loggedInUserData);
@@ -260,6 +271,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshPermissions,
         refreshMenus,
         can,
+        completeFirstLoginPasswordChange,
       }}
     >
       {children}

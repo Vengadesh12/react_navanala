@@ -1,5 +1,11 @@
 import { apiClient } from "./client";
-import type { ReportsOverviewResponse, Report, ReportFormData } from "../types";
+import type {
+  ReportsOverviewResponse,
+  Report,
+  ReportFormData,
+  ReportCategory,
+  CreateReportCategoryFormData,
+} from "../types";
 
 export const reportService = {
   getReports: async (category?: string, search?: string): Promise<ReportsOverviewResponse> => {
@@ -32,8 +38,24 @@ export const reportService = {
     });
   },
 
-  getCategories: async (): Promise<string[]> => {
-    return apiClient<string[]>("/api/reports/categories");
+  getCategories: async (): Promise<ReportCategory[]> => {
+    return apiClient<ReportCategory[]>("/api/report-categories");
+  },
+
+  createCategory: async (
+    data: CreateReportCategoryFormData
+  ): Promise<{ message?: string; data: ReportCategory }> => {
+    return apiClient<{ message?: string; data: ReportCategory }>("/api/report-categories", {
+      method: "POST",
+      includeJson: true,
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteCategory: async (id: number): Promise<{ message?: string }> => {
+    return apiClient<{ message?: string }>(`/api/report-categories/${id}`, {
+      method: "DELETE",
+    });
   },
 
   downloadReport: async (id: number, title: string, format: string): Promise<void> => {

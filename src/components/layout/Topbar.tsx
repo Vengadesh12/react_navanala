@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import {
   Menu as MenuIcon,
   Search,
+  Close,
   NotificationsNone,
   DarkModeOutlined,
   LightModeOutlined,
@@ -22,18 +23,46 @@ export interface TopbarProps {
   label?: string;
   onOpenMenu: () => void;
   onLogout?: () => void;
+  searchValue?: string;
+  onSearchChange?: (val: string) => void;
+  searchPlaceholder?: string;
+  showSearchBar?: boolean;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({
   user,
   onOpenMenu,
   onLogout,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder = "Search here...",
+  showSearchBar = true,
 }) => {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [localSearch, setLocalSearch] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const isControlled = onSearchChange !== undefined;
+  const currentSearch = isControlled ? (searchValue ?? "") : localSearch;
+
+  const handleSearchChange = (val: string) => {
+    if (isControlled) {
+      onSearchChange(val);
+    } else {
+      setLocalSearch(val);
+    }
+  };
+
+  const handleClearSearch = () => {
+    if (isControlled) {
+      onSearchChange("");
+    } else {
+      setLocalSearch("");
+    }
+  };
 
   const roleMeta = getRoleMeta(
     user?.roleId,
@@ -61,7 +90,7 @@ export const Topbar: React.FC<TopbarProps> = ({
     setDropdownOpen(false);
     const res = await showConfirmDialog(
       "Sign Out?",
-      "Are you sure you want to end your active session?",
+      "Are you sure you want to Logout!",
       "Sign Out",
       "Cancel",
       true
@@ -90,16 +119,30 @@ export const Topbar: React.FC<TopbarProps> = ({
         </button>
 
         {/* Search Bar */}
-        <div className="relative w-full max-w-xs">
-          <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-            <Search sx={{ fontSize: 18 }} />
+        {showSearchBar && (
+          <div className="relative w-full max-w-xs">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+              <Search sx={{ fontSize: 18 }} />
+            </div>
+            <input
+              type="text"
+              placeholder={searchPlaceholder}
+              value={currentSearch}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="w-full rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/80 py-2 pl-9 pr-8 text-xs font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-indigo-500 dark:focus:border-indigo-400 focus:bg-white dark:focus:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
+            />
+            {currentSearch && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                title="Clear search"
+              >
+                <Close sx={{ fontSize: 16 }} />
+              </button>
+            )}
           </div>
-          <input
-            type="text"
-            placeholder="Search here..."
-            className="w-full rounded-xl border border-slate-200/80 bg-slate-50/50 py-2 pl-9 pr-4 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all"
-          />
-        </div>
+        )}
       </div>
 
       {/* Right: Theme Toggle, Notifications & User Profile */}

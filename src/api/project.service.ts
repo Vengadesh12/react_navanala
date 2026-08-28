@@ -1,5 +1,11 @@
 import { apiClient } from "./client";
-import type { ProjectsOverviewResponse, Project, ProjectFormData } from "../types";
+import type {
+  ProjectsOverviewResponse,
+  Project,
+  ProjectFormData,
+  ProjectCategory,
+  CreateProjectCategoryFormData,
+} from "../types";
 
 export const projectService = {
   getProjects: async (category?: string, status?: string, search?: string): Promise<ProjectsOverviewResponse> => {
@@ -29,6 +35,26 @@ export const projectService = {
 
   deleteProject: async (id: number): Promise<{ message?: string }> => {
     return apiClient<{ message?: string }>(`/api/projects/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  getCategories: async (): Promise<ProjectCategory[]> => {
+    return apiClient<ProjectCategory[]>("/api/project-categories");
+  },
+
+  createCategory: async (
+    data: CreateProjectCategoryFormData
+  ): Promise<{ message?: string; data: ProjectCategory }> => {
+    return apiClient<{ message?: string; data: ProjectCategory }>("/api/project-categories", {
+      method: "POST",
+      includeJson: true,
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteCategory: async (id: number): Promise<{ message?: string }> => {
+    return apiClient<{ message?: string }>(`/api/project-categories/${id}`, {
       method: "DELETE",
     });
   },

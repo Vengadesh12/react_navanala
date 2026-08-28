@@ -51,6 +51,7 @@ export interface DashboardChartPoint {
   day: string;
   active: number;
   newUsers: number;
+  auditLogs?: number;
   total: number;
 }
 

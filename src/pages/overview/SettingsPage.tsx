@@ -22,6 +22,8 @@ import {
   EmailOutlined,
   CloudUploadOutlined,
   CachedOutlined,
+  Search,
+  SearchOff,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { settingService } from "../../api/setting.service";
@@ -50,6 +52,7 @@ export const SettingsPage: React.FC = () => {
   const [categories, setCategories] = useState<SettingCategory[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<string>("General");
+  const [searchQuery, setSearchQuery] = useState<string>("");
   const [formValues, setFormValues] = useState<Record<string, string>>({
     app_name: "Role Management System",
     app_url: "http://localhost:5173",
@@ -173,7 +176,7 @@ export const SettingsPage: React.FC = () => {
         items_per_page: formValues.items_per_page,
         session_timeout: formValues.session_timeout,
       });
-      showSuccessToast("General settings saved and persisted successfully!");
+      showSuccessToast("General settings saved successfully!");
       fetchSettings();
     } catch (err: any) {
       showErrorToast(err?.message || "Failed to save general settings.");
@@ -293,22 +296,106 @@ export const SettingsPage: React.FC = () => {
     </button>
   );
 
+  const q = searchQuery.toLowerCase().trim();
+
+  const matchGeneralSettings =
+    !q ||
+    [
+      "general settings",
+      "application name",
+      "application url",
+      "timezone",
+      "date format",
+      "items per page",
+      formValues.app_name,
+      formValues.app_url,
+      formValues.timezone,
+      formValues.date_format,
+    ].some((t) => t?.toLowerCase().includes(q));
+
+  const matchOtherPreferences =
+    !q ||
+    [
+      "other preferences",
+      "workspace preferences",
+      "user registration",
+      "email verification",
+      "user session timeout",
+      "session timeout",
+      formValues.session_timeout,
+    ].some((t) => t?.toLowerCase().includes(q));
+
+  const matchSystemInformation =
+    !q ||
+    [
+      "system information",
+      "system version",
+      "environment",
+      "last updated",
+      "admin",
+      user?.name || "",
+    ].some((t) => t?.toLowerCase().includes(q));
+
+  const matchSecuritySettingsCard =
+    !q ||
+    [
+      "security settings",
+      "two-factor authentication",
+      "2fa",
+      "password expiry",
+      "password",
+    ].some((t) => t?.toLowerCase().includes(q));
+
+  const matchAnyGeneral =
+    matchGeneralSettings ||
+    matchOtherPreferences ||
+    matchSystemInformation ||
+    matchSecuritySettingsCard;
+
   return (
-    <WorkspaceLayout permission="settings.view" label="Settings" icon="⚙" showHero={false}>
+    <WorkspaceLayout
+      permission="settings.view"
+      label="Settings"
+      icon="⚙"
+      showHero={false}
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder="Search system settings & configurations..."
+    >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+        {/* Active Search Results Banner */}
+        {q && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/60 dark:bg-indigo-950/40 px-4 py-3 text-xs">
+            <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+              <Search sx={{ fontSize: 18, color: "#6366f1" }} />
+              <span>
+                Filtering settings for{" "}
+                <span className="rounded-md bg-white dark:bg-slate-900 px-2 py-0.5 font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  &ldquo;{searchQuery}&rdquo;
+                </span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="inline-flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              <Close sx={{ fontSize: 15 }} />
+              <span>Clear Filter</span>
+            </button>
+          </div>
+        )}
 
         {/* ========================================================================= */}
         {/* Header Title & Breadcrumb                                                */}
         {/* ========================================================================= */}
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-
           <div className="flex items-center gap-4">
             <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
               <span className="text-slate-500 hover:text-slate-700 cursor-pointer">Home</span>
               <span>&gt;</span>
               <span className="text-slate-900 font-semibold">Settings</span>
             </div>
-
           </div>
         </div>
 
@@ -337,254 +424,265 @@ export const SettingsPage: React.FC = () => {
         {/* Main Tab Content Layout (2 Columns Grid)                                 */}
         {/* ========================================================================= */}
         {activeTab === "General" ? (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-            {/* Left Column (General Settings + Other Preferences) */}
-            <div className="lg:col-span-7 space-y-6">
-
-              {/* Card 1: General Settings */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                    <Settings sx={{ fontSize: 20 }} />
-                  </span>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900">General Settings</h2>
-                    <p className="text-xs text-slate-500">Configure basic application settings</p>
-                  </div>
-                </div>
-
-                <form onSubmit={handleSaveGeneral} className="space-y-4 pt-1">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Application Name</label>
-                    <input
-                      type="text"
-                      value={formValues.app_name || ""}
-                      onChange={(e) => handleChange("app_name", e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Application URL</label>
-                    <input
-                      type="text"
-                      value={formValues.app_url || ""}
-                      onChange={(e) => handleChange("app_url", e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Default Timezone</label>
-                    <select
-                      value={formValues.timezone || "(GMT+05:30) Asia/Kolkata"}
-                      onChange={(e) => handleChange("timezone", e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
-                    >
-                      <option value="(GMT+05:30) Asia/Kolkata">(GMT+05:30) Asia/Kolkata</option>
-                      <option value="(GMT+00:00) UTC">(GMT+00:00) UTC</option>
-                      <option value="(GMT-05:00) Eastern Time (US & Canada)">(GMT-05:00) Eastern Time (US & Canada)</option>
-                      <option value="(GMT-08:00) Pacific Time (US & Canada)">(GMT-08:00) Pacific Time (US & Canada)</option>
-                      <option value="(GMT+01:00) Central European Time">(GMT+01:00) Central European Time</option>
-                      <option value="(GMT+08:00) Singapore, Beijing">(GMT+08:00) Singapore, Beijing</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Date Format</label>
-                    <select
-                      value={formValues.date_format || "DD MMM YYYY"}
-                      onChange={(e) => handleChange("date_format", e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
-                    >
-                      <option value="DD MMM YYYY">DD MMM YYYY</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Items Per Page</label>
-                    <select
-                      value={formValues.items_per_page || "10"}
-                      onChange={(e) => handleChange("items_per_page", e.target.value)}
-                      className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
-                    >
-                      <option value="10">10</option>
-                      <option value="25">25</option>
-                      <option value="50">50</option>
-                      <option value="100">100</option>
-                    </select>
-                  </div>
-
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={savingGeneral}
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-60"
-                    >
-                      <Save sx={{ fontSize: 16 }} />
-                      <span>{savingGeneral ? "Saving Changes..." : "Save Changes"}</span>
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Card 2: Other Preferences */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                    <Tune sx={{ fontSize: 20 }} />
-                  </span>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900">Other Preferences</h2>
-                    <p className="text-xs text-slate-500">Workspace registration and access defaults</p>
-                  </div>
-                </div>
-
-                <div className="divide-y divide-slate-100 space-y-4 pt-1">
-                  {/* Enable Registration */}
-                  <div className="flex items-center justify-between pt-3">
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-800">Enable Registration</h3>
-                      <p className="text-[11px] text-slate-500">Allow new users to register</p>
-                    </div>
-                    {renderToggleSwitch("enable_registration", "User Registration", formValues.enable_registration === "true")}
-                  </div>
-
-                  {/* Email Verification */}
-                  <div className="flex items-center justify-between pt-4">
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-800">Email Verification</h3>
-                      <p className="text-[11px] text-slate-500">Require email verification for new users</p>
-                    </div>
-                    {renderToggleSwitch("email_verification", "Email Verification", formValues.email_verification === "true")}
-                  </div>
-
-                  {/* User Session Timeout */}
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4">
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-800">User Session Timeout</h3>
-                      <p className="text-[11px] text-slate-500">Automatically logout user after inactivity</p>
-                    </div>
-                    <select
-                      value={formValues.session_timeout || "30 Minutes"}
-                      onChange={async (e) => {
-                        const val = e.target.value;
-                        handleChange("session_timeout", val);
-                        try {
-                          await settingService.updateSettingsBulk({ session_timeout: val });
-                          showSuccessToast(`Session timeout updated to ${val} in database!`);
-                        } catch (err: any) {
-                          showErrorToast(err?.message || "Failed to update timeout.");
-                        }
-                      }}
-                      className="rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white min-w-[140px]"
-                    >
-                      <option value="15 Minutes">15 Minutes</option>
-                      <option value="30 Minutes">30 Minutes</option>
-                      <option value="1 Hour">1 Hour</option>
-                      <option value="2 Hours">2 Hours</option>
-                      <option value="24 Hours">24 Hours</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
+          !matchAnyGeneral ? (
+            <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+              <SearchOff sx={{ fontSize: 36, color: "#94a3b8" }} />
+              <h3 className="mt-2 text-sm font-bold text-slate-800">No settings matched &ldquo;{searchQuery}&rdquo;</h3>
+              <p className="mt-1 text-xs text-slate-500">Try searching for application name, timezone, 2FA, session timeout, or password.</p>
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="mt-4 inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 cursor-pointer"
+              >
+                <Close sx={{ fontSize: 14 }} />
+                <span>Clear Search</span>
+              </button>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Column (General Settings + Other Preferences) */}
+              {(matchGeneralSettings || matchOtherPreferences) && (
+                <div className={`${(matchSystemInformation || matchSecuritySettingsCard) ? "lg:col-span-7" : "lg:col-span-12"} space-y-6`}>
+                  {/* Card 1: General Settings */}
+                  {matchGeneralSettings && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                          <Settings sx={{ fontSize: 20 }} />
+                        </span>
+                        <div>
+                          <h2 className="text-sm font-bold text-slate-900">General Settings</h2>
+                          <p className="text-xs text-slate-500">Configure basic application settings</p>
+                        </div>
+                      </div>
 
-            {/* Right Column (System Info + Security Settings + System Maintenance) */}
-            <div className="lg:col-span-5 space-y-6">
+                      <form onSubmit={handleSaveGeneral} className="space-y-4 pt-1">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">Application Name</label>
+                          <input
+                            type="text"
+                            value={formValues.app_name || ""}
+                            onChange={(e) => handleChange("app_name", e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
+                          />
+                        </div>
 
-              {/* Card 1: System Information */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                    <Storage sx={{ fontSize: 20 }} />
-                  </span>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900">System Information</h2>
-                    <p className="text-xs text-slate-500">Environment and deployment build</p>
-                  </div>
-                </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">Application URL</label>
+                          <input
+                            type="text"
+                            value={formValues.app_url || ""}
+                            onChange={(e) => handleChange("app_url", e.target.value)}
+                            readOnly
+                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
+                          />
+                        </div>
 
-                <div className="divide-y divide-slate-100 text-xs pt-1">
-                  <div className="flex items-center justify-between py-2.5">
-                    <span className="font-semibold text-slate-600">System Version</span>
-                    <span className="rounded-md bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
-                      v1.0.0
-                    </span>
-                  </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">Default Timezone</label>
+                          <select
+                            value={formValues.timezone || "(GMT+05:30) Asia/Kolkata"}
+                            onChange={(e) => handleChange("timezone", e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
+                          >
+                            <option value="(GMT+05:30) Asia/Kolkata">(GMT+05:30) Asia/Kolkata</option>
+                            <option value="(GMT+00:00) UTC">(GMT+00:00) UTC</option>
+                            <option value="(GMT-05:00) Eastern Time (US & Canada)">(GMT-05:00) Eastern Time (US & Canada)</option>
+                            <option value="(GMT-08:00) Pacific Time (US & Canada)">(GMT-08:00) Pacific Time (US & Canada)</option>
+                            <option value="(GMT+01:00) Central European Time">(GMT+01:00) Central European Time</option>
+                            <option value="(GMT+08:00) Singapore, Beijing">(GMT+08:00) Singapore, Beijing</option>
+                          </select>
+                        </div>
 
-                  <div className="flex items-center justify-between py-2.5">
-                    <span className="font-semibold text-slate-600">Environment</span>
-                    <span className="rounded-md bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
-                      Development
-                    </span>
-                  </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">Date Format</label>
+                          <select
+                            value={formValues.date_format || "DD MMM YYYY"}
+                            onChange={(e) => handleChange("date_format", e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
+                          >
+                            <option value="DD MMM YYYY">DD MMM YYYY</option>
+                            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                            <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                            <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                          </select>
+                        </div>
 
-                  <div className="flex items-center justify-between py-2.5">
-                    <span className="font-semibold text-slate-600">Last Updated</span>
-                    <span className="text-slate-700 font-medium">24 May 2025, 10:30 AM</span>
-                  </div>
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">Items Per Page</label>
+                          <select
+                            value={formValues.items_per_page || "10"}
+                            onChange={(e) => handleChange("items_per_page", e.target.value)}
+                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
+                          >
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                          </select>
+                        </div>
 
-                  <div className="flex items-center justify-between py-2.5">
-                    <span className="font-semibold text-slate-600">Admin</span>
-                    <span className="text-slate-800 font-bold">{user?.name || "Admin User"}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 2: Security Settings */}
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                    <ShieldOutlined sx={{ fontSize: 20 }} />
-                  </span>
-                  <div>
-                    <h2 className="text-sm font-bold text-slate-900">Security Settings</h2>
-                    <p className="text-xs text-slate-500">Authentication & password policies</p>
-                  </div>
-                </div>
-
-                <div className="divide-y divide-slate-100 space-y-4 pt-1">
-                  {/* Two-Factor Authentication */}
-                  <div className="flex items-center justify-between pt-2">
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-800">Two-Factor Authentication</h3>
-                      <p className="text-[11px] text-slate-500">Require 2FA for all admin accounts</p>
+                        <div className="pt-2">
+                          <button
+                            type="submit"
+                            disabled={savingGeneral}
+                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-60"
+                          >
+                            <Save sx={{ fontSize: 16 }} />
+                            <span>{savingGeneral ? "Saving Changes..." : "Save Changes"}</span>
+                          </button>
+                        </div>
+                      </form>
                     </div>
-                    {renderToggleSwitch("two_factor_auth", "Two-Factor Authentication", formValues.two_factor_auth === "true")}
-                  </div>
+                  )}
 
-                  {/* Password Expiry */}
-                  <div className="flex items-center justify-between pt-4">
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-800">Password Expiry</h3>
-                      <p className="text-[11px] text-slate-500">Force password change every 90 days</p>
-                    </div>
-                    {renderToggleSwitch("password_expiry", "Password Expiry", formValues.password_expiry === "true")}
-                  </div>
+                  {/* Card 2: Other Preferences */}
+                  {matchOtherPreferences && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                          <Tune sx={{ fontSize: 20 }} />
+                        </span>
+                        <div>
+                          <h2 className="text-sm font-bold text-slate-900">Other Preferences</h2>
+                          <p className="text-xs text-slate-500">Workspace registration and access defaults</p>
+                        </div>
+                      </div>
 
-                  {/* Login Attempt Limit */}
-                  {/* <div className="flex items-center justify-between pt-4">
-                    <div>
-                      <h3 className="text-xs font-bold text-slate-800">Login Attempt Limit</h3>
-                      <p className="text-[11px] text-slate-500">Lock account after 5 failed attempts</p>
+                      <div className="divide-y divide-slate-100 space-y-4 pt-1">
+                        {/* Enable Registration */}
+                        <div className="flex items-center justify-between pt-3">
+                          <div>
+                            <h3 className="text-xs font-bold text-slate-800">Enable Registration</h3>
+                            <p className="text-[11px] text-slate-500">Allow new users to register</p>
+                          </div>
+                          {renderToggleSwitch("enable_registration", "User Registration", formValues.enable_registration === "true")}
+                        </div>
+
+                        {/* Email Verification */}
+                        <div className="flex items-center justify-between pt-4">
+                          <div>
+                            <h3 className="text-xs font-bold text-slate-800">Email Verification</h3>
+                            <p className="text-[11px] text-slate-500">Require email verification for new users</p>
+                          </div>
+                          {renderToggleSwitch("email_verification", "Email Verification", formValues.email_verification === "true")}
+                        </div>
+
+                        {/* User Session Timeout */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4">
+                          <div>
+                            <h3 className="text-xs font-bold text-slate-800">User Session Timeout</h3>
+                            <p className="text-[11px] text-slate-500">Automatically logout user after inactivity</p>
+                          </div>
+                          <select
+                            value={formValues.session_timeout || "30 Minutes"}
+                            onChange={async (e) => {
+                              const val = e.target.value;
+                              handleChange("session_timeout", val);
+                              try {
+                                await settingService.updateSettingsBulk({ session_timeout: val });
+                                showSuccessToast(`Session timeout updated to ${val} in database!`);
+                              } catch (err: any) {
+                                showErrorToast(err?.message || "Failed to update timeout.");
+                              }
+                            }}
+                            className="rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white min-w-[140px]"
+                          >
+                            <option value="15 Minutes">15 Minutes</option>
+                            <option value="30 Minutes">30 Minutes</option>
+                            <option value="1 Hour">1 Hour</option>
+                            <option value="2 Hours">2 Hours</option>
+                            <option value="24 Hours">24 Hours</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
-                    {renderToggleSwitch("login_attempt_limit", "Login Attempt Limit", formValues.login_attempt_limit === "true")}
-                  </div> */}
+                  )}
                 </div>
-              </div>
+              )}
 
-              {/* Card 3: System Maintenance */}
+              {/* Right Column (System Info + Security Settings) */}
+              {(matchSystemInformation || matchSecuritySettingsCard) && (
+                <div className={`${(matchGeneralSettings || matchOtherPreferences) ? "lg:col-span-5" : "lg:col-span-12"} space-y-6`}>
+                  {/* Card 1: System Information */}
+                  {matchSystemInformation && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                          <Storage sx={{ fontSize: 20 }} />
+                        </span>
+                        <div>
+                          <h2 className="text-sm font-bold text-slate-900">System Information</h2>
+                          <p className="text-xs text-slate-500">Environment and deployment build</p>
+                        </div>
+                      </div>
 
+                      <div className="divide-y divide-slate-100 text-xs pt-1">
+                        <div className="flex items-center justify-between py-2.5">
+                          <span className="font-semibold text-slate-600">System Version</span>
+                          <span className="rounded-md bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
+                            v1.0.0
+                          </span>
+                        </div>
 
+                        <div className="flex items-center justify-between py-2.5">
+                          <span className="font-semibold text-slate-600">Environment</span>
+                          <span className="rounded-md bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
+                            Development
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between py-2.5">
+                          <span className="font-semibold text-slate-600">Last Updated</span>
+                          <span className="text-slate-700 font-medium">24 May 2025, 10:30 AM</span>
+                        </div>
+
+                        <div className="flex items-center justify-between py-2.5">
+                          <span className="font-semibold text-slate-600">Admin</span>
+                          <span className="text-slate-800 font-bold">{user?.name || "Admin User"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Card 2: Security Settings */}
+                  {matchSecuritySettingsCard && (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                          <ShieldOutlined sx={{ fontSize: 20 }} />
+                        </span>
+                        <div>
+                          <h2 className="text-sm font-bold text-slate-900">Security Settings</h2>
+                          <p className="text-xs text-slate-500">Authentication & password policies</p>
+                        </div>
+                      </div>
+
+                      <div className="divide-y divide-slate-100 space-y-4 pt-1">
+                        {/* Two-Factor Authentication */}
+                        <div className="flex items-center justify-between pt-2">
+                          <div>
+                            <h3 className="text-xs font-bold text-slate-800">Two-Factor Authentication</h3>
+                            <p className="text-[11px] text-slate-500">Require 2FA for all admin accounts</p>
+                          </div>
+                          {renderToggleSwitch("two_factor_auth", "Two-Factor Authentication", formValues.two_factor_auth === "true")}
+                        </div>
+
+                        {/* Password Expiry */}
+                        <div className="flex items-center justify-between pt-4">
+                          <div>
+                            <h3 className="text-xs font-bold text-slate-800">Password Expiry</h3>
+                            <p className="text-[11px] text-slate-500">Force password change every 90 days</p>
+                          </div>
+                          {renderToggleSwitch("password_expiry", "Password Expiry", formValues.password_expiry === "true")}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
-
-          </div>
+          )
         ) : (
           /* ========================================================================= */
           /* Dynamic Content for other Tabs (Security, Email, Notifications, etc.)    */

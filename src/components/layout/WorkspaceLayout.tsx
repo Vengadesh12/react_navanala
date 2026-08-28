@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { LoadingSpinner } from "../common/LoadingSpinner";
+import { FirstLoginChangePasswordModal } from "../auth/FirstLoginChangePasswordModal";
 import { useAuth } from "../../hooks/useAuth";
 import { getFirstAccessiblePath } from "../../config/workspace.config";
 
@@ -12,6 +13,10 @@ export interface WorkspaceLayoutProps {
   icon?: string;
   showHero?: boolean;
   showTopbar?: boolean;
+  searchValue?: string;
+  onSearchChange?: (val: string) => void;
+  searchPlaceholder?: string;
+  showSearchBar?: boolean;
   children: React.ReactNode;
 }
 
@@ -21,6 +26,10 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
   icon = "◫",
   showHero = true,
   showTopbar = true,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder,
+  showSearchBar,
   children,
 }) => {
   const navigate = useNavigate();
@@ -83,6 +92,10 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
             label={label}
             onOpenMenu={() => setMenuOpen(true)}
             onLogout={handleLogout}
+            searchValue={searchValue}
+            onSearchChange={onSearchChange}
+            searchPlaceholder={searchPlaceholder}
+            showSearchBar={showSearchBar}
           />
         )}
 
@@ -106,6 +119,11 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
         {/* Children View Content */}
         <div className="flex-1 pb-12">{children}</div>
       </main>
+
+      {/* First-Login Mandatory Password Change Modal */}
+      {user?.isFirstLogin && (
+        <FirstLoginChangePasswordModal isOpen={Boolean(user.isFirstLogin)} />
+      )}
     </div>
   );
 };

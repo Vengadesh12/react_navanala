@@ -17,7 +17,8 @@ import {
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { reportService } from "../../api/report.service";
 import { showConfirmDialog, showSuccessToast, showErrorToast } from "../../utils/alerts";
-import type { Report, ReportFormData } from "../../types";
+import { CreateReportCategoryModal } from "./components/CreateReportCategoryModal";
+import type { Report, ReportFormData, ReportCategory } from "../../types";
 
 const getFormatBadge = (format: string) => {
   const f = format?.toUpperCase() || "";
@@ -64,24 +65,15 @@ const formatDate = (dateStr?: string) => {
 
 export const ReportsPage: React.FC = () => {
   const [reports, setReports] = useState<Report[]>([]);
+  const [dbCategories, setDbCategories] = useState<ReportCategory[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [stats, setStats] = useState({ reportsGenerated: 0, exportsReady: 0, roleCoverage: "100%" });
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
-  const [categories, setCategories] = useState<string[]>([
-    "Compliance",
-    "Security",
-    "Role Mapping",
-    "Access Audit",
-    "User Directory",
-    "Financial Audit",
-    "Governance",
-  ]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [viewMode, setViewMode] = useState<"card" | "column">("card");
 
   // Category Modal state
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState<boolean>(false);
-  const [newCategoryName, setNewCategoryName] = useState<string>("");
 
   // Report Modals state
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -89,6 +81,7 @@ export const ReportsPage: React.FC = () => {
   const [formData, setFormData] = useState<ReportFormData & { customCategory?: string }>({
     title: "",
     description: "",
+    categoryId: undefined,
     category: "Compliance",
     format: "PDF",
     customCategory: "",
@@ -98,11 +91,9 @@ export const ReportsPage: React.FC = () => {
   const fetchCategories = useCallback(async () => {
     try {
       const cats = await reportService.getCategories();
-      if (cats && cats.length > 0) {
-        setCategories((prev) => Array.from(new Set([...prev, ...cats])));
-      }
-    } catch {
-      // fallback to current categories
+      setDbCategories(cats || []);
+    } catch (err: any) {
+      console.error("Failed to load report categories:", err);
     }
   }, []);
 
@@ -116,6 +107,9 @@ export const ReportsPage: React.FC = () => {
         exportsReady: res.exportsReady,
         roleCoverage: res.roleCoverage,
       });
+      if (res.categories && res.categories.length > 0) {
+        setDbCategories(res.categories);
+      }
     } catch (err: any) {
       showErrorToast(err?.message || "Failed to load reports from database.");
     } finally {
@@ -128,29 +122,32 @@ export const ReportsPage: React.FC = () => {
     fetchCategories();
   }, [fetchReports, fetchCategories]);
 
-  const handleAddCategory = (e: React.FormEvent) => {
-    e.preventDefault();
-    const trimmed = newCategoryName.trim();
-    if (!trimmed) {
-      showErrorToast("Category name cannot be empty.");
-    } else {
-      if (!categories.includes(trimmed)) {
-        const updated = [...categories, trimmed];
-        setCategories(updated);
-      }
-      setSelectedCategory(trimmed);
-      showSuccessToast(`Category "${trimmed}" added successfully!`);
-      setNewCategoryName("");
-      setIsCategoryModalOpen(false);
-    }
-  };
+  // Dynamic categories list from DB with fallback defaults
+  const categoryNames =
+    dbCategories.length > 0
+      ? dbCategories.map((c) => c.name)
+      : [
+          "Compliance",
+          "Security",
+          "Role Mapping",
+          "Access Audit",
+          "User Directory",
+          "Financial Audit",
+          "Governance",
+        ];
+
+  const filterCategories = ["ALL", ...categoryNames];
+  const defaultCategory = categoryNames[0] || "Compliance";
 
   const openCreateModal = () => {
     setEditingReport(null);
+    const initialCategory = dbCategories[0]?.name || defaultCategory;
+    const initialCategoryId = dbCategories[0]?.id;
     setFormData({
       title: "",
       description: "",
-      category: categories[0] || "Compliance",
+      categoryId: initialCategoryId,
+      category: initialCategory,
       format: "PDF",
       customCategory: "",
     });
@@ -162,6 +159,7 @@ export const ReportsPage: React.FC = () => {
     setFormData({
       title: report.title,
       description: report.description,
+      categoryId: report.categoryId,
       category: report.category,
       format: report.format,
       customCategory: "",
@@ -186,10 +184,11 @@ export const ReportsPage: React.FC = () => {
       return;
     }
 
-    // Keep category in list if new
-    if (!categories.includes(finalCategory)) {
-      setCategories((prev) => [...prev, finalCategory]);
-    }
+    // Resolve categoryId if matching from dbCategories
+    const matchedCat = dbCategories.find(
+      (c) => c.name.toLowerCase() === finalCategory.toLowerCase()
+    );
+    const finalCategoryId = formData.categoryId || matchedCat?.id;
 
     setSubmitting(true);
     try {
@@ -197,6 +196,7 @@ export const ReportsPage: React.FC = () => {
         await reportService.updateReport(editingReport.id, {
           title: formData.title,
           description: formData.description,
+          categoryId: finalCategoryId,
           category: finalCategory,
           format: formData.format,
         });
@@ -205,6 +205,7 @@ export const ReportsPage: React.FC = () => {
         await reportService.createReport({
           title: formData.title,
           description: formData.description,
+          categoryId: finalCategoryId,
           category: finalCategory,
           format: formData.format,
         });
@@ -231,7 +232,7 @@ export const ReportsPage: React.FC = () => {
     if (res.isConfirmed) {
       try {
         await reportService.deleteReport(id);
-        showSuccessToast("Report deleted succesfully!.");
+        showSuccessToast("Report deleted successfully!");
         fetchReports();
       } catch (err: any) {
         showErrorToast(err?.message || "Failed to delete report.");
@@ -248,11 +249,82 @@ export const ReportsPage: React.FC = () => {
     }
   };
 
-  const allCategoryTabs = ["ALL", ...categories];
+  const q = searchTerm.toLowerCase().trim();
+
+  const matchReportsGenerated =
+    !q ||
+    [
+      "reports generated",
+      "reports",
+      "generated",
+      "persistent",
+      "audit",
+      "compliance",
+      String(stats.reportsGenerated),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchExportsReady =
+    !q ||
+    [
+      "exports ready",
+      "exports",
+      "download",
+      "pdf",
+      "csv",
+      "json",
+      String(stats.exportsReady),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchRoleCoverage =
+    !q ||
+    [
+      "role coverage",
+      "roles",
+      "role",
+      "coverage",
+      "members",
+      String(stats.roleCoverage),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const visibleMetricCount =
+    (matchReportsGenerated ? 1 : 0) +
+    (matchExportsReady ? 1 : 0) +
+    (matchRoleCoverage ? 1 : 0);
 
   return (
-    <WorkspaceLayout permission="reports.view" label="Reports" icon="▤" showHero={false}>
+    <WorkspaceLayout
+      permission="reports.view"
+      label="Reports"
+      icon="▤"
+      showHero={false}
+      searchValue={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder="Search reports by title, category, format..."
+    >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+        {/* Active Search Results Banner */}
+        {q && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/60 dark:bg-indigo-950/40 px-4 py-3 text-xs">
+            <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+              <Search sx={{ fontSize: 18, color: "#6366f1" }} />
+              <span>
+                Showing <strong>{reports.length}</strong> matching report{reports.length === 1 ? "" : "s"} for{" "}
+                <span className="rounded-md bg-white dark:bg-slate-900 px-2 py-0.5 font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  &ldquo;{searchTerm}&rdquo;
+                </span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSearchTerm("")}
+              className="inline-flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              <Close sx={{ fontSize: 15 }} />
+              <span>Clear Filter</span>
+            </button>
+          </div>
+        )}
+
         {/* Header Actions */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
@@ -264,7 +336,10 @@ export const ReportsPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
-              onClick={() => fetchReports()}
+              onClick={() => {
+                fetchReports();
+                fetchCategories();
+              }}
               className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors cursor-pointer"
             >
               <Refresh
@@ -276,10 +351,10 @@ export const ReportsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsCategoryModalOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-3.5 py-2 text-xs font-semibold text-indigo-700 shadow-2xs hover:bg-indigo-100 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50/80 px-3.5 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100/80 transition-colors cursor-pointer"
             >
               <CategoryOutlined sx={{ fontSize: 16 }} />
-              <span>+ Add Category</span>
+              <span>Add Category</span>
             </button>
             <button
               type="button"
@@ -292,64 +367,80 @@ export const ReportsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 3 Metric Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {/* Card 1: Reports Generated */}
-          <div className="relative overflow-hidden rounded-2xl border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-500/10 via-white to-white dark:from-indigo-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">Reports Generated</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.reportsGenerated}</span>
-                  <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">persistent</span>
+        {/* 3 Metric Cards - rendered dynamically when matching */}
+        {visibleMetricCount > 0 && (
+          <div
+            className={`grid grid-cols-1 gap-4 ${
+              visibleMetricCount === 1
+                ? "sm:grid-cols-1 md:max-w-md"
+                : visibleMetricCount === 2
+                ? "sm:grid-cols-2"
+                : "sm:grid-cols-3"
+            }`}
+          >
+            {/* Card 1: Reports Generated */}
+            {matchReportsGenerated && (
+              <div className="relative overflow-hidden rounded-2xl border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-500/10 via-white to-white dark:from-indigo-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">Reports Generated</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.reportsGenerated}</span>
+                      <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">persistent</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Audit & compliance reports</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
+                    <Assessment sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Audit & compliance reports</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
-                <Assessment sx={{ fontSize: 24 }} />
-              </div>
-            </div>
-          </div>
+            )}
 
-          {/* Card 2: Exports Ready */}
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-200/70 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-500/10 via-white to-white dark:from-emerald-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Exports Ready</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.exportsReady}</span>
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">PDF, CSV, JSON</span>
+            {/* Card 2: Exports Ready */}
+            {matchExportsReady && (
+              <div className="relative overflow-hidden rounded-2xl border border-emerald-200/70 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-500/10 via-white to-white dark:from-emerald-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Exports Ready</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.exportsReady}</span>
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">PDF, CSV, JSON</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Download formats ready</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
+                    <FileDownloadDoneOutlined sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Download formats ready</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
-                <FileDownloadDoneOutlined sx={{ fontSize: 24 }} />
-              </div>
-            </div>
-          </div>
+            )}
 
-          {/* Card 3: Role Coverage */}
-          <div className="relative overflow-hidden rounded-2xl border border-purple-200/70 dark:border-purple-900/60 bg-gradient-to-br from-purple-500/10 via-white to-white dark:from-purple-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Role Coverage</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.roleCoverage}</span>
-                  <span className="text-xs font-medium text-purple-600 dark:text-purple-400">all members</span>
+            {/* Card 3: Role Coverage */}
+            {matchRoleCoverage && (
+              <div className="relative overflow-hidden rounded-2xl border border-purple-200/70 dark:border-purple-900/60 bg-gradient-to-br from-purple-500/10 via-white to-white dark:from-purple-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Role Coverage</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.roleCoverage}</span>
+                      <span className="text-xs font-medium text-purple-600 dark:text-purple-400">all members</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Across workspace members</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-purple-500 text-white shadow-md shadow-purple-500/25">
+                    <ShieldOutlined sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Across workspace members</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-purple-500 text-white shadow-md shadow-purple-500/25">
-                <ShieldOutlined sx={{ fontSize: 24 }} />
-              </div>
-            </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Filter Controls, Add Category, Search & View Mode Switch */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-            {allCategoryTabs.map((cat) => (
+            {filterCategories.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
@@ -362,14 +453,6 @@ export const ReportsPage: React.FC = () => {
                 {cat}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => setIsCategoryModalOpen(true)}
-              className="px-2.5 py-1.5 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer whitespace-nowrap border border-dashed border-indigo-300"
-              title="Add new category"
-            >
-              + Category
-            </button>
           </div>
 
           <div className="flex items-center gap-3">
@@ -422,7 +505,7 @@ export const ReportsPage: React.FC = () => {
           </div>
         ) : reports.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center text-xs text-slate-400 shadow-xs">
-            No compliance reports found. Click "Generate Report" above to create one.
+            No compliance reports found. Click &ldquo;Generate Report&rdquo; above to create one.
           </div>
         ) : viewMode === "card" ? (
           /* CARD WISE VIEW */
@@ -575,61 +658,6 @@ export const ReportsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Add Category Modal */}
-      {isCategoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 animate-scale-up">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-50 text-indigo-600">
-                  <CategoryOutlined sx={{ fontSize: 18 }} />
-                </div>
-                <h3 className="text-base font-bold text-slate-900">Add Report Category</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCategoryModalOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
-              >
-                <Close sx={{ fontSize: 18 }} />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddCategory} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Category Name *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Identity Management, Billing Audit, ISO Certification"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryModalOpen(false)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors cursor-pointer"
-                >
-                  Save Category
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Generate / Edit Report Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-fade-in">
@@ -667,19 +695,29 @@ export const ReportsPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setIsCategoryModalOpen(true)}
-                      className="text-[10px] font-semibold text-indigo-600 hover:underline cursor-pointer"
+                      className="text-[11px] font-semibold text-indigo-600 hover:text-indigo-700 hover:underline cursor-pointer flex items-center gap-0.5"
+                      title="Create a new Category in database"
                     >
-                      + New
+                      <Add sx={{ fontSize: 13 }} />
+                      <span>New</span>
                     </button>
                   </div>
                   <select
                     value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      const matched = dbCategories.find((c) => c.name === val);
+                      setFormData({
+                        ...formData,
+                        category: val,
+                        categoryId: matched?.id,
+                      });
+                    }}
                     className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
                   >
-                    {categories.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
+                    {categoryNames.map((catName) => (
+                      <option key={catName} value={catName}>
+                        {catName}
                       </option>
                     ))}
                     <option value="__custom__">+ Enter Custom Category...</option>
@@ -751,6 +789,22 @@ export const ReportsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Add Report Category Modal */}
+      <CreateReportCategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onCreated={(newCat) => {
+          fetchCategories();
+          if (isModalOpen) {
+            setFormData((prev) => ({
+              ...prev,
+              category: newCat.name,
+              categoryId: newCat.id,
+            }));
+          }
+        }}
+      />
     </WorkspaceLayout>
   );
 };

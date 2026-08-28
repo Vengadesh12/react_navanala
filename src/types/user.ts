@@ -5,6 +5,10 @@ export interface Designation {
   Name?: string;
   description?: string;
   Description?: string;
+  departmentId?: number | null;
+  DepartmentId?: number | null;
+  departmentName?: string | null;
+  DepartmentName?: string | null;
   deletedFlag?: number;
   DeletedFlag?: number;
 }
@@ -33,6 +37,8 @@ export interface User {
   deletedFlag?: number | string;
   DeletedFlag?: number | string;
   deletedflag?: number | string;
+  isFirstLogin?: boolean;
+  IsFirstLogin?: boolean;
 }
 
 export interface UserFormData {

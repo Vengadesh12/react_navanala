@@ -13,9 +13,16 @@ export interface RolePermissionItem {
   permissionKeys: string[];
 }
 
+export interface DepartmentPermissionItem {
+  departmentId: number | string;
+  departmentName: string;
+  permissionKeys: string[];
+}
+
 export interface PermissionsApiResponse {
   permissions: Permission[];
   roles: RolePermissionItem[];
+  departments?: DepartmentPermissionItem[];
 }
 
 export interface PermissionCategory {

@@ -35,6 +35,7 @@ export interface Report {
   id: number;
   title: string;
   description: string;
+  categoryId?: number;
   category: string;
   format: string;
   createdBy: string;
@@ -47,8 +48,22 @@ export interface Report {
 export interface ReportFormData {
   title: string;
   description: string;
+  categoryId?: number;
   category: string;
   format: string;
+}
+
+export interface ReportCategory {
+  id: number;
+  name: string;
+  description?: string;
+  deletedFlag: number;
+  createdAt: string;
+}
+
+export interface CreateReportCategoryFormData {
+  name: string;
+  description?: string;
 }
 
 export interface ReportsOverviewResponse {
@@ -56,6 +71,7 @@ export interface ReportsOverviewResponse {
   exportsReady: number;
   roleCoverage: string;
   reports: Report[];
+  categories?: ReportCategory[];
 }
 
 // ==========================================
@@ -84,6 +100,19 @@ export interface ProjectFormData {
   leadName: string;
   progressPercentage: number;
   dueDate: string;
+}
+
+export interface ProjectCategory {
+  id: number;
+  name: string;
+  description?: string;
+  deletedFlag: number;
+  createdAt: string;
+}
+
+export interface CreateProjectCategoryFormData {
+  name: string;
+  description?: string;
 }
 
 export interface ProjectsOverviewResponse {
@@ -243,4 +272,41 @@ export interface ChangePasswordFormData {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
+}
+
+// ==========================================
+// DEPARTMENT TYPES
+// ==========================================
+import type { Designation } from "./user";
+
+export interface Department {
+  id: number;
+  name: string;
+  description?: string;
+  deletedFlag: number;
+  createdAt: string;
+  designationCount?: number;
+  userCount?: number;
+  designations?: Designation[];
+}
+
+export interface CreateDepartmentFormData {
+  name: string;
+  description?: string;
+  designationIds?: number[];
+}
+
+export interface UpdateDepartmentFormData {
+  name: string;
+  description?: string;
+  designationIds?: number[];
+}
+
+export interface DepartmentOverviewResponse {
+  totalDepartments: number;
+  totalDesignations: number;
+  mappedDesignations: number;
+  unassignedDesignations: number;
+  departments: Department[];
+  unassignedList: Designation[];
 }

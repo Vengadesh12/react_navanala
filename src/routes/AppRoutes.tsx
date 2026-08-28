@@ -5,6 +5,7 @@ import { LoginPage } from "../pages/auth/LoginPage";
 import { DashboardPage } from "../pages/dashboard/DashboardPage";
 import { UsersPage } from "../pages/users/UsersPage";
 import { RolesPage } from "../pages/roles/RolesPage";
+import { DepartmentsPage } from "../pages/departments/DepartmentsPage";
 import { PermissionsPage } from "../pages/permissions/PermissionsPage";
 import { ReportsPage } from "../pages/overview/ReportsPage";
 import { ProjectsPage } from "../pages/overview/ProjectsPage";
@@ -13,6 +14,9 @@ import { SettingsPage } from "../pages/overview/SettingsPage";
 import { ProfilePage } from "../pages/overview/ProfilePage";
 import { AuditPage } from "../pages/overview/AuditPage";
 import { UserActivityPage } from "../pages/activity/UserActivityPage";
+import { CreateApprovalPage } from "../pages/approvals/CreateApprovalPage";
+import { PurchasesPage } from "../pages/purchases/PurchasesPage";
+import { InvoicesPage } from "../pages/invoices/InvoicesPage";
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -54,6 +58,14 @@ export const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/departments"
+        element={
+          <ProtectedRoute permission="departments.view">
+            <DepartmentsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/permissions"
         element={
           <ProtectedRoute permission="permissions.manage">
@@ -61,6 +73,40 @@ export const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/create-approval"
+        element={
+          <ProtectedRoute permission="approvals.view">
+            <CreateApprovalPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/approvals"
+        element={
+          <ProtectedRoute permission="approvals.view">
+            <CreateApprovalPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/purchases"
+        element={
+          <ProtectedRoute permission="purchases.view">
+            <PurchasesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/purchase" element={<Navigate to="/purchases" replace />} />
+      <Route
+        path="/invoices"
+        element={
+          <ProtectedRoute permission="invoices.view">
+            <InvoicesPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="/invoice" element={<Navigate to="/invoices" replace />} />
       <Route
         path="/reports"
         element={

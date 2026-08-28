@@ -290,12 +290,12 @@ export const LoginPage: React.FC = () => {
       <section className="relative hidden lg:flex lg:col-span-7 flex-col justify-between p-12 xl:p-16 overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 border-r border-indigo-900/30">
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="h-11 w-11 overflow-hidden rounded-2xl bg-white/10 p-1 shadow-lg shadow-indigo-500/20 backdrop-blur-md ring-1 ring-white/20 flex items-center justify-center">
-              <img src="/project-icon.png" alt="RoleVault" className="h-full w-full object-contain" />
+            <div className="h-12 w-auto max-w-[180px] overflow-hidden rounded-2xl bg-white p-1.5 shadow-lg shadow-indigo-500/20 backdrop-blur-md ring-1 ring-white/20 flex items-center justify-center">
+              <img src="/navanala-logo.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
             </div>
             <div>
-              <h1 className="text-xl font-bold tracking-tight text-white">RoleVault</h1>
-              <p className="text-xs font-semibold text-indigo-300">Enterprise Access & RBAC</p>
+              <h1 className="text-xl font-bold tracking-tight text-white">NavaNala Technologies</h1>
+              <p className="text-xs font-semibold text-indigo-300">Enterprise Access & Invoicing</p>
             </div>
           </div>
 
@@ -342,8 +342,12 @@ export const LoginPage: React.FC = () => {
       </section>
 
       {/* Right Form Panel */}
-      <section className="col-span-1 lg:col-span-5 flex flex-col justify-center items-center p-6 sm:p-12 bg-white">
-        <div className="w-full max-w-md">
+      <section className="col-span-1 lg:col-span-5 flex flex-col justify-center items-center p-6 sm:p-12 max-lg:bg-gradient-to-br max-lg:from-slate-950 max-lg:via-indigo-950 max-lg:to-slate-900 bg-white relative overflow-hidden">
+        {/* Background glow effects for mobile view */}
+        <div className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-indigo-500/20 blur-3xl pointer-events-none lg:hidden" />
+        <div className="absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-purple-500/15 blur-3xl pointer-events-none lg:hidden" />
+
+        <div className="w-full max-w-md relative z-10">
 
           {/* ========================================================================= */}
           {/* STEP A: Two-Factor Authentication OTP Verification                       */}
@@ -351,26 +355,26 @@ export const LoginPage: React.FC = () => {
           {isTwoFactorStep ? (
             <div className="animate-fade-in space-y-6">
               <div>
-                <div className="mb-4 inline-grid h-12 w-12 place-items-center rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-xs">
+                <div className="mb-4 inline-grid h-12 w-12 place-items-center rounded-2xl max-lg:bg-indigo-500/20 max-lg:text-indigo-400 max-lg:border-indigo-500/30 bg-indigo-50 text-indigo-600 border border-indigo-100 shadow-xs">
                   <Security sx={{ fontSize: 28 }} />
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900">Two-Factor Verification</h2>
-                <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+                <h2 className="text-2xl font-bold tracking-tight max-lg:text-white text-slate-900">Two-Factor Verification</h2>
+                <p className="mt-1.5 text-xs max-lg:text-indigo-200/80 text-slate-500 leading-relaxed">
                   Two-factor authentication is active on this workspace. Enter the 6-digit security code sent to{" "}
-                  <strong className="text-slate-800 font-semibold">{twoFactorEmail}</strong>.
+                  <strong className="max-lg:text-white text-slate-800 font-semibold">{twoFactorEmail}</strong>.
                 </p>
               </div>
 
               <form onSubmit={handleTwoFactorSubmit} className="space-y-5">
-                <div className="rounded-xl bg-indigo-50/60 p-4 border border-indigo-100/80 flex items-center gap-3">
-                  <MarkEmailRead sx={{ fontSize: 24, color: "#4f46e5" }} />
-                  <div className="text-xs text-indigo-950">
+                <div className="rounded-xl max-lg:bg-indigo-950/70 max-lg:border-indigo-800/80 bg-indigo-50/60 p-4 border border-indigo-100/80 flex items-center gap-3">
+                  <MarkEmailRead sx={{ fontSize: 24 }} className="max-lg:text-indigo-400 text-indigo-600 shrink-0" />
+                  <div className="text-xs max-lg:text-indigo-200 text-indigo-950">
                     <span>We sent an email with your OTP code. Please check your inbox or spam folder.</span>
                   </div>
                 </div>
 
                 <div>
-                  <label className="mb-2.5 block text-xs font-bold text-slate-700 uppercase tracking-wider text-center">
+                  <label className="mb-2.5 block text-xs font-bold max-lg:text-slate-200 text-slate-700 uppercase tracking-wider text-center">
                     6-Digit Verification Code
                   </label>
                   <OtpInput
@@ -382,13 +386,13 @@ export const LoginPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                <div className="flex items-center justify-between text-xs max-lg:text-slate-400 text-slate-500 pt-1">
                   <span>Didn't receive the code?</span>
                   <button
                     type="button"
                     onClick={handleResendTwoFactorOtp}
                     disabled={resending2Fa}
-                    className="font-bold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer disabled:opacity-50"
+                    className="font-bold max-lg:text-indigo-400 max-lg:hover:text-indigo-300 text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {resending2Fa ? "Sending code..." : "Resend Code"}
                   </button>
@@ -419,7 +423,7 @@ export const LoginPage: React.FC = () => {
                       setIsTwoFactorStep(false);
                       setTwoFactorOtp("");
                     }}
-                    className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-200 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                    className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border max-lg:border-slate-700 max-lg:bg-slate-900/60 max-lg:text-slate-300 max-lg:hover:bg-slate-800 border-slate-200 bg-transparent py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
                   >
                     <ArrowBack sx={{ fontSize: 16 }} />
                     <span>Back to Login</span>
@@ -433,18 +437,18 @@ export const LoginPage: React.FC = () => {
             /* ========================================================================= */
             <div>
               <div className="mb-8">
-                <div className="mb-4 inline-block h-12 w-12 overflow-hidden rounded-2xl bg-indigo-50 p-1 shadow-xs border border-indigo-100 lg:hidden">
+                <div className="mb-4 inline-block h-12 w-12 overflow-hidden rounded-2xl max-lg:bg-white/10 max-lg:shadow-indigo-500/20 max-lg:backdrop-blur-md max-lg:ring-1 max-lg:ring-white/20 bg-indigo-50 p-1 shadow-xs border border-indigo-100 lg:hidden">
                   <img src="/project-icon.png" alt="RoleVault" className="h-full w-full object-contain" />
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight text-slate-900">Sign in to your account</h2>
-                <p className="mt-1 text-sm text-slate-500">
+                <h2 className="text-2xl font-bold tracking-tight max-lg:text-white text-slate-900">Sign in to your account</h2>
+                <p className="mt-1 text-sm max-lg:text-indigo-200/80 text-slate-500">
                   Enter your authorized credentials to access your workspace.
                 </p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="mb-1.5 block text-xs font-semibold text-slate-700" htmlFor="email">
+                  <label className="mb-1.5 block text-xs font-semibold max-lg:text-slate-200 text-slate-700" htmlFor="email">
                     Email Address
                   </label>
                   <div className="relative">
@@ -452,13 +456,13 @@ export const LoginPage: React.FC = () => {
                       id="email"
                       name="email"
                       type="email"
-                      className="w-full rounded-xl border border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm transition-all placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                      className="w-full rounded-xl border max-lg:border-slate-700 max-lg:bg-slate-900/90 max-lg:text-white max-lg:placeholder:text-slate-500 max-lg:focus:border-indigo-500 border-slate-300 bg-white py-2.5 pl-10 pr-4 text-sm text-slate-900 shadow-sm transition-all placeholder:text-slate-400 focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                       placeholder="admin@example.com"
                       value={formData.email}
                       onChange={handleChange}
                       autoComplete="email"
                     />
-                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 max-lg:text-slate-400 text-slate-400">
                       <Person sx={{ fontSize: 18 }} />
                     </div>
                   </div>
@@ -466,12 +470,12 @@ export const LoginPage: React.FC = () => {
 
                 <div>
                   <div className="mb-1.5 flex items-center justify-between">
-                    <label className="block text-xs font-semibold text-slate-700" htmlFor="password">
+                    <label className="block text-xs font-semibold max-lg:text-slate-200 text-slate-700" htmlFor="password">
                       Password
                     </label>
                     <button
                       type="button"
-                      className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer"
+                      className="text-xs font-semibold max-lg:text-indigo-400 max-lg:hover:text-indigo-300 text-indigo-600 hover:text-indigo-700 transition-colors cursor-pointer"
                       onClick={openForgotModal}
                     >
                       Forgot password?
@@ -483,12 +487,13 @@ export const LoginPage: React.FC = () => {
                       id="password"
                       name="password"
                       type={showPassword ? "text" : "password"}
-                      className={`w-full rounded-xl border bg-white py-2.5 pl-10 pr-10 text-sm text-slate-900 shadow-sm transition-all placeholder:text-slate-400 focus:outline-none focus:ring-2 ${formData.password.length > 0
-                        ? loginPasswordEval?.isStrong
-                          ? "border-emerald-500 focus:border-emerald-600 focus:ring-emerald-500/20"
-                          : "border-amber-400 focus:border-amber-500 focus:ring-amber-500/20"
-                        : "border-slate-300 focus:border-indigo-600 focus:ring-indigo-500/20"
-                        }`}
+                      className={`w-full rounded-xl border py-2.5 pl-10 pr-10 text-sm shadow-sm transition-all focus:outline-none focus:ring-2 ${
+                        formData.password.length > 0
+                          ? loginPasswordEval?.isStrong
+                            ? "border-emerald-500 max-lg:bg-slate-900/90 max-lg:text-white bg-white text-slate-900 focus:border-emerald-600 focus:ring-emerald-500/20"
+                            : "border-amber-400 max-lg:bg-slate-900/90 max-lg:text-white bg-white text-slate-900 focus:border-amber-500 focus:ring-amber-500/20"
+                          : "max-lg:border-slate-700 max-lg:bg-slate-900/90 max-lg:text-white max-lg:placeholder:text-slate-500 max-lg:focus:border-indigo-500 border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-indigo-500/20"
+                      }`}
                       placeholder="••••••••••••"
                       value={formData.password}
                       onChange={handleChange}
@@ -499,7 +504,7 @@ export const LoginPage: React.FC = () => {
                     </div>
                     <button
                       type="button"
-                      className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      className="absolute inset-y-0 right-0 flex items-center pr-3 max-lg:text-slate-400 max-lg:hover:text-slate-200 text-slate-400 hover:text-slate-600 cursor-pointer"
                       onClick={() => setShowPassword((prev) => !prev)}
                       aria-label={showPassword ? "Hide password" : "Show password"}
                     >
@@ -509,23 +514,23 @@ export const LoginPage: React.FC = () => {
 
                   {/* Real-time Backend Password Strength Evaluation Feedback */}
                   {formData.password.length > 0 && (
-                    <div className="mt-2 rounded-xl border border-slate-200/90 bg-slate-50/90 p-3 text-xs shadow-xs transition-all animate-fadeIn">
+                    <div className="mt-2 rounded-xl border max-lg:border-slate-800 max-lg:bg-slate-900/90 border-slate-200/90 bg-slate-50/90 p-3 text-xs shadow-xs transition-all animate-fadeIn">
                       <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-600">
+                        <span className="text-[11px] font-bold uppercase tracking-wider max-lg:text-slate-400 text-slate-600">
                           Password Security Checklist:
                         </span>
                         <div className="flex items-center gap-1">
                           {isValidatingLoginPassword ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-600">
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium max-lg:text-indigo-400 text-indigo-600">
                               <span className="h-2.5 w-2.5 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent inline-block" />
                               Evaluating API...
                             </span>
                           ) : loginPasswordEval?.isStrong ? (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                            <span className="inline-flex items-center gap-1 rounded-full max-lg:bg-emerald-500/10 max-lg:text-emerald-400 max-lg:ring-emerald-500/20 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
                               <Check sx={{ fontSize: 12 }} /> Strong Password
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-inset ring-amber-600/20">
+                            <span className="inline-flex items-center gap-1 rounded-full max-lg:bg-amber-500/10 max-lg:text-amber-400 max-lg:ring-amber-500/20 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-inset ring-amber-600/20">
                               {loginPasswordEval?.strengthLabel || "Weak"} ({loginPasswordEval?.score || 0}%)
                             </span>
                           )}
@@ -533,7 +538,7 @@ export const LoginPage: React.FC = () => {
                       </div>
 
                       {/* Animated Strength Progress Bar */}
-                      <div className="h-1.5 w-full bg-slate-200 rounded-full overflow-hidden mb-2.5">
+                      <div className="h-1.5 w-full max-lg:bg-slate-800 bg-slate-200 rounded-full overflow-hidden mb-2.5">
                         <div
                           className={`h-full transition-all duration-300 ${(loginPasswordEval?.score || 0) <= 20
                             ? "bg-rose-500 w-1/5"
@@ -552,70 +557,70 @@ export const LoginPage: React.FC = () => {
                       <div className="grid grid-cols-2 gap-1.5 text-[11px]">
                         <div
                           className={`flex items-center gap-1.5 transition-colors ${loginPasswordEval?.criteria?.minLength
-                            ? "text-emerald-700 font-semibold"
+                            ? "max-lg:text-emerald-400 text-emerald-700 font-semibold"
                             : "text-slate-500"
                             }`}
                         >
                           {loginPasswordEval?.criteria?.minLength ? (
-                            <Check sx={{ fontSize: 13 }} className="text-emerald-600 shrink-0" />
+                            <Check sx={{ fontSize: 13 }} className="max-lg:text-emerald-400 text-emerald-600 shrink-0" />
                           ) : (
-                            <ErrorOutline sx={{ fontSize: 13 }} className="text-slate-400 shrink-0" />
+                            <ErrorOutline sx={{ fontSize: 13 }} className="max-lg:text-slate-500 text-slate-400 shrink-0" />
                           )}
                           <span>8+ Characters</span>
                         </div>
 
                         <div
                           className={`flex items-center gap-1.5 transition-colors ${loginPasswordEval?.criteria?.hasUpper
-                            ? "text-emerald-700 font-semibold"
+                            ? "max-lg:text-emerald-400 text-emerald-700 font-semibold"
                             : "text-slate-500"
                             }`}
                         >
                           {loginPasswordEval?.criteria?.hasUpper ? (
-                            <Check sx={{ fontSize: 13 }} className="text-emerald-600 shrink-0" />
+                            <Check sx={{ fontSize: 13 }} className="max-lg:text-emerald-400 text-emerald-600 shrink-0" />
                           ) : (
-                            <ErrorOutline sx={{ fontSize: 13 }} className="text-slate-400 shrink-0" />
+                            <ErrorOutline sx={{ fontSize: 13 }} className="max-lg:text-slate-500 text-slate-400 shrink-0" />
                           )}
                           <span>Uppercase letter (A-Z)</span>
                         </div>
 
                         <div
                           className={`flex items-center gap-1.5 transition-colors ${loginPasswordEval?.criteria?.hasLower
-                            ? "text-emerald-700 font-semibold"
+                            ? "max-lg:text-emerald-400 text-emerald-700 font-semibold"
                             : "text-slate-500"
                             }`}
                         >
                           {loginPasswordEval?.criteria?.hasLower ? (
-                            <Check sx={{ fontSize: 13 }} className="text-emerald-600 shrink-0" />
+                            <Check sx={{ fontSize: 13 }} className="max-lg:text-emerald-400 text-emerald-600 shrink-0" />
                           ) : (
-                            <ErrorOutline sx={{ fontSize: 13 }} className="text-slate-400 shrink-0" />
+                            <ErrorOutline sx={{ fontSize: 13 }} className="max-lg:text-slate-500 text-slate-400 shrink-0" />
                           )}
                           <span>Lowercase letter (a-z)</span>
                         </div>
 
                         <div
                           className={`flex items-center gap-1.5 transition-colors ${loginPasswordEval?.criteria?.hasNumber
-                            ? "text-emerald-700 font-semibold"
+                            ? "max-lg:text-emerald-400 text-emerald-700 font-semibold"
                             : "text-slate-500"
                             }`}
                         >
                           {loginPasswordEval?.criteria?.hasNumber ? (
-                            <Check sx={{ fontSize: 13 }} className="text-emerald-600 shrink-0" />
+                            <Check sx={{ fontSize: 13 }} className="max-lg:text-emerald-400 text-emerald-600 shrink-0" />
                           ) : (
-                            <ErrorOutline sx={{ fontSize: 13 }} className="text-slate-400 shrink-0" />
+                            <ErrorOutline sx={{ fontSize: 13 }} className="max-lg:text-slate-500 text-slate-400 shrink-0" />
                           )}
                           <span>Numeric digit (0-9)</span>
                         </div>
 
                         <div
                           className={`col-span-2 flex items-center gap-1.5 transition-colors ${loginPasswordEval?.criteria?.hasSpecial
-                            ? "text-emerald-700 font-semibold"
+                            ? "max-lg:text-emerald-400 text-emerald-700 font-semibold"
                             : "text-slate-500"
                             }`}
                         >
                           {loginPasswordEval?.criteria?.hasSpecial ? (
-                            <Check sx={{ fontSize: 13 }} className="text-emerald-600 shrink-0" />
+                            <Check sx={{ fontSize: 13 }} className="max-lg:text-emerald-400 text-emerald-600 shrink-0" />
                           ) : (
-                            <ErrorOutline sx={{ fontSize: 13 }} className="text-slate-400 shrink-0" />
+                            <ErrorOutline sx={{ fontSize: 13 }} className="max-lg:text-slate-500 text-slate-400 shrink-0" />
                           )}
                           <span>Special character (!@#$%...)</span>
                         </div>
@@ -625,13 +630,13 @@ export const LoginPage: React.FC = () => {
                 </div>
 
                 <div className="flex items-center justify-between pt-1">
-                  <label className="flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
+                  <label className="flex cursor-pointer items-center gap-2 text-xs font-medium max-lg:text-slate-300 text-slate-600">
                     <input
                       type="checkbox"
                       name="remember"
                       checked={formData.remember}
                       onChange={handleChange}
-                      className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                      className="h-4 w-4 rounded max-lg:border-slate-700 max-lg:bg-slate-900 border-slate-300 bg-white text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                     />
                     <span>Remember this device</span>
                   </label>
@@ -669,7 +674,7 @@ export const LoginPage: React.FC = () => {
 
                   {/* Helper hint when button is disabled due to password requirements */}
                   {formData.password.length > 0 && !loginPasswordEval?.isStrong && !isValidatingLoginPassword && (
-                    <p className="mt-2 text-[11px] text-amber-600 text-center font-medium flex items-center justify-center gap-1">
+                    <p className="mt-2 text-[11px] max-lg:text-amber-400 text-amber-600 text-center font-medium flex items-center justify-center gap-1">
                       <ErrorOutline sx={{ fontSize: 13 }} />
                       Sign in is disabled until password meets all strong security requirements.
                     </p>

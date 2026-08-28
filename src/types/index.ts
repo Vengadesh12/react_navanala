@@ -6,3 +6,5 @@ export * from "./navigation";
 export * from "./dashboard";
 export * from "./modules";
 export * from "./userActivity";
+export * from "./approval";
+export * from "./purchase";

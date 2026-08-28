@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   Add,
   Edit,
@@ -12,6 +13,9 @@ import {
   FilterList,
   RestoreFromTrash,
   WorkOutline,
+  Search,
+  SearchOff,
+  Close,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { MetricCard } from "../../components/common/MetricCard";
@@ -31,6 +35,7 @@ import type { Role, Designation, User, UserFormData, UserStatusFilter, UserSessi
 
 export const UsersPage: React.FC = () => {
   const { can } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const canCreateUsers = can("users.create") || can("users.manage");
   const canEditUsers = can("users.edit") || can("users.manage");
@@ -45,8 +50,15 @@ export const UsersPage: React.FC = () => {
   const [usersError, setUsersError] = useState("");
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [roleFilter, setRoleFilter] = useState(() => searchParams.get("role") || "ALL");
   const [statusFilter, setStatusFilter] = useState<UserStatusFilter>("ALL");
+
+  useEffect(() => {
+    const roleParam = searchParams.get("role");
+    if (roleParam) {
+      setRoleFilter(roleParam);
+    }
+  }, [searchParams]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [designationModalOpen, setDesignationModalOpen] = useState(false);
@@ -246,35 +258,121 @@ export const UsersPage: React.FC = () => {
     }
   };
 
+  const q = searchQuery.toLowerCase().trim();
+
+  const matchTotalMembers =
+    !q ||
+    [
+      "total members",
+      "members",
+      "registered",
+      "users",
+      "user",
+      "directory",
+      String(users.length),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchActiveUsersCard =
+    !q ||
+    [
+      "active users",
+      "active",
+      "online",
+      "currently active",
+      String(activeUsersCount),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchRolesCard =
+    !q ||
+    [
+      "roles assigned",
+      "roles",
+      "role",
+      "configured",
+      String(roles.length),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const visibleMetricCount =
+    (matchTotalMembers ? 1 : 0) +
+    (matchActiveUsersCard ? 1 : 0) +
+    (matchRolesCard ? 1 : 0);
+
   return (
-    <WorkspaceLayout permission="users.view" label="User Directory" icon="▦" showHero={false}>
+    <WorkspaceLayout
+      permission="users.view"
+      label="User Directory"
+      icon="▦"
+      showHero={false}
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder="Search by name, email, phone, age, address, or role..."
+    >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        {/* Stats Row */}
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <MetricCard
-            label="Total Members"
-            value={users.length}
-            note="Registered directory records"
-            icon={<People sx={{ fontSize: 24 }} />}
-            iconBgColor="bg-indigo-50 text-indigo-600"
-          />
+        {/* Active Search Results Banner */}
+        {q && (
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/60 dark:bg-indigo-950/40 px-4 py-3 text-xs">
+            <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+              <Search sx={{ fontSize: 18, color: "#6366f1" }} />
+              <span>
+                Showing <strong>{filteredUsers.length}</strong> matching member{filteredUsers.length === 1 ? "" : "s"} for{" "}
+                <span className="rounded-md bg-white dark:bg-slate-900 px-2 py-0.5 font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  &ldquo;{searchQuery}&rdquo;
+                </span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="inline-flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              <Close sx={{ fontSize: 15 }} />
+              <span>Clear Filter</span>
+            </button>
+          </div>
+        )}
 
-          <MetricCard
-            label="Active Users"
-            value={activeUsersCount}
-            note="Currently active in workspace"
-            icon={<CheckCircle sx={{ fontSize: 24 }} />}
-            iconBgColor="bg-emerald-50 text-emerald-600"
-          />
+        {/* Stats Row - rendered dynamically when matching */}
+        {visibleMetricCount > 0 && (
+          <div
+            className={`mb-6 grid grid-cols-1 gap-4 ${
+              visibleMetricCount === 1
+                ? "sm:grid-cols-1 md:max-w-md"
+                : visibleMetricCount === 2
+                ? "sm:grid-cols-2"
+                : "sm:grid-cols-2 lg:grid-cols-3"
+            }`}
+          >
+            {matchTotalMembers && (
+              <MetricCard
+                label="Total Members"
+                value={users.length}
+                note="Registered directory records"
+                icon={<People sx={{ fontSize: 24 }} />}
+                iconBgColor="bg-indigo-50 text-indigo-600"
+              />
+            )}
 
-          <MetricCard
-            label="Roles Assigned"
-            value={roles.length}
-            note="Configured role options"
-            icon={<Shield sx={{ fontSize: 24 }} />}
-            iconBgColor="bg-purple-50 text-purple-600"
-          />
-        </div>
+            {matchActiveUsersCard && (
+              <MetricCard
+                label="Active Users"
+                value={activeUsersCount}
+                note="Currently active in workspace"
+                icon={<CheckCircle sx={{ fontSize: 24 }} />}
+                iconBgColor="bg-emerald-50 text-emerald-600"
+              />
+            )}
+
+            {matchRolesCard && (
+              <MetricCard
+                label="Roles Assigned"
+                value={roles.length}
+                note="Configured role options"
+                icon={<Shield sx={{ fontSize: 24 }} />}
+                iconBgColor="bg-purple-50 text-purple-600"
+              />
+            )}
+          </div>
+        )}
 
         {/* Filter Controls & Actions Bar */}
         <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm xl:flex-row xl:items-center xl:justify-between">

@@ -684,63 +684,146 @@ export const CalendarPage: React.FC = () => {
     </div>
   );
 
+  const q = searchTerm.toLowerCase().trim();
+
+  const matchUpcomingReviews =
+    !q ||
+    [
+      "upcoming reviews",
+      "reviews",
+      "audits",
+      "scheduled",
+      String(stats.upcomingReviews),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchTeamAvailability =
+    !q ||
+    [
+      "team availability",
+      "availability",
+      "active now",
+      "members",
+      String(stats.teamAvailability),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchDueThisWeek =
+    !q ||
+    [
+      "high priority",
+      "due this week",
+      "priority",
+      "due",
+      String(stats.dueThisWeek),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const visibleMetricCount =
+    (matchUpcomingReviews ? 1 : 0) +
+    (matchTeamAvailability ? 1 : 0) +
+    (matchDueThisWeek ? 1 : 0);
+
   return (
-    <WorkspaceLayout permission="calendar.view" label="Schedule" icon="□" showHero={false}>
+    <WorkspaceLayout
+      permission="calendar.view"
+      label="Schedule"
+      icon="□"
+      showHero={false}
+      searchValue={searchTerm}
+      onSearchChange={setSearchTerm}
+      searchPlaceholder="Search events by title, description, or host..."
+    >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
-        
-        {/* TOP METRICS & STATS */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          {/* Card 1: Upcoming Reviews */}
-          <div className="relative overflow-hidden rounded-2xl border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-500/10 via-white to-white dark:from-indigo-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">Upcoming Reviews</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.upcomingReviews}</span>
-                  <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">this quarter</span>
-                </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Scheduled audits & rhythm</p>
-              </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
-                <CalendarMonth sx={{ fontSize: 24 }} />
-              </div>
+        {/* Active Search Results Banner */}
+        {q && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/60 dark:bg-indigo-950/40 px-4 py-3 text-xs">
+            <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+              <Search sx={{ fontSize: 18, color: "#6366f1" }} />
+              <span>
+                Showing <strong>{schedules.length}</strong> matching event{schedules.length === 1 ? "" : "s"} for{" "}
+                <span className="rounded-md bg-white dark:bg-slate-900 px-2 py-0.5 font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  &ldquo;{searchTerm}&rdquo;
+                </span>
+              </span>
             </div>
+            <button
+              type="button"
+              onClick={() => setSearchTerm("")}
+              className="inline-flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              <Close sx={{ fontSize: 15 }} />
+              <span>Clear Filter</span>
+            </button>
           </div>
+        )}
 
-          {/* Card 2: Team Availability */}
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-200/70 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-500/10 via-white to-white dark:from-emerald-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Team Availability</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.teamAvailability}</span>
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">active now</span>
+        {/* TOP METRICS & STATS - rendered dynamically when matching */}
+        {visibleMetricCount > 0 && (
+          <div
+            className={`grid grid-cols-1 gap-4 ${
+              visibleMetricCount === 1
+                ? "sm:grid-cols-1 md:max-w-md"
+                : visibleMetricCount === 2
+                ? "sm:grid-cols-2"
+                : "sm:grid-cols-3"
+            }`}
+          >
+            {/* Card 1: Upcoming Reviews */}
+            {matchUpcomingReviews && (
+              <div className="relative overflow-hidden rounded-2xl border border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-500/10 via-white to-white dark:from-indigo-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">Upcoming Reviews</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.upcomingReviews}</span>
+                      <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">this quarter</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Scheduled audits & rhythm</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-indigo-500 text-white shadow-md shadow-indigo-500/25">
+                    <CalendarMonth sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Ready for review sessions</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
-                <CheckCircleOutline sx={{ fontSize: 24 }} />
-              </div>
-            </div>
-          </div>
+            )}
 
-          {/* Card 3: High Priority / Due */}
-          <div className="relative overflow-hidden rounded-2xl border border-amber-200/70 dark:border-amber-900/60 bg-gradient-to-br from-amber-500/10 via-white to-white dark:from-amber-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">High Priority / Due</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.dueThisWeek}</span>
-                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">due this week</span>
+            {/* Card 2: Team Availability */}
+            {matchTeamAvailability && (
+              <div className="relative overflow-hidden rounded-2xl border border-emerald-200/70 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-500/10 via-white to-white dark:from-emerald-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Team Availability</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.teamAvailability}</span>
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">active now</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Ready for review sessions</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
+                    <CheckCircleOutline sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Priority review events</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-500 text-white shadow-md shadow-amber-500/25">
-                <EventNoteOutlined sx={{ fontSize: 24 }} />
+            )}
+
+            {/* Card 3: High Priority / Due */}
+            {matchDueThisWeek && (
+              <div className="relative overflow-hidden rounded-2xl border border-amber-200/70 dark:border-amber-900/60 bg-gradient-to-br from-amber-500/10 via-white to-white dark:from-amber-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">High Priority / Due</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{stats.dueThisWeek}</span>
+                      <span className="text-xs font-medium text-amber-600 dark:text-amber-400">due this week</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Priority review events</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-500 text-white shadow-md shadow-amber-500/25">
+                    <EventNoteOutlined sx={{ fontSize: 24 }} />
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* CALENDAR TOOLBAR & FILTER CONTROLS */}
         <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs space-y-4">

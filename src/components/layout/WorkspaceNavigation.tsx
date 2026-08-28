@@ -24,20 +24,33 @@ export const WorkspaceNavigation: React.FC<WorkspaceNavigationProps> = ({
       ? user.menus
       : [];
 
-  // Use dynamic menus returned from backend database via JWT, with fallback to workspace config
-  const navItems: NavMenuItem[] =
-    activeMenus.length > 0
-      ? activeMenus.map((m) => ({
-          key: m.menuKey,
-          label: m.label,
-          icon: m.icon || "◫",
-          to: m.route,
-          group: m.groupName || "General",
-          desc: m.description || "",
-          order: m.orderIndex,
-          permissionKey: m.permissionKey,
-        }))
-      : workspaceMenus.filter((menu) => canAccess(user, menu.key));
+  const accessibleWorkspaceMenus = workspaceMenus.filter((menu) => canAccess(user, menu.key));
+
+  // Use dynamic menus returned from backend database via JWT, merged with static workspace config
+  let navItems: NavMenuItem[] = [];
+
+  if (activeMenus.length > 0) {
+    navItems = activeMenus.map((m) => ({
+      key: m.menuKey,
+      label: m.label,
+      icon: m.icon || "◫",
+      to: m.route,
+      group: m.groupName || "Core Access",
+      desc: m.description || "",
+      order: m.orderIndex,
+      permissionKey: m.permissionKey,
+    }));
+
+    // Seamlessly include any accessible menu (e.g. Purchases) not present in cached JWT session
+    const existingKeys = new Set(navItems.map((item) => item.key.toLowerCase()));
+    accessibleWorkspaceMenus.forEach((menu) => {
+      if (!existingKeys.has(menu.key.toLowerCase())) {
+        navItems.push(menu);
+      }
+    });
+  } else {
+    navItems = accessibleWorkspaceMenus;
+  }
 
   // Dynamically group menu items preserving database order
   const groupMap = new Map<string, NavMenuItem[]>();

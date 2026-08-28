@@ -6,12 +6,15 @@ export interface LoggedInUser {
   email: string;
   roleId: number | string;
   roleName?: string;
+  departmentName?: string;
+  designationName?: string;
   permissions: string[];
   menus?: MenuItemDto[];
   token?: string;
   phone?: string;
   age?: number;
   address?: string;
+  isFirstLogin?: boolean;
 }
 
 export interface LoginCredentials {
@@ -26,9 +29,12 @@ export interface AuthResponseData {
   email: string;
   roleId: number;
   roleName?: string;
+  departmentName?: string;
+  designationName?: string;
   permissions: string[];
   menus?: MenuItemDto[];
   token: string;
+  isFirstLogin?: boolean;
 }
 
 export interface AuthResponse {

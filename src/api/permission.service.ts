@@ -16,4 +16,24 @@ export const permissionService = {
       body: JSON.stringify({ permissionKeys }),
     });
   },
+
+  getDepartmentPermissions: async (
+    departmentId: number | string
+  ): Promise<string[]> => {
+    return apiClient<string[]>(`/api/permissions/departments/${departmentId}`);
+  },
+
+  updateDepartmentPermissions: async (
+    departmentId: number | string,
+    permissionKeys: string[]
+  ): Promise<{ message?: string }> => {
+    return apiClient<{ message?: string }>(
+      `/api/permissions/departments/${departmentId}`,
+      {
+        method: "PUT",
+        includeJson: true,
+        body: JSON.stringify({ permissionKeys }),
+      }
+    );
+  },
 };

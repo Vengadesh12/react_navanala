@@ -17,6 +17,9 @@ import {
   Check,
   ErrorOutline,
   VpnKey,
+  Search,
+  SearchOff,
+  Close,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { profileService } from "../../api/profile.service";
@@ -31,6 +34,7 @@ export const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [savingProfile, setSavingProfile] = useState<boolean>(false);
   const [savingPassword, setSavingPassword] = useState<boolean>(false);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   // Eye icon visibility toggles
   const [showCurrentPassword, setShowCurrentPassword] = useState<boolean>(false);
@@ -180,9 +184,84 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
+  const q = searchQuery.toLowerCase().trim();
+
+  const matchOverviewCard =
+    !q ||
+    [
+      "account profile",
+      "profile overview",
+      "user profile",
+      "super admin",
+      profile?.name || authUser?.name || "",
+      profile?.email || authUser?.email || "",
+      profile?.roleName || "",
+      profile?.phone || "",
+      profile?.address || "",
+    ].some((t) => t?.toLowerCase().includes(q));
+
+  const matchPersonalCard =
+    !q ||
+    [
+      "personal information",
+      "contact profile",
+      "full name",
+      "contact phone",
+      "age",
+      "office address",
+      formData.name,
+      formData.phone,
+      formData.address,
+    ].some((t) => t?.toLowerCase().includes(q));
+
+  const matchPasswordCard =
+    !q ||
+    [
+      "security",
+      "password",
+      "security & password",
+      "change password",
+      "current password",
+      "new password",
+      "confirm password",
+      "credentials",
+    ].some((t) => t?.toLowerCase().includes(q));
+
+  const matchAnyProfile = matchOverviewCard || matchPersonalCard || matchPasswordCard;
+
   return (
-    <WorkspaceLayout label="Account Profile" icon="👤" showHero={false}>
+    <WorkspaceLayout
+      label="Account Profile"
+      icon="👤"
+      showHero={false}
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder="Search profile details, personal info, security..."
+    >
       <div className="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+        {/* Active Search Results Banner */}
+        {q && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/60 dark:bg-indigo-950/40 px-4 py-3 text-xs">
+            <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+              <Search sx={{ fontSize: 18, color: "#6366f1" }} />
+              <span>
+                Filtering profile cards for{" "}
+                <span className="rounded-md bg-white dark:bg-slate-900 px-2 py-0.5 font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  &ldquo;{searchQuery}&rdquo;
+                </span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="inline-flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              <Close sx={{ fontSize: 15 }} />
+              <span>Clear Filter</span>
+            </button>
+          </div>
+        )}
+
         {/* Header Title */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
@@ -200,152 +279,182 @@ export const ProfilePage: React.FC = () => {
           </button>
         </div>
 
-        {/* User Card Overview */}
-        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs flex flex-col sm:flex-row items-center gap-6">
-          <img
-            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || authUser?.name || "Admin")}&background=2563eb&color=fff&size=128`}
-            alt={profile?.name}
-            className="h-20 w-20 rounded-full object-cover ring-4 ring-blue-50"
-          />
-
-          <div className="flex-1 text-center sm:text-left">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-              <h2 className="text-xl font-bold text-slate-900">{profile?.name || authUser?.name}</h2>
-              <span className="self-center sm:self-auto rounded-full bg-purple-100 px-3 py-0.5 text-xs font-bold text-purple-700">
-                {profile?.roleName || "Super Admin"}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 mt-1">{profile?.email || authUser?.email}</p>
-
-            <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-slate-500">
-              <span className="inline-flex items-center gap-1">
-                <PhoneOutlined sx={{ fontSize: 14 }} />
-                <span>{profile?.phone || "No phone registered"}</span>
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <CakeOutlined sx={{ fontSize: 14 }} />
-                <span>Age: {profile?.age || 28}</span>
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <LocationOnOutlined sx={{ fontSize: 14 }} />
-                <span>{profile?.address || "HQ Office"}</span>
-              </span>
-            </div>
+        {!matchAnyProfile ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+            <SearchOff sx={{ fontSize: 36, color: "#94a3b8" }} />
+            <h3 className="mt-2 text-sm font-bold text-slate-800">No profile cards matched &ldquo;{searchQuery}&rdquo;</h3>
+            <p className="mt-1 text-xs text-slate-500">Try searching for name, email, phone, personal information, or password.</p>
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="mt-4 inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 cursor-pointer"
+            >
+              <Close sx={{ fontSize: 14 }} />
+              <span>Clear Search</span>
+            </button>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* User Card Overview */}
+            {matchOverviewCard && (
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs flex flex-col sm:flex-row items-center gap-6">
+                <img
+                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || authUser?.name || "Admin")}&background=2563eb&color=fff&size=128`}
+                  alt={profile?.name}
+                  className="h-20 w-20 rounded-full object-cover ring-4 ring-blue-50"
+                />
 
-        {/* 2 Main Forms Grid */}
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-start">
-          {/* Left Form: Profile Details */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-            <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-              <div className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                <PersonOutline sx={{ fontSize: 20 }} />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900">Personal Information</h3>
-                <p className="text-[11px] text-slate-400">Update your contact profile in PostgreSQL database</p>
-              </div>
-            </div>
-
-            <form onSubmit={handleUpdateProfile} className="mt-5 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
-                <div className="relative">
-                  <PersonOutline sx={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
-                <div className="relative">
-                  <EmailOutlined sx={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
-                  <div className="relative">
-                    <PhoneOutlined sx={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="text"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      className="w-full rounded-xl border border-slate-200 pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden transition-colors"
-                    />
+                <div className="flex-1 text-center sm:text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <h2 className="text-xl font-bold text-slate-900">{profile?.name || authUser?.name}</h2>
+                    <span className="self-center sm:self-auto rounded-full bg-purple-100 px-3 py-0.5 text-xs font-bold text-purple-700">
+                      {profile?.roleName || "Super Admin"}
+                    </span>
                   </div>
-                </div>
+                  <p className="text-xs text-slate-500 mt-1">{profile?.email || authUser?.email}</p>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Age</label>
-                  <div className="relative">
-                    <CakeOutlined sx={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                    <input
-                      type="number"
-                      value={formData.age}
-                      onChange={(e) => setFormData({ ...formData, age: Number(e.target.value) })}
-                      className="w-full rounded-xl border border-slate-200 pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden transition-colors"
-                    />
+                  <div className="mt-3 flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs text-slate-500">
+                    <span className="inline-flex items-center gap-1">
+                      <PhoneOutlined sx={{ fontSize: 14 }} />
+                      <span>{profile?.phone || "No phone registered"}</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <CakeOutlined sx={{ fontSize: 14 }} />
+                      <span>Age: {profile?.age || 28}</span>
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <LocationOnOutlined sx={{ fontSize: 14 }} />
+                      <span>{profile?.address || "HQ Office"}</span>
+                    </span>
                   </div>
                 </div>
               </div>
+            )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Physical Address</label>
-                <div className="relative">
-                  <LocationOnOutlined sx={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    type="text"
-                    value={formData.address}
-                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden transition-colors"
-                  />
-                </div>
-              </div>
+            {/* 2 Main Forms Grid */}
+            {(matchPersonalCard || matchPasswordCard) && (
+              <div
+                className={`grid grid-cols-1 gap-6 items-start ${
+                  matchPersonalCard && matchPasswordCard ? "lg:grid-cols-2" : "lg:grid-cols-1 max-w-2xl mx-auto"
+                }`}
+              >
+                {/* Left Form: Profile Details */}
+                {matchPersonalCard && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+                    <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+                      <div className="grid h-9 w-9 place-items-center rounded-xl bg-blue-50 text-blue-600">
+                        <PersonOutline sx={{ fontSize: 20 }} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-900">Personal Information</h3>
+                        <p className="text-[11px] text-slate-400">Update your contact profile in PostgreSQL database</p>
+                      </div>
+                    </div>
 
-              <div className="pt-3">
-                <button
-                  type="submit"
-                  disabled={savingProfile}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-60"
-                >
-                  <Save sx={{ fontSize: 16 }} />
-                  <span>{savingProfile ? "Updating Database..." : "Save Profile Details"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
+                    <form onSubmit={handleUpdateProfile} className="mt-5 space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Full Name *</label>
+                        <div className="relative">
+                          <PersonOutline sx={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="text"
+                            required
+                            value={formData.name}
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            className="w-full rounded-xl border border-slate-200 pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden transition-colors"
+                          />
+                        </div>
+                      </div>
 
-          {/* Right Form: Change Password */}
-          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
-            <div>
-              <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-                <div className="grid h-9 w-9 place-items-center rounded-xl bg-purple-50 text-purple-600">
-                  <VpnKey sx={{ fontSize: 20 }} />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900">Security & Password</h3>
-                  <p className="text-[11px] text-slate-400">Update your account authentication credentials</p>
-                </div>
-              </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Email Address *</label>
+                        <div className="relative">
+                          <EmailOutlined sx={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input
+                            type="email"
+                            disabled
+                            value={profile?.email || authUser?.email || ""}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-3.5 py-2 text-xs text-slate-500 cursor-not-allowed"
+                          />
+                        </div>
+                        <span className="text-[10px] text-slate-400 mt-1 block">Email address is managed by system administrator</span>
+                      </div>
 
-              <form onSubmit={handleChangePassword} className="mt-5 space-y-4">
-                {/* 1. Current Password */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">Phone Number</label>
+                          <div className="relative">
+                            <PhoneOutlined sx={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                              type="tel"
+                              placeholder="+1 (555) 000-0000"
+                              value={formData.phone}
+                              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                              className="w-full rounded-xl border border-slate-200 pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden transition-colors"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">Age</label>
+                          <div className="relative">
+                            <CakeOutlined sx={{ fontSize: 16 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input
+                              type="number"
+                              min={18}
+                              max={100}
+                              value={formData.age}
+                              onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) || 28 })}
+                              className="w-full rounded-xl border border-slate-200 pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden transition-colors"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 mb-1">Office / Home Address</label>
+                        <div className="relative">
+                          <LocationOnOutlined sx={{ fontSize: 16 }} className="absolute left-3 top-3 text-slate-400" />
+                          <textarea
+                            rows={3}
+                            placeholder="Enter physical address..."
+                            value={formData.address}
+                            onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                            className="w-full rounded-xl border border-slate-200 pl-9 pr-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden transition-colors resize-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pt-2">
+                        <button
+                          type="submit"
+                          disabled={savingProfile}
+                          className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-60"
+                        >
+                          <Save sx={{ fontSize: 16 }} />
+                          <span>{savingProfile ? "Updating Database..." : "Save Profile Details"}</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {/* Right Form: Change Password */}
+                {matchPasswordCard && (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+                        <div className="grid h-9 w-9 place-items-center rounded-xl bg-purple-50 text-purple-600">
+                          <VpnKey sx={{ fontSize: 20 }} />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-bold text-slate-900">Security & Password</h3>
+                          <p className="text-[11px] text-slate-400">Update your account authentication credentials</p>
+                        </div>
+                      </div>
+
+                      <form onSubmit={handleChangePassword} className="mt-5 space-y-4">
+                        {/* 1. Current Password */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Current Password *</label>
                   <div className="relative">
@@ -602,12 +711,16 @@ export const ProfilePage: React.FC = () => {
               </form>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-400">
-              <Security sx={{ fontSize: 15, color: "#10b981" }} />
-              <span>Passwords are salted and cryptographically hashed with PBKDF2 in PostgreSQL.</span>
-            </div>
-          </div>
-        </div>
+                    <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-400">
+                      <Security sx={{ fontSize: 15, color: "#10b981" }} />
+                      <span>Passwords are salted and cryptographically hashed with PBKDF2 in PostgreSQL.</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </WorkspaceLayout>
   );

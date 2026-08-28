@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Shield, Close, Key } from "@mui/icons-material";
 import type { Role, RoleFormData } from "../../../types";
 
@@ -34,6 +35,17 @@ export const RoleModal: React.FC<RoleModalProps> = ({
     setFormError("");
   }, [editingRole, isOpen]);
 
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -46,7 +58,7 @@ export const RoleModal: React.FC<RoleModalProps> = ({
     await onSave(formData, Boolean(editingRole));
   };
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-fade-in"
       onClick={() => !saving && onClose()}
@@ -152,6 +164,7 @@ export const RoleModal: React.FC<RoleModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

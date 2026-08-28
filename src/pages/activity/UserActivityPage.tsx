@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   HistoryToggleOffOutlined,
@@ -7,6 +7,7 @@ import {
   LogoutOutlined,
   Refresh,
   Search,
+  SearchOff,
   VisibilityOutlined,
   BlockOutlined,
   DownloadOutlined,
@@ -346,9 +347,109 @@ export const UserActivityPage: React.FC = () => {
 
   const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
+  const q = searchTerm.toLowerCase().trim();
+
+  const matchCurrentlyOnline =
+    !q ||
+    [
+      "currently online",
+      "active users",
+      "active now",
+      "online",
+      "sessions",
+      String(summary.activeUsersCount),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchLoginsToday =
+    !q ||
+    [
+      "logins today",
+      "logins",
+      "sign-ins",
+      "authentications",
+      String(summary.totalLoginsToday),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchLogoutsToday =
+    !q ||
+    [
+      "logouts today",
+      "logouts",
+      "ended",
+      "expired",
+      String(summary.totalLogoutsToday),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const matchTotalTracked =
+    !q ||
+    [
+      "total tracked",
+      "records",
+      "historical",
+      String(summary.totalSessionsRecorded),
+    ].some((t) => t.toLowerCase().includes(q));
+
+  const visibleMetricCount =
+    (matchCurrentlyOnline ? 1 : 0) +
+    (matchLoginsToday ? 1 : 0) +
+    (matchLogoutsToday ? 1 : 0) +
+    (matchTotalTracked ? 1 : 0);
+
+  const filteredActiveSessions = useMemo(() => {
+    if (!q) return summary.activeSessions;
+    return summary.activeSessions.filter((s: UserSessionItem) =>
+      [
+        s.userName,
+        s.email,
+        s.roleName,
+        s.ipAddress,
+        s.browser,
+        s.os,
+        s.userAgent,
+      ].some((val) => val?.toLowerCase().includes(q))
+    );
+  }, [summary.activeSessions, q]);
+
   return (
-    <WorkspaceLayout permission="user_activity.view" label="User Activity" icon="⏱" showHero={false}>
+    <WorkspaceLayout
+      permission="user_activity.view"
+      label="User Activity"
+      icon="⏱"
+      showHero={false}
+      searchValue={searchTerm}
+      onSearchChange={(val) => {
+        setSearchTerm(val);
+        setPage(1);
+      }}
+      searchPlaceholder="Search active sessions, users, IPs..."
+    >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
+        {/* Active Search Results Banner */}
+        {q && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/60 dark:bg-indigo-950/40 px-4 py-3 text-xs">
+            <div className="flex items-center gap-2 text-indigo-900 dark:text-indigo-200">
+              <Search sx={{ fontSize: 18, color: "#6366f1" }} />
+              <span>
+                Showing results matching{" "}
+                <span className="rounded-md bg-white dark:bg-slate-900 px-2 py-0.5 font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                  &ldquo;{searchTerm}&rdquo;
+                </span>
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setPage(1);
+              }}
+              className="inline-flex items-center gap-1 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+            >
+              <Close sx={{ fontSize: 15 }} />
+              <span>Clear Filter</span>
+            </button>
+          </div>
+        )}
+
         {/* Top Header Bar */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
@@ -402,76 +503,96 @@ export const UserActivityPage: React.FC = () => {
           </div>
         </div>
 
-        {/* 4 Metric KPI Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {/* Active Users Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-emerald-200/70 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-500/10 via-white to-white dark:from-emerald-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Currently Online</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{summary.activeUsersCount}</span>
-                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">active now</span>
+        {/* 4 Metric KPI Cards - rendered dynamically when matching */}
+        {visibleMetricCount > 0 && (
+          <div
+            className={`grid grid-cols-1 gap-4 ${
+              visibleMetricCount === 1
+                ? "sm:grid-cols-1 md:max-w-md"
+                : visibleMetricCount === 2
+                ? "sm:grid-cols-2"
+                : visibleMetricCount === 3
+                ? "sm:grid-cols-3"
+                : "sm:grid-cols-2 lg:grid-cols-4"
+            }`}
+          >
+            {/* Active Users Card */}
+            {matchCurrentlyOnline && (
+              <div className="relative overflow-hidden rounded-2xl border border-emerald-200/70 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-500/10 via-white to-white dark:from-emerald-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Currently Online</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{summary.activeUsersCount}</span>
+                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">active now</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Live active browser sessions</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
+                    <PersonOutline sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Live active browser sessions</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
-                <PersonOutline sx={{ fontSize: 24 }} />
-              </div>
-            </div>
-          </div>
+            )}
 
-          {/* Logins Today Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-blue-200/70 dark:border-blue-900/60 bg-gradient-to-br from-blue-500/10 via-white to-white dark:from-blue-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">Logins Today</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{summary.totalLoginsToday}</span>
-                  <span className="text-xs font-medium text-blue-600 dark:text-blue-400">sign-ins</span>
+            {/* Logins Today Card */}
+            {matchLoginsToday && (
+              <div className="relative overflow-hidden rounded-2xl border border-blue-200/70 dark:border-blue-900/60 bg-gradient-to-br from-blue-500/10 via-white to-white dark:from-blue-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">Logins Today</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{summary.totalLoginsToday}</span>
+                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400">sign-ins</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Successful 24-hr authentications</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-500 text-white shadow-md shadow-blue-500/25">
+                    <CheckCircleOutline sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Successful 24-hr authentications</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-500 text-white shadow-md shadow-blue-500/25">
-                <CheckCircleOutline sx={{ fontSize: 24 }} />
-              </div>
-            </div>
-          </div>
+            )}
 
-          {/* Logouts Today Card */}
-          <div className="relative overflow-hidden rounded-2xl border border-amber-200/70 dark:border-amber-900/60 bg-gradient-to-br from-amber-500/10 via-white to-white dark:from-amber-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Logouts Today</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{summary.totalLogoutsToday}</span>
-                  <span className="text-xs font-medium text-amber-600 dark:text-amber-400">ended</span>
+            {/* Logouts Today Card */}
+            {matchLogoutsToday && (
+              <div className="relative overflow-hidden rounded-2xl border border-amber-200/70 dark:border-amber-900/60 bg-gradient-to-br from-amber-500/10 via-white to-white dark:from-amber-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Logouts Today</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{summary.totalLogoutsToday}</span>
+                      <span className="text-xs font-medium text-amber-600 dark:text-amber-400">ended</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Terminated &amp; expired sessions</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-500 text-white shadow-md shadow-amber-500/25">
+                    <LogoutOutlined sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Terminated &amp; expired sessions</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-500 text-white shadow-md shadow-amber-500/25">
-                <LogoutOutlined sx={{ fontSize: 24 }} />
-              </div>
-            </div>
-          </div>
+            )}
 
-          {/* Total Tracked Sessions */}
-          <div className="relative overflow-hidden rounded-2xl border border-purple-200/70 dark:border-purple-900/60 bg-gradient-to-br from-purple-500/10 via-white to-white dark:from-purple-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Total Tracked</span>
-                <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{summary.totalSessionsRecorded}</span>
-                  <span className="text-xs font-medium text-purple-600 dark:text-purple-400">records</span>
+            {/* Total Tracked Sessions */}
+            {matchTotalTracked && (
+              <div className="relative overflow-hidden rounded-2xl border border-purple-200/70 dark:border-purple-900/60 bg-gradient-to-br from-purple-500/10 via-white to-white dark:from-purple-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">Total Tracked</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">{summary.totalSessionsRecorded}</span>
+                      <span className="text-xs font-medium text-purple-600 dark:text-purple-400">records</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Cumulative historical audit sessions</p>
+                  </div>
+                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-purple-500 text-white shadow-md shadow-purple-500/25">
+                    <HistoryToggleOffOutlined sx={{ fontSize: 24 }} />
+                  </div>
                 </div>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400">Cumulative historical audit sessions</p>
               </div>
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-purple-500 text-white shadow-md shadow-purple-500/25">
-                <HistoryToggleOffOutlined sx={{ fontSize: 24 }} />
-              </div>
-            </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* View Selection & Tabs Header */}
         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
@@ -580,20 +701,37 @@ export const UserActivityPage: React.FC = () => {
         {/* TAB 1: CURRENTLY LOGGED IN USERS */}
         {activeTab === "active" && (
           <div>
-            {summary.activeSessions.length === 0 ? (
+            {filteredActiveSessions.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center shadow-xs">
                 <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-slate-100 text-slate-400 mb-3">
-                  <PersonOutline sx={{ fontSize: 28 }} />
+                  {q ? <SearchOff sx={{ fontSize: 28 }} /> : <PersonOutline sx={{ fontSize: 28 }} />}
                 </div>
-                <h3 className="text-sm font-bold text-slate-800">No Active Sessions</h3>
+                <h3 className="text-sm font-bold text-slate-800">
+                  {q ? `No active sessions matching "${searchTerm}"` : "No Active Sessions"}
+                </h3>
                 <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                  There are currently no active user sessions recorded in the workspace.
+                  {q
+                    ? "Try adjusting your search keywords or clear the search filter."
+                    : "There are currently no active user sessions recorded in the workspace."}
                 </p>
+                {q && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setPage(1);
+                    }}
+                    className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 cursor-pointer"
+                  >
+                    <Close sx={{ fontSize: 14 }} />
+                    <span>Clear Search</span>
+                  </button>
+                )}
               </div>
             ) : activeViewMode === "cards" ? (
               /* CARD GRID VIEW */
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {summary.activeSessions.map((session) => {
+                {filteredActiveSessions.map((session: UserSessionItem) => {
                   const roleMeta = getRoleMeta(undefined, session.roleName);
                   const isCurrentSelf =
                     currentUser?.id === session.userId ||
@@ -715,17 +853,17 @@ export const UserActivityPage: React.FC = () => {
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                        <th className="px-5 py-3.5">USER</th>
-                        <th className="px-5 py-3.5">ROLE</th>
-                        <th className="px-5 py-3.5">IP ADDRESS</th>
-                        <th className="px-5 py-3.5">CLIENT / DEVICE</th>
-                        <th className="px-5 py-3.5">LOGGED IN AT</th>
-                        <th className="px-5 py-3.5">DURATION</th>
-                        <th className="px-5 py-3.5 text-right">ACTIONS</th>
+                        <th className="px-5 py-3.5 whitespace-nowrap">USER</th>
+                        <th className="px-5 py-3.5 whitespace-nowrap">ROLE</th>
+                        <th className="px-5 py-3.5 whitespace-nowrap">IP ADDRESS</th>
+                        <th className="px-5 py-3.5 whitespace-nowrap">CLIENT / DEVICE</th>
+                        <th className="px-5 py-3.5 whitespace-nowrap">LOGGED IN AT</th>
+                        <th className="px-5 py-3.5 whitespace-nowrap">DURATION</th>
+                        <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTIONS</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {summary.activeSessions.map((session) => {
+                      {filteredActiveSessions.map((session: UserSessionItem) => {
                         const roleMeta = getRoleMeta(undefined, session.roleName);
                         const isCurrentSelf =
                           currentUser?.id === session.userId ||
@@ -733,7 +871,7 @@ export const UserActivityPage: React.FC = () => {
 
                         return (
                           <tr key={session.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="px-5 py-3.5">
+                            <td className="px-5 py-3.5 whitespace-nowrap">
                               <div className="flex items-center gap-3">
                                 <div className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-600 text-xs font-bold text-white shrink-0">
                                   {session.userName ? session.userName.charAt(0).toUpperCase() : "U"}
@@ -744,13 +882,13 @@ export const UserActivityPage: React.FC = () => {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-5 py-3.5">
-                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${roleMeta.color}`}>
+                            <td className="px-5 py-3.5 whitespace-nowrap">
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border whitespace-nowrap ${roleMeta.color}`}>
                                 {session.roleName}
                               </span>
                             </td>
-                            <td className="px-5 py-3.5 font-mono text-[11px] text-slate-600">{session.ipAddress}</td>
-                            <td className="px-5 py-3.5 text-slate-600">
+                            <td className="px-5 py-3.5 font-mono text-[11px] text-slate-600 whitespace-nowrap">{session.ipAddress}</td>
+                            <td className="px-5 py-3.5 text-slate-600 whitespace-nowrap">
                               <div className="flex items-center gap-1.5">
                                 {getDeviceIcon(session.os)}
                                 <span>{session.browser} ({session.os})</span>
@@ -759,13 +897,13 @@ export const UserActivityPage: React.FC = () => {
                             <td className="px-5 py-3.5 text-slate-600 whitespace-nowrap">
                               {new Date(session.loginTime).toLocaleString()}
                             </td>
-                            <td className="px-5 py-3.5">
-                              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200 font-mono">
+                            <td className="px-5 py-3.5 whitespace-nowrap">
+                              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200 font-mono whitespace-nowrap">
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                 {getLiveDuration(session, currentTime)}
                               </span>
                             </td>
-                            <td className="px-5 py-3.5 text-right space-x-2">
+                            <td className="px-5 py-3.5 text-right space-x-2 whitespace-nowrap">
                               <button
                                 type="button"
                                 onClick={() => setInspectSession(session)}
@@ -804,15 +942,15 @@ export const UserActivityPage: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      <th className="px-5 py-3.5">USER</th>
-                      <th className="px-5 py-3.5">EVENT STATUS</th>
-                      <th className="px-5 py-3.5">ROLE</th>
-                      <th className="px-5 py-3.5">IP ADDRESS</th>
-                      <th className="px-5 py-3.5">DEVICE / BROWSER</th>
-                      <th className="px-5 py-3.5">LOGIN TIME</th>
-                      <th className="px-5 py-3.5">LOGOUT TIME</th>
-                      <th className="px-5 py-3.5">DURATION</th>
-                      <th className="px-5 py-3.5 text-right">ACTIONS</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">USER</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">EVENT STATUS</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">ROLE</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">IP ADDRESS</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">DEVICE / BROWSER</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">LOGIN TIME</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">LOGOUT TIME</th>
+                      <th className="px-5 py-3.5 whitespace-nowrap">DURATION</th>
+                      <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -823,7 +961,7 @@ export const UserActivityPage: React.FC = () => {
 
                         return (
                           <tr key={session.id} className="hover:bg-slate-50/80 transition-colors">
-                            <td className="px-5 py-3.5">
+                            <td className="px-5 py-3.5 whitespace-nowrap">
                               <div className="flex items-center gap-3">
                                 <div className="grid h-8 w-8 place-items-center rounded-lg bg-slate-800 text-xs font-bold text-white shrink-0">
                                   {session.userName ? session.userName.charAt(0).toUpperCase() : "U"}
@@ -835,29 +973,29 @@ export const UserActivityPage: React.FC = () => {
                               </div>
                             </td>
 
-                            <td className="px-5 py-3.5">
+                            <td className="px-5 py-3.5 whitespace-nowrap">
                               {isLive ? (
-                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200">
+                                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 border border-emerald-200 whitespace-nowrap">
                                   <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping"></span>
                                   <span>Active Now</span>
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600">
+                                <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 whitespace-nowrap">
                                   <CheckCircleOutline sx={{ fontSize: 13 }} />
                                   <span>Logged Out</span>
                                 </span>
                               )}
                             </td>
 
-                            <td className="px-5 py-3.5">
-                              <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold border ${roleMeta.color}`}>
+                            <td className="px-5 py-3.5 whitespace-nowrap">
+                              <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border whitespace-nowrap ${roleMeta.color}`}>
                                 {session.roleName}
                               </span>
                             </td>
 
-                            <td className="px-5 py-3.5 font-mono text-[11px] text-slate-600">{session.ipAddress}</td>
+                            <td className="px-5 py-3.5 font-mono text-[11px] text-slate-600 whitespace-nowrap">{session.ipAddress}</td>
 
-                            <td className="px-5 py-3.5 text-slate-600">
+                            <td className="px-5 py-3.5 text-slate-600 whitespace-nowrap">
                               <div className="flex items-center gap-1.5">
                                 {getDeviceIcon(session.os)}
                                 <span className="truncate max-w-[130px]" title={`${session.browser} on ${session.os}`}>
@@ -874,13 +1012,13 @@ export const UserActivityPage: React.FC = () => {
                               {session.logoutTime ? (
                                 new Date(session.logoutTime).toLocaleString()
                               ) : (
-                                <span className="text-emerald-600 font-bold text-[11px]">— In Progress —</span>
+                                <span className="text-emerald-600 font-bold text-[11px] whitespace-nowrap">— In Progress —</span>
                               )}
                             </td>
 
                             <td className="px-5 py-3.5 font-medium text-slate-700 whitespace-nowrap font-mono text-[11px]">
                               {isLive ? (
-                                <span className="inline-flex items-center gap-1.5 font-bold text-emerald-700">
+                                <span className="inline-flex items-center gap-1.5 font-bold text-emerald-700 whitespace-nowrap">
                                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                                   {getLiveDuration(session, currentTime)}
                                 </span>
@@ -889,7 +1027,7 @@ export const UserActivityPage: React.FC = () => {
                               )}
                             </td>
 
-                            <td className="px-5 py-3.5 text-right space-x-2">
+                            <td className="px-5 py-3.5 text-right space-x-2 whitespace-nowrap">
                               <button
                                 type="button"
                                 onClick={() => setInspectSession(session)}
