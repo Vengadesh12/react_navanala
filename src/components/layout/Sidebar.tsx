@@ -130,22 +130,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Main Aside */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 shrink-0 flex-col justify-between bg-[#0b1021] text-white p-4 transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 overflow-y-auto ${menuOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 flex-col justify-between bg-[#0b1021] text-white p-4 transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:translate-x-0 overflow-y-auto ${menuOpen ? "translate-x-0" : "-translate-x-full"
           }`}
       >
         <div className="flex flex-1 flex-col min-h-0">
           {/* Brand Header */}
-          <div className="mb-6 flex shrink-0 items-center justify-between px-2 pt-1">
-            <Link to="/dashboard" className="flex items-center gap-3 group">
-              <div className="h-10 w-10 overflow-hidden rounded-xl bg-white p-1 shadow-md shadow-blue-500/20 ring-1 ring-white/10 flex items-center justify-center">
+          <div className="mb-6 flex shrink-0 items-center justify-between px-1.5 pt-1">
+            <Link to="/dashboard" className="flex items-center gap-3 group min-w-0 flex-1">
+              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white p-1 shadow-md shadow-blue-500/20 ring-1 ring-white/10 flex items-center justify-center group-hover:scale-105 transition-transform">
                 <img src="/navanala-logo.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
               </div>
-             <span className="text-sm font-bold tracking-tight text-white group-hover:text-blue-400 transition-colors whitespace-nowrap flex-shrink-0">
-  NAVANALA TECHNOLOGIES
-</span>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-bold tracking-tight text-white group-hover:text-blue-400 transition-colors leading-tight">
+                  NAVANALA
+                </span>
+                <span className="text-[11px] font-semibold tracking-wider text-blue-400 uppercase leading-tight mt-0.5">
+                  TECHNOLOGIES
+                </span>
+              </div>
             </Link>
             <button
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden cursor-pointer"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden cursor-pointer shrink-0 ml-1"
               type="button"
               onClick={onCloseMenu}
               aria-label="Close navigation menu"
