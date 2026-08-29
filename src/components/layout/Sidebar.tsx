@@ -141,12 +141,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <img src="/navanala-logo.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-bold tracking-tight text-white group-hover:text-blue-400 transition-colors leading-tight">
-                  NAVANALA
+                <span className="text-[15px] font-bold tracking-tight text-white group-hover:text-blue-400 transition-colors leading-tight">
+                  NavaNala
                 </span>
-                <span className="text-[11px] font-semibold tracking-wider text-blue-400 uppercase leading-tight mt-0.5">
-                  TECHNOLOGIES
+                <span className="text-[11px] font-medium tracking-[0.16em] text-slate-300 group-hover:text-slate-100 transition-colors leading-none mt-0.5">
+                  Technologies
                 </span>
+                {/* NavaNala Brand Accent Colors Strip */}
+                <div className="flex items-center gap-1 mt-1.5">
+                  <span className="h-[3px] w-3 rounded-full bg-[#E53935] shadow-xs shadow-red-500/30" />
+                  <span className="h-[3px] w-3 rounded-full bg-[#2563EB] shadow-xs shadow-blue-500/30" />
+                  <span className="h-[3px] w-3 rounded-full bg-[#94A3B8] shadow-xs shadow-slate-400/30" />
+                  <span className="h-[3px] w-3 rounded-full bg-[#FFFFFF] shadow-xs shadow-white/30" />
+                  <span className="h-[3px] w-3 rounded-full bg-[#16A34A] shadow-xs shadow-emerald-500/30" />
+                  <span className="h-[3px] w-3 rounded-full bg-[#F59E0B] shadow-xs shadow-amber-500/30" />
+                </div>
               </div>
             </Link>
             <button
