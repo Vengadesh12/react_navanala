@@ -601,16 +601,16 @@ export const InvoicesPage: React.FC = () => {
                             <PrintOutlined sx={{ fontSize: 18 }} />
                           </button>
 
-                          {/* {(can("invoices.edit") || can("invoices.manage")) && (
-                            <button
-                              type="button"
-                              title="Edit Invoice"
-                              onClick={() => openEditModal(inv)}
-                              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-amber-600 dark:hover:bg-slate-800 dark:hover:text-amber-400 transition-colors cursor-pointer"
-                            >
-                              <EditOutlined sx={{ fontSize: 18 }} />
-                            </button>
-                          )} */}
+                          {(can("invoices.edit") || can("invoices.manage")) && (""
+                            // <button
+                            //   type="button"
+                            //   title="Edit Invoice"
+                            //   onClick={() => openEditModal(inv)}
+                            //   className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-amber-600 dark:hover:bg-slate-800 dark:hover:text-amber-400 transition-colors cursor-pointer"
+                            // >
+                            //   <EditOutlined sx={{ fontSize: 18 }} />
+                            // </button>
+                          )}
 
                           {can("invoices.delete") && (
                             <button
@@ -839,7 +839,7 @@ export const InvoicesPage: React.FC = () => {
                         key={idx}
                         className="grid grid-cols-12 gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 items-end shadow-xs"
                       >
-                        <div className="col-span-12 sm:col-span-4">
+                        <div className="col-span-12 sm:col-span-3">
                           <label className="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                             Product Name <span className="text-rose-500">*</span>
                           </label>
@@ -853,7 +853,7 @@ export const InvoicesPage: React.FC = () => {
                           />
                         </div>
 
-                        <div className="col-span-12 sm:col-span-3">
+                        <div className="col-span-12 sm:col-span-2">
                           <label className="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-400">
                             Description
                           </label>
@@ -892,40 +892,74 @@ export const InvoicesPage: React.FC = () => {
                             min="0"
                             required
                             placeholder="0.00"
-                            value={item.unitPrice}
-                            onChange={(e) => handleItemChange(idx, "unitPrice", parseFloat(e.target.value) || 0)}
+                            value={item.unitPrice === 0 && (item as any)._unitPriceRaw === "" ? "" : item.unitPrice}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              handleItemChange(idx, "unitPrice", val === "" ? 0 : parseFloat(val) || 0);
+                            }}
                             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs font-mono text-slate-900 dark:text-white focus:border-indigo-600 focus:outline-hidden"
                           />
                         </div>
 
-                        <div className="col-span-4 sm:col-span-1">
-                          <label className="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                            GST %
-                          </label>
-                          <select
-                            value={item.taxRate}
-                            onChange={(e) => handleItemChange(idx, "taxRate", parseFloat(e.target.value) || 0)}
-                            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-1 py-1.5 text-xs text-slate-900 dark:text-white focus:border-indigo-600 focus:outline-hidden cursor-pointer"
-                          >
+                        <div className="col-span-4 sm:col-span-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-400">
+                              GST %
+                            </label>
+                            <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+                              {Number(item.taxRate) || 0}%
+                            </span>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              min="0"
+                              max="100"
+                              step="any"
+                              placeholder="18"
+                              value={item.taxRate === 0 && (item as any)._taxRateRaw === "" ? "" : item.taxRate}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                handleItemChange(idx, "taxRate", val === "" ? 0 : Math.max(0, parseFloat(val) || 0));
+                              }}
+                              className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 pr-6 text-xs font-mono font-semibold text-slate-900 dark:text-white focus:border-indigo-600 focus:outline-hidden"
+                            />
+                            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
+                              %
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 mt-1">
                             {GST_RATES.map((rate) => (
-                              <option key={rate} value={rate}>
+                              <button
+                                key={rate}
+                                type="button"
+                                onClick={() => handleItemChange(idx, "taxRate", rate)}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
+                                  Number(item.taxRate) === rate
+                                    ? "bg-indigo-600 text-white font-bold"
+                                    : "bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
+                                }`}
+                              >
                                 {rate}%
-                              </option>
+                              </button>
                             ))}
-                          </select>
+                          </div>
                         </div>
 
-                        <div className="col-span-12 sm:col-span-1 flex items-center justify-between sm:justify-end gap-2">
-                          <div className="text-right sm:hidden">
-                            <span className="text-[10px] text-slate-500">Row Total: </span>
-                            <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
+                        <div className="col-span-12 sm:col-span-2 flex items-center justify-between sm:justify-end gap-2">
+                          <div className="text-right">
+                            <div className="text-[10px] text-slate-500">
+                              Tax: <span className="font-mono font-semibold text-purple-600 dark:text-purple-400">₹{rowTax.toFixed(2)}</span>
+                            </div>
+                            <div className="font-mono text-xs font-bold text-slate-900 dark:text-white">
                               ₹{rowTotal.toFixed(2)}
-                            </span>
+                            </div>
                           </div>
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(idx)}
-                            className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400 cursor-pointer"
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-500/10 dark:hover:text-rose-400 cursor-pointer"
+                            title="Remove line item"
                           >
                             <RemoveCircleOutline sx={{ fontSize: 18 }} />
                           </button>
