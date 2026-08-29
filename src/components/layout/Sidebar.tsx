@@ -138,14 +138,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="mb-6 flex shrink-0 items-center justify-between px-1.5 pt-1">
             <Link to="/dashboard" className="flex items-center gap-3 group min-w-0 flex-1">
               <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white p-1 shadow-md shadow-blue-500/20 ring-1 ring-white/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <img src="/navanala-logo.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
+                <img src="/navanala-icon.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-[15px] font-bold tracking-tight text-white group-hover:text-blue-400 transition-colors leading-tight">
                   NavaNala
                 </span>
-                <span className="text-[11px] font-medium tracking-[0.16em] text-slate-300 group-hover:text-slate-100 transition-colors leading-none mt-0.5">
-                  Technologies
+                <span className="text-[11px] font-medium tracking-[0.16em] text-blue-400 group-hover:text-blue-300 transition-colors leading-none mt-0.5">
+                  TECHNOLOGIES
                 </span>
                 {/* NavaNala Brand Accent Colors Strip */}
                 <div className="flex items-center gap-1 mt-1.5">

@@ -290,8 +290,8 @@ export const LoginPage: React.FC = () => {
       <section className="relative hidden lg:flex lg:col-span-7 flex-col justify-between p-12 xl:p-16 overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 border-r border-indigo-900/30">
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-auto max-w-[180px] overflow-hidden rounded-2xl bg-white p-1.5 shadow-lg shadow-indigo-500/20 backdrop-blur-md ring-1 ring-white/20 flex items-center justify-center">
-              <img src="/navanala-logo.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
+            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-white p-1.5 shadow-lg shadow-indigo-500/20 backdrop-blur-md ring-1 ring-white/20 flex items-center justify-center">
+              <img src="/navanala-icon.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
             </div>
             <div>
               <h1 className="text-xl font-bold tracking-tight text-white">NavaNala Technologies</h1>
@@ -336,7 +336,7 @@ export const LoginPage: React.FC = () => {
         </div>
 
         <div className="relative z-10 flex items-center justify-between border-t border-indigo-900/50 pt-4 text-xs text-indigo-300/60">
-          <span>&copy; {new Date().getFullYear()} RoleVault Access System</span>
+          <span>&copy; {new Date().getFullYear()} NavaNala Technologies</span>
           <span>Version 2.5.0 (2FA Active)</span>
         </div>
       </section>
@@ -438,7 +438,7 @@ export const LoginPage: React.FC = () => {
             <div>
               <div className="mb-8">
                 <div className="mb-4 inline-block h-12 w-12 overflow-hidden rounded-2xl max-lg:bg-white/10 max-lg:shadow-indigo-500/20 max-lg:backdrop-blur-md max-lg:ring-1 max-lg:ring-white/20 bg-indigo-50 p-1 shadow-xs border border-indigo-100 lg:hidden">
-                  <img src="/project-icon.png" alt="RoleVault" className="h-full w-full object-contain" />
+                  <img src="/navanala-icon.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
                 </div>
                 <h2 className="text-2xl font-bold tracking-tight max-lg:text-white text-slate-900">Sign in to your account</h2>
                 <p className="mt-1 text-sm max-lg:text-indigo-200/80 text-slate-500">
