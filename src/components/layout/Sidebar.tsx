@@ -140,9 +140,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="h-10 w-10 overflow-hidden rounded-xl bg-white p-1 shadow-md shadow-blue-500/20 ring-1 ring-white/10 flex items-center justify-center">
                 <img src="/navanala-logo.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
               </div>
-              <span className="text-sm font-bold tracking-tight text-white group-hover:text-blue-400 transition-colors">
-                NavaNala Technologies
-              </span>
+             <span className="text-sm font-bold tracking-tight text-white group-hover:text-blue-400 transition-colors whitespace-nowrap flex-shrink-0">
+  NAVANALA TECHNOLOGIES
+</span>
             </Link>
             <button
               className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white lg:hidden cursor-pointer"

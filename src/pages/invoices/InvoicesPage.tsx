@@ -34,6 +34,7 @@ import type {
   CreateInvoiceItemPayload,
   CreateInvoicePayload,
 } from "../../types/invoice";
+import { InvoicePreviewModal } from "./components/InvoicePreviewModal";
 
 const STATUS_TABS = [
   { id: "ALL", label: "All Invoices" },
@@ -336,11 +337,6 @@ export const InvoicesPage: React.FC = () => {
     }
   };
 
-  // Print & PDF Download Handler
-  const handlePrintOrDownload = () => {
-    window.print();
-  };
-
   const getStatusBadge = (st: string) => {
     switch (st?.toLowerCase()) {
       case "paid":
@@ -589,7 +585,7 @@ export const InvoicesPage: React.FC = () => {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             type="button"
-                            title="View Invoice & Download PDF"
+                            title="Preview Invoice & Download PDF"
                             onClick={() => openPreviewModal(inv)}
                             className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition-colors cursor-pointer"
                           >
@@ -598,11 +594,11 @@ export const InvoicesPage: React.FC = () => {
 
                           <button
                             type="button"
-                            title="Download in PDF format"
+                            title="Print Invoice Bill"
                             onClick={() => openPreviewModal(inv)}
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-emerald-600 dark:hover:bg-slate-800 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition-colors cursor-pointer"
                           >
-                            <PictureAsPdfOutlined sx={{ fontSize: 18 }} />
+                            <PrintOutlined sx={{ fontSize: 18 }} />
                           </button>
 
                           {/* {(can("invoices.edit") || can("invoices.manage")) && (
@@ -1100,241 +1096,12 @@ export const InvoicesPage: React.FC = () => {
         </div>
       )}
 
-      {/* PDF View & Download Modal */}
-      {isPreviewModalOpen && selectedInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/70 p-4 backdrop-blur-xs">
-          <div className="relative w-full max-w-4xl rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 text-slate-900 dark:text-white shadow-2xl max-h-[90vh] overflow-y-auto">
-            {/* Modal Controls */}
-            <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4 mb-6 print:hidden">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  Invoice #{selectedInvoice.invoiceNumber} Preview
-                </span>
-                <span
-                  className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getStatusBadge(
-                    selectedInvoice.status
-                  )}`}
-                >
-                  {selectedInvoice.status}
-                </span>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handlePrintOrDownload}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700 cursor-pointer"
-                >
-                  <PictureAsPdfOutlined sx={{ fontSize: 16 }} />
-                  Download PDF / Print
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setIsPreviewModalOpen(false)}
-                  className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-white cursor-pointer"
-                >
-                  <Close sx={{ fontSize: 20 }} />
-                </button>
-              </div>
-            </div>
-
-            {/* Printable Document Body */}
-            <div
-              id="printable-invoice"
-              className="rounded-2xl border border-slate-200 bg-white p-8 text-slate-900 shadow-sm"
-            >
-              {/* Invoice Header */}
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b-2 border-slate-200 pb-6 gap-4">
-                <div className="flex items-center gap-4">
-                  <div className="h-14 w-auto max-w-[200px] flex items-center justify-center">
-                    <img
-                      src="/navanala-logo.png"
-                      alt="NavaNala Technologies"
-                      className="h-full w-full object-contain"
-                    />
-                  </div>
-                  <div>
-                    <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">NavaNala Technologies</h1>
-                    <p className="text-xs text-slate-500">Next-Gen Enterprise Cloud & Software Solutions</p>
-                    <p className="text-xs font-mono font-semibold text-slate-700 mt-0.5">
-                      GSTIN: {selectedInvoice.companyGstin || "36AAAAA0000A1Z5"}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="text-left sm:text-right">
-                  <h2 className="text-2xl font-black uppercase tracking-wider text-indigo-900">Tax Invoice</h2>
-                  <p className="text-sm font-mono font-bold text-slate-800 mt-1">#{selectedInvoice.invoiceNumber}</p>
-                  <p className="text-xs text-slate-600 mt-0.5">
-                    Date:{" "}
-                    {new Date(selectedInvoice.invoiceDate).toLocaleDateString("en-IN", {
-                      day: "2-digit",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
-                  {selectedInvoice.dueDate && (
-                    <p className="text-xs text-slate-600">
-                      Due:{" "}
-                      {new Date(selectedInvoice.dueDate).toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Billed To & Organization Info */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-6 border-b border-slate-200 text-xs">
-                <div>
-                  <span className="font-bold uppercase tracking-wider text-slate-500 block mb-1">Billed To:</span>
-                  <p className="text-sm font-bold text-slate-900">{selectedInvoice.customerName}</p>
-                  {selectedInvoice.customerAddress && (
-                    <p className="text-slate-600 mt-0.5 whitespace-pre-line">{selectedInvoice.customerAddress}</p>
-                  )}
-                  {selectedInvoice.customerEmail && (
-                    <p className="text-slate-600 mt-0.5">Email: {selectedInvoice.customerEmail}</p>
-                  )}
-                  {selectedInvoice.customerPhone && (
-                    <p className="text-slate-600">Phone: {selectedInvoice.customerPhone}</p>
-                  )}
-                  {selectedInvoice.customerGstin && (
-                    <p className="font-mono font-semibold text-slate-800 mt-1">
-                      Customer GSTIN: {selectedInvoice.customerGstin}
-                    </p>
-                  )}
-                </div>
-
-                <div className="sm:text-right">
-                  <span className="font-bold uppercase tracking-wider text-slate-500 block mb-1">Company Origin:</span>
-                  <p className="font-semibold text-slate-900">NavaNala Technologies Pvt. Ltd.</p>
-                  <p className="text-slate-600">Tech Park, Phase II, Hitec City</p>
-                  <p className="text-slate-600">Hyderabad, Telangana 500081, India</p>
-                  <p className="text-slate-600">billing@navanala.com • www.navanala.com</p>
-                </div>
-              </div>
-
-              {/* Itemized Table */}
-              <div className="py-6 overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider border-y border-slate-200">
-                    <tr>
-                      <th className="py-2.5 px-3">#</th>
-                      <th className="py-2.5 px-3">Product Name & Description</th>
-                      <th className="py-2.5 px-3 text-center">Qty</th>
-                      <th className="py-2.5 px-3 text-right">Unit Price</th>
-                      <th className="py-2.5 px-3 text-right">GST Rate</th>
-                      <th className="py-2.5 px-3 text-right">Tax Amount</th>
-                      <th className="py-2.5 px-3 text-right">Total (₹)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100">
-                    {selectedInvoice.items?.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50">
-                        <td className="py-3 px-3 font-semibold text-slate-500">{idx + 1}</td>
-                        <td className="py-3 px-3">
-                          <div className="font-bold text-slate-900">{item.productName}</div>
-                          {item.description && (
-                            <div className="text-[11px] text-slate-500">{item.description}</div>
-                          )}
-                        </td>
-                        <td className="py-3 px-3 text-center font-medium text-slate-700">{item.quantity}</td>
-                        <td className="py-3 px-3 text-right font-mono text-slate-700">
-                          ₹{Number(item.unitPrice).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-3 px-3 text-right text-purple-700 font-medium">{item.taxRate}%</td>
-                        <td className="py-3 px-3 text-right font-mono text-slate-700">
-                          ₹{Number(item.taxAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                        <td className="py-3 px-3 text-right font-mono font-bold text-slate-900">
-                          ₹{Number(item.totalAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Total Calculation & Amount in Words */}
-              <div className="border-t-2 border-slate-200 pt-4 grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
-                <div className="space-y-3">
-                  <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-indigo-900 block mb-1">
-                      Total Amount in Words:
-                    </span>
-                    <p className="text-xs font-bold text-indigo-950 leading-relaxed">
-                      {selectedInvoice.totalAmountInWords}
-                    </p>
-                  </div>
-
-                  <div className="text-[11px] text-slate-600 space-y-1">
-                    <p>
-                      <strong>Payment Mode:</strong> {selectedInvoice.paymentMethod || "Bank Transfer"}
-                    </p>
-                    <p>
-                      <strong>Bank:</strong> HDFC Bank Ltd • <strong>A/C:</strong> 50200012345678 •{" "}
-                      <strong>IFSC:</strong> HDFC0001234
-                    </p>
-                    <p>
-                      <strong>UPI ID:</strong> navanala@hdfcbank
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-2 rounded-xl bg-slate-50 p-4 text-xs">
-                  <div className="flex justify-between text-slate-600">
-                    <span>Subtotal:</span>
-                    <span className="font-mono font-semibold text-slate-900">
-                      ₹{(selectedInvoice.subtotal || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between text-purple-800">
-                    <span>Total GST:</span>
-                    <span className="font-mono font-semibold">
-                      + ₹{(selectedInvoice.taxAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-
-                  {Number(selectedInvoice.discountAmount) > 0 && (
-                    <div className="flex justify-between text-rose-700">
-                      <span>Discount:</span>
-                      <span className="font-mono font-semibold">
-                        - ₹{Number(selectedInvoice.discountAmount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="border-t border-slate-200 pt-2 flex justify-between text-sm font-extrabold text-slate-900">
-                    <span className="text-indigo-900">Grand Total:</span>
-                    <span className="font-mono text-emerald-700 text-base">
-                      ₹{(selectedInvoice.totalAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Terms & Signature Section */}
-              <div className="mt-8 border-t border-slate-200 pt-6 grid grid-cols-1 sm:grid-cols-2 gap-6 text-[11px] text-slate-600 items-end">
-                <div>
-                  <span className="font-bold text-slate-800 block mb-1">Terms & Conditions:</span>
-                  <p className="whitespace-pre-line leading-relaxed">{selectedInvoice.termsAndConditions}</p>
-                </div>
-
-                <div className="text-left sm:text-right pt-4 sm:pt-0">
-                  <div className="inline-block text-center border-t border-slate-400 pt-2 min-w-[180px]">
-                    <p className="font-bold text-slate-900">For NavaNala Technologies</p>
-                    <p className="text-[10px] text-slate-500 mt-1">Authorized Signatory</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Modern Invoice Preview, Download PDF & Print Modal */}
+      <InvoicePreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        invoice={selectedInvoice}
+      />
     </WorkspaceLayout>
   );
 };
