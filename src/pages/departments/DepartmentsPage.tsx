@@ -166,15 +166,10 @@ export const DepartmentsPage: React.FC = () => {
           <div>
             <div className="flex items-center gap-2.5">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-950/60 dark:text-teal-400">
-                <CorporateFare sx={{ fontSize: 22 }} />
               </div>
-              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">
-                Departments &amp; Hierarchy
-              </h1>
+            
             </div>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Organizational structure mapping departments to designations using database relationships
-            </p>
+           
           </div>
 
           <div className="flex items-center gap-2.5">

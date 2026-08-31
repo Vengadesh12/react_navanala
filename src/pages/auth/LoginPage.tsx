@@ -290,7 +290,10 @@ export const LoginPage: React.FC = () => {
       <section className="relative hidden lg:flex lg:col-span-7 flex-col justify-between p-12 xl:p-16 overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 border-r border-indigo-900/30">
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-white p-1.5 shadow-lg shadow-indigo-500/20 backdrop-blur-md ring-1 ring-white/20 flex items-center justify-center">
+            <div
+              className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-white brand-logo-white p-1.5 shadow-lg shadow-indigo-500/20 backdrop-blur-md ring-1 ring-white/20 flex items-center justify-center"
+              style={{ backgroundColor: "#ffffff" }}
+            >
               <img src="/navanala-icon.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
             </div>
             <div>

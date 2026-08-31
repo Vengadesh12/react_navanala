@@ -83,9 +83,16 @@ html.dark {
 }
 
 /* Backgrounds in Dark Mode */
-html.dark .bg-white {
+html.dark .bg-white:not(.brand-logo-white) {
   background-color: #131b2e !important;
   color: #f8fafc;
+}
+
+/* Ensure brand logo container background stays white in all modes (light/dark) */
+.brand-logo-white,
+html.dark .brand-logo-white,
+aside .brand-logo-white {
+  background-color: #ffffff !important;
 }
 
 html.dark .bg-slate-50,

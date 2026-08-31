@@ -18,6 +18,7 @@ import {
   CorporateFare,
   FactCheckOutlined,
   ShoppingCartOutlined,
+  LockPersonOutlined,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog } from "../../utils/alerts";
@@ -87,6 +88,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: "Create Approval", path: "/create-approval", permissionKey: "approvals.view", icon: <FactCheckOutlined sx={{ fontSize: 18 }} /> },
     { label: "Purchases", path: "/purchases", permissionKey: "purchases.view", icon: <ShoppingCartOutlined sx={{ fontSize: 18 }} /> },
     { label: "Invoice", path: "/invoices", permissionKey: "invoices.view", icon: <ReceiptLongOutlined sx={{ fontSize: 18 }} /> },
+    { label: "Indexer", path: "/indexed", permissionKey: "indexed.view", icon: <LockPersonOutlined sx={{ fontSize: 18 }} /> },
   ];
 
   const navSystem = [
@@ -137,7 +139,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {/* Brand Header */}
           <div className="mb-6 flex shrink-0 items-center justify-between px-1.5 pt-1">
             <Link to="/dashboard" className="flex items-center gap-3 group min-w-0 flex-1">
-              <div className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white p-1 shadow-md shadow-blue-500/20 ring-1 ring-white/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+              <div
+                className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white brand-logo-white p-1 shadow-md shadow-blue-500/20 ring-1 ring-white/10 flex items-center justify-center group-hover:scale-105 transition-transform"
+                style={{ backgroundColor: "#ffffff" }}
+              >
                 <img src="/navanala-icon.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
               </div>
               <div className="flex flex-col min-w-0">

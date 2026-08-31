@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   MoreVert,
@@ -18,6 +18,7 @@ import {
   Search,
   SearchOff,
   Close,
+  Check,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { dashboardService } from "../../api/dashboard.service";
@@ -27,6 +28,10 @@ import type { DashboardSummaryResponse, DashboardChartPoint } from "../../types"
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [timeframe, setTimeframe] = useState<"7d" | "30d" | "90d">("7d");
+  const [timeframeDropdownOpen, setTimeframeDropdownOpen] = useState<boolean>(false);
+  const timeframeDropdownRef = useRef<HTMLDivElement>(null);
+  const [headerTimeframeOpen, setHeaderTimeframeOpen] = useState<boolean>(false);
+  const headerTimeframeRef = useRef<HTMLDivElement>(null);
   const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -72,11 +77,30 @@ export const DashboardPage: React.FC = () => {
     loadDashboard(timeframe);
   }, [timeframe, loadDashboard]);
 
-  const handleTimeframeToggle = () => {
-    const next: "7d" | "30d" | "90d" =
-      timeframe === "7d" ? "30d" : timeframe === "30d" ? "90d" : "7d";
-    setTimeframe(next);
-  };
+  // Close timeframe dropdowns on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        timeframeDropdownRef.current &&
+        !timeframeDropdownRef.current.contains(event.target as Node)
+      ) {
+        setTimeframeDropdownOpen(false);
+      }
+      if (
+        headerTimeframeRef.current &&
+        !headerTimeframeRef.current.contains(event.target as Node)
+      ) {
+        setHeaderTimeframeOpen(false);
+      }
+    };
+
+    if (timeframeDropdownOpen || headerTimeframeOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [timeframeDropdownOpen, headerTimeframeOpen]);
 
   // Helper to build dynamic SVG path coordinates for Area Chart
   const renderAreaChart = (points: DashboardChartPoint[]) => {
@@ -1010,15 +1034,78 @@ export const DashboardPage: React.FC = () => {
               <span>{refreshing ? "Syncing..." : "Refresh"}</span>
             </button>
 
-            <button
-              type="button"
-              onClick={handleTimeframeToggle}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-            >
-              <CalendarTodayOutlined sx={{ fontSize: 16, color: "#64748b" }} />
-              <span>{summary?.dateRangeDescription || timeframeLabels[timeframe]}</span>
-              <KeyboardArrowDown sx={{ fontSize: 16, color: "#94a3b8" }} />
-            </button>
+            {/* Header Timeframe Dropdown */}
+            <div className="relative" ref={headerTimeframeRef}>
+              <button
+                type="button"
+                onClick={() => setHeaderTimeframeOpen((prev) => !prev)}
+                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold shadow-2xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                  headerTimeframeOpen
+                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                    : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                }`}
+                aria-haspopup="listbox"
+                aria-expanded={headerTimeframeOpen}
+              >
+                <CalendarTodayOutlined
+                  sx={{ fontSize: 16, color: headerTimeframeOpen ? "#2563eb" : "#64748b" }}
+                />
+                <span>{summary?.dateRangeDescription || timeframeLabels[timeframe]}</span>
+                <KeyboardArrowDown
+                  sx={{ fontSize: 16 }}
+                  className={`transition-transform duration-200 ${
+                    headerTimeframeOpen ? "rotate-180 text-blue-600" : "text-slate-400"
+                  }`}
+                />
+              </button>
+
+              {headerTimeframeOpen && (
+                <div
+                  role="listbox"
+                  className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 p-1.5 shadow-xl shadow-slate-900/10 dark:shadow-black/40 z-30 animate-fadeIn"
+                >
+                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                    Select Range
+                  </div>
+                  {(
+                    [
+                      { value: "7d", label: "Last 7 Days", desc: "Past 1 week" },
+                      { value: "30d", label: "Last 30 Days", desc: "Past 1 month" },
+                      { value: "90d", label: "Last 90 Days", desc: "Past 3 months" },
+                    ] as const
+                  ).map((opt) => {
+                    const isSelected = timeframe === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => {
+                          setTimeframe(opt.value);
+                          setHeaderTimeframeOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${
+                          isSelected
+                            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
+                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-700/60"
+                        }`}
+                      >
+                        <div>
+                          <span className="block leading-tight">{opt.label}</span>
+                          <span className="block text-[10px] text-slate-400 dark:text-slate-500 font-normal mt-0.5">
+                            {opt.desc}
+                          </span>
+                        </div>
+                        {isSelected && (
+                          <Check sx={{ fontSize: 16 }} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -1354,16 +1441,77 @@ export const DashboardPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Timeframe Selector Button */}
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
+                  {/* Timeframe Selector Dropdown */}
+                  <div className="relative self-start sm:self-auto" ref={timeframeDropdownRef}>
                     <button
                       type="button"
-                      onClick={handleTimeframeToggle}
-                      className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-colors"
+                      onClick={() => setTimeframeDropdownOpen((prev) => !prev)}
+                      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition-all cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
+                        timeframeDropdownOpen
+                          ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold"
+                          : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                      }`}
+                      aria-haspopup="listbox"
+                      aria-expanded={timeframeDropdownOpen}
                     >
+                      <CalendarTodayOutlined
+                        sx={{ fontSize: 13, color: timeframeDropdownOpen ? "#2563eb" : "#94a3b8" }}
+                      />
                       <span>{timeframeLabels[timeframe]}</span>
-                      <KeyboardArrowDown sx={{ fontSize: 16, color: "#94a3b8" }} />
+                      <KeyboardArrowDown
+                        sx={{ fontSize: 16 }}
+                        className={`transition-transform duration-200 ${
+                          timeframeDropdownOpen ? "rotate-180 text-blue-600" : "text-slate-400"
+                        }`}
+                      />
                     </button>
+
+                    {timeframeDropdownOpen && (
+                      <div
+                        role="listbox"
+                        className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 p-1.5 shadow-xl shadow-slate-900/10 dark:shadow-black/40 z-30 animate-fadeIn"
+                      >
+                        <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          Select Range
+                        </div>
+                        {(
+                          [
+                            { value: "7d", label: "Last 7 Days", desc: "Past 1 week" },
+                            { value: "30d", label: "Last 30 Days", desc: "Past 1 month" },
+                            { value: "90d", label: "Last 90 Days", desc: "Past 3 months" },
+                          ] as const
+                        ).map((opt) => {
+                          const isSelected = timeframe === opt.value;
+                          return (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              role="option"
+                              aria-selected={isSelected}
+                              onClick={() => {
+                                setTimeframe(opt.value);
+                                setTimeframeDropdownOpen(false);
+                              }}
+                              className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${
+                                isSelected
+                                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
+                                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-700/60"
+                              }`}
+                            >
+                              <div>
+                                <span className="block leading-tight">{opt.label}</span>
+                                <span className="block text-[10px] text-slate-400 dark:text-slate-500 font-normal mt-0.5">
+                                  {opt.desc}
+                                </span>
+                              </div>
+                              {isSelected && (
+                                <Check sx={{ fontSize: 16 }} className="text-blue-600 dark:text-blue-400 shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
 

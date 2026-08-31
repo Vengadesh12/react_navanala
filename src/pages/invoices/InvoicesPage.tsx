@@ -602,14 +602,7 @@ export const InvoicesPage: React.FC = () => {
                           </button>
 
                           {(can("invoices.edit") || can("invoices.manage")) && (""
-                            // <button
-                            //   type="button"
-                            //   title="Edit Invoice"
-                            //   onClick={() => openEditModal(inv)}
-                            //   className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-amber-600 dark:hover:bg-slate-800 dark:hover:text-amber-400 transition-colors cursor-pointer"
-                            // >
-                            //   <EditOutlined sx={{ fontSize: 18 }} />
-                            // </button>
+                            
                           )}
 
                           {can("invoices.delete") && (

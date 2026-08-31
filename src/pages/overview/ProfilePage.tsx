@@ -347,7 +347,7 @@ export const ProfilePage: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="text-sm font-bold text-slate-900">Personal Information</h3>
-                        <p className="text-[11px] text-slate-400">Update your contact profile in PostgreSQL database</p>
+                        <p className="text-[11px] text-slate-400">Update your contact profile </p>
                       </div>
                     </div>
 
@@ -712,8 +712,8 @@ export const ProfilePage: React.FC = () => {
             </div>
 
                     <div className="mt-6 pt-4 border-t border-slate-100 flex items-center gap-2 text-xs text-slate-400">
-                      <Security sx={{ fontSize: 15, color: "#10b981" }} />
-                      <span>Passwords are salted and cryptographically hashed with PBKDF2 in PostgreSQL.</span>
+                      {/* <Security sx={{ fontSize: 15, color: "#10b981" }} /> */}
+                      {/* <span>Passwords are salted and cryptographically hashed with PBKDF2 in PostgreSQL.</span> */}
                     </div>
                   </div>
                 )}

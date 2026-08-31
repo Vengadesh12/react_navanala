@@ -428,14 +428,6 @@ export const PermissionsPage: React.FC = () => {
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* Scope Switcher Segmented Control */}
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white sm:text-2xl">
-              Access Matrix Governance
-            </h1>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-              Configure baseline access permissions by Role or directly by Department
-            </p>
-          </div>
 
           <div className="inline-flex rounded-2xl bg-slate-200/80 p-1.5 dark:bg-slate-800 self-start sm:self-auto">
             <button
