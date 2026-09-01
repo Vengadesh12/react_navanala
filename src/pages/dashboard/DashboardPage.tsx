@@ -1060,16 +1060,16 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* Live Fireworks Blast Button */}
-            {/* <button
+            <button
               type="button"
               onClick={() => setShowCelebration(true)}
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:via-purple-700 hover:to-indigo-700 text-white px-3.5 py-2 text-xs font-bold shadow-md shadow-pink-500/25 active:scale-95 transition-all cursor-pointer animate-pulse-glow"
               title="Launch fireworks animation (rockets shoot from bottom to top and blast)"
-            > */}
-            {/* <Celebration sx={{ fontSize: 16 }} className="text-yellow-300 animate-bounce" /> */}
-            {/* <span className="hidden sm:inline">Blast Fireworks</span> */}
-            <span className="sm:hidden">Fireworks</span>
-            {/* </button> */}
+            >
+              {/* <Celebration sx={{ fontSize: 16 }} className="text-yellow-300 animate-bounce" /> */}
+              {/* <span className="hidden sm:inline">Blast Fireworks</span> */}
+              <span className="sm:hidden">Fireworks</span>
+            </button>
 
             <button
               type="button"
@@ -1154,48 +1154,6 @@ export const DashboardPage: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
-        </div>
-
-        {/* Festive Colorful Welcome Hero Banner */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900 text-white p-6 sm:p-7 shadow-xl shadow-indigo-950/20 border border-indigo-500/20">
-          {/* Radiant Glows */}
-          <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-pink-500/25 blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-cyan-500/25 blur-3xl pointer-events-none" />
-          <div className="absolute top-1/2 left-1/3 -translate-y-1/2 h-32 w-32 rounded-full bg-amber-500/20 blur-2xl pointer-events-none" />
-
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md px-3 py-1 text-xs font-semibold text-pink-300 border border-white/15">
-                  <Whatshot sx={{ fontSize: 15 }} className="text-pink-400" />
-                  <span>Welcome to RoleVault</span>
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/30">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>All Systems Live</span>
-                </span>
-              </div>
-
-              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-100 to-pink-200 bg-clip-text text-transparent">
-                Control Hub & Live Activity Overview ✨
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-                Monitor user permissions, active sessions, and security audit logs in real-time. Rockets shoot from bottom to top with radiant colorful fireworks!
-              </p>
-            </div>
-
-            {/* Quick Fireworks Launchers */}
-            {/* <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setShowCelebration(true)}
-                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-pink-500/30 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-              >
-                <RocketLaunch sx={{ fontSize: 16 }} className="animate-bounce" />
-                <span>Launch Fireworks Show</span>
-              </button>
-            </div> */}
           </div>
         </div>
 
@@ -1918,7 +1876,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         )}
       </div>
-    </WorkspaceLayout >
+    </WorkspaceLayout>
   );
 };
 
