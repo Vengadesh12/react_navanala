@@ -18,7 +18,6 @@ import {
   CorporateFare,
   FactCheckOutlined,
   ShoppingCartOutlined,
-  LockPersonOutlined,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog } from "../../utils/alerts";
@@ -88,7 +87,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: "Create Approval", path: "/create-approval", permissionKey: "approvals.view", icon: <FactCheckOutlined sx={{ fontSize: 18 }} /> },
     { label: "Purchases", path: "/purchases", permissionKey: "purchases.view", icon: <ShoppingCartOutlined sx={{ fontSize: 18 }} /> },
     { label: "Invoice", path: "/invoices", permissionKey: "invoices.view", icon: <ReceiptLongOutlined sx={{ fontSize: 18 }} /> },
-    { label: "Indexer", path: "/indexed", permissionKey: "indexed.view", icon: <LockPersonOutlined sx={{ fontSize: 18 }} /> },
   ];
 
   const navSystem = [
