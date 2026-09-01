@@ -16,6 +16,7 @@ import { getRoleMeta } from "../../config/workspace.config";
 import { useTheme } from "../../context/ThemeContext";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog } from "../../utils/alerts";
+import { getProfileImageUrl } from "../../utils/image";
 import type { LoggedInUser } from "../../types";
 
 export interface TopbarProps {
@@ -186,7 +187,7 @@ export const Topbar: React.FC<TopbarProps> = ({
             aria-haspopup="true"
           >
             <img
-              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff&size=128`}
+              src={getProfileImageUrl(user?.profileImage, userName)}
               alt={userName}
               className="h-10 w-10 rounded-full object-cover ring-2 ring-slate-100 group-hover:ring-blue-500 shadow-xs transition-all"
             />
@@ -214,7 +215,7 @@ export const Topbar: React.FC<TopbarProps> = ({
               {/* Profile Summary Header */}
               <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100">
                 <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(userName)}&background=2563eb&color=fff&size=128`}
+                  src={getProfileImageUrl(user?.profileImage, userName)}
                   alt={userName}
                   className="h-10 w-10 rounded-full object-cover ring-2 ring-blue-500/20 shadow-2xs shrink-0"
                 />

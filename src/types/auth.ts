@@ -4,6 +4,7 @@ export interface LoggedInUser {
   id: number;
   name: string;
   email: string;
+  profileImage?: string;
   roleId: number | string;
   roleName?: string;
   departmentName?: string;
@@ -27,6 +28,7 @@ export interface AuthResponseData {
   id: number;
   name: string;
   email: string;
+  profileImage?: string;
   roleId: number;
   roleName?: string;
   departmentName?: string;

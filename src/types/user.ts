@@ -20,6 +20,8 @@ export interface User {
   Name?: string;
   email: string;
   Email?: string;
+  profileImage?: string;
+  ProfileImage?: string;
   phone?: string;
   Phone?: string;
   age?: number | string;

@@ -21,4 +21,19 @@ export const profileService = {
       body: JSON.stringify(data),
     });
   },
+
+  uploadProfileImage: async (file: File): Promise<{ message?: string; success?: boolean; data?: UserProfile }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return apiClient<{ message?: string; success?: boolean; data?: UserProfile }>("/api/profile/upload-image", {
+      method: "POST",
+      body: formData,
+    });
+  },
+
+  removeProfileImage: async (): Promise<{ message?: string; success?: boolean; data?: UserProfile }> => {
+    return apiClient<{ message?: string; success?: boolean; data?: UserProfile }>("/api/profile/remove-image", {
+      method: "DELETE",
+    });
+  },
 };

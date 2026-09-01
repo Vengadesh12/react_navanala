@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   AccountCircleOutlined,
   LockOutlined,
@@ -20,21 +20,27 @@ import {
   Search,
   SearchOff,
   Close,
+  PhotoCamera,
+  DeleteOutline,
+  CloudUploadOutlined,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { profileService } from "../../api/profile.service";
 import { authService } from "../../api/auth.service";
 import { useAuth } from "../../hooks/useAuth";
 import { showSuccessToast, showErrorToast } from "../../utils/alerts";
+import { getProfileImageUrl, validateImageFile } from "../../utils/image";
 import type { UserProfile, ProfileFormData, ChangePasswordFormData, PasswordEvaluationResult } from "../../types";
 
 export const ProfilePage: React.FC = () => {
-  const { user: authUser } = useAuth();
+  const { user: authUser, updateCurrentUser } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [savingProfile, setSavingProfile] = useState<boolean>(false);
   const [savingPassword, setSavingPassword] = useState<boolean>(false);
+  const [uploadingImage, setUploadingImage] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Eye icon visibility toggles
   const [showCurrentPassword, setShowCurrentPassword] = useState<boolean>(false);
@@ -64,6 +70,13 @@ export const ProfilePage: React.FC = () => {
     try {
       const data = await profileService.getProfile();
       setProfile(data);
+      if (data) {
+        updateCurrentUser({
+          name: data.name,
+          profileImage: data.profileImage,
+          roleName: data.roleName,
+        });
+      }
       setFormData({
         name: data.name || "",
         email: data.email || "",
@@ -76,11 +89,66 @@ export const ProfilePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [updateCurrentUser]);
 
   useEffect(() => {
     fetchProfile();
   }, [fetchProfile]);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+
+    // Client-side image validation (type and 5MB size limit)
+    const validation = validateImageFile(file, 5 * 1024 * 1024);
+    if (!validation.valid) {
+      showErrorToast(validation.error || "Please select a valid image file.");
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const res = await profileService.uploadProfileImage(file);
+      const updatedProfile = res.data;
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+        updateCurrentUser({ profileImage: updatedProfile.profileImage });
+      }
+      showSuccessToast(res.message || "Profile picture updated successfully!");
+    } catch (err: any) {
+      showErrorToast(err?.message || "Failed to upload profile picture.");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    setUploadingImage(true);
+    try {
+      const res = await profileService.removeProfileImage();
+      const updatedProfile = res.data;
+      if (updatedProfile) {
+        setProfile(updatedProfile);
+        updateCurrentUser({ profileImage: undefined });
+      }
+      showSuccessToast(res.message || "Profile picture removed successfully!");
+    } catch (err: any) {
+      showErrorToast(err?.message || "Failed to remove profile picture.");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
 
   // Debounced API call to evaluate password strength via backend API
   useEffect(() => {
@@ -297,12 +365,78 @@ export const ProfilePage: React.FC = () => {
           <>
             {/* User Card Overview */}
             {matchOverviewCard && (
-              <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs flex flex-col sm:flex-row items-center gap-6">
-                <img
-                  src={`https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.name || authUser?.name || "Admin")}&background=2563eb&color=fff&size=128`}
-                  alt={profile?.name}
-                  className="h-20 w-20 rounded-full object-cover ring-4 ring-blue-50"
-                />
+              <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-xs flex flex-col sm:flex-row items-center sm:items-start gap-6">
+                {/* Interactive Avatar Container */}
+                <div className="relative group flex flex-col items-center shrink-0">
+                  <div className="relative h-24 w-24 rounded-full overflow-hidden ring-4 ring-blue-100 shadow-md">
+                    <img
+                      src={getProfileImageUrl(
+                        profile?.profileImage || authUser?.profileImage,
+                        profile?.name || authUser?.name || "Admin"
+                      )}
+                      alt={profile?.name || authUser?.name || "User Avatar"}
+                      className={`h-full w-full object-cover transition-all duration-200 ${
+                        uploadingImage ? "opacity-40 filter blur-xs" : "group-hover:scale-105"
+                      }`}
+                    />
+
+                    {/* Hover Overlay Button to Trigger File Picker */}
+                    <button
+                      type="button"
+                      disabled={uploadingImage}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute inset-0 flex flex-col items-center justify-center bg-black/45 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-pointer disabled:cursor-not-allowed"
+                      title="Click to change profile picture"
+                    >
+                      <PhotoCamera sx={{ fontSize: 24 }} />
+                      <span className="text-[10px] font-bold mt-1 tracking-tight">Change</span>
+                    </button>
+
+                    {/* Uploading Spinner Overlay */}
+                    {uploadingImage && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/60 text-white">
+                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent mb-1" />
+                        <span className="text-[9px] font-bold tracking-tight">Saving...</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Hidden File Input for strict Image uploads */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    aria-label="Upload profile image"
+                  />
+
+                  {/* Quick Photo Buttons Under Avatar */}
+                  <div className="mt-3 flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={uploadingImage}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-50 hover:text-blue-600 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                    >
+                      <CloudUploadOutlined sx={{ fontSize: 14 }} />
+                      <span>{profile?.profileImage ? "Change" : "Upload"}</span>
+                    </button>
+
+                    {(profile?.profileImage || authUser?.profileImage) && (
+                      <button
+                        type="button"
+                        disabled={uploadingImage}
+                        onClick={handleRemoveImage}
+                        className="inline-flex items-center gap-1 rounded-lg border border-rose-200 bg-rose-50/60 px-2 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer disabled:opacity-50"
+                        title="Remove photo and revert to avatar"
+                      >
+                        <DeleteOutline sx={{ fontSize: 14 }} />
+                        <span>Remove</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
 
                 <div className="flex-1 text-center sm:text-left">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2">
@@ -327,6 +461,10 @@ export const ProfilePage: React.FC = () => {
                       <span>{profile?.address || "HQ Office"}</span>
                     </span>
                   </div>
+
+                  <p className="mt-3 text-[11px] text-slate-400">
+                    JPG, PNG, WEBP or GIF. Max upload size is 5MB. Photo will be displayed on the navbar, dashboard and your account profile.
+                  </p>
                 </div>
               </div>
             )}

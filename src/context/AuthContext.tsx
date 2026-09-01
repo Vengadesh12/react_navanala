@@ -23,6 +23,7 @@ interface AuthContextType {
   refreshMenus: () => Promise<MenuItemDto[]>;
   can: (permission?: string) => boolean;
   completeFirstLoginPasswordChange: () => void;
+  updateCurrentUser: (userData: Partial<LoggedInUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,6 +78,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
+  const updateCurrentUser = useCallback((userData: Partial<LoggedInUser>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated: LoggedInUser = { ...prev, ...userData };
+      setStoredUser(updated);
+      return updated;
+    });
+  }, []);
+
   const saveAuthSession = async (data: AuthResponseData): Promise<string> => {
     // Save token first
     setStoredToken(data.token);
@@ -98,8 +108,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       id: data.id,
       name: data.name,
       email: data.email,
+      profileImage: data.profileImage,
       roleId: data.roleId,
       roleName: data.roleName,
+      departmentName: data.departmentName,
+      designationName: data.designationName,
       permissions: data.permissions || [],
       menus: userMenus,
       token: data.token,
@@ -272,6 +285,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         refreshMenus,
         can,
         completeFirstLoginPasswordChange,
+        updateCurrentUser,
       }}
     >
       {children}

@@ -252,12 +252,14 @@ export interface UserProfile {
   id: number;
   name: string;
   email: string;
+  profileImage?: string;
   phone?: string;
   age?: number;
   address?: string;
   roleId?: number | null;
   roleName?: string;
   permissions?: string[];
+  isFirstLogin?: boolean;
 }
 
 export interface ProfileFormData {

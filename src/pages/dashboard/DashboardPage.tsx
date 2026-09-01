@@ -23,6 +23,7 @@ import {
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { dashboardService } from "../../api/dashboard.service";
 import { useAuth } from "../../hooks/useAuth";
+import { getProfileImageUrl } from "../../utils/image";
 import type { DashboardSummaryResponse, DashboardChartPoint } from "../../types";
 
 export const DashboardPage: React.FC = () => {
@@ -988,10 +989,29 @@ export const DashboardPage: React.FC = () => {
       <div className="w-full min-h-screen bg-slate-50/50 dark:bg-[#0b0f19] px-4 py-6 sm:px-8 space-y-6">
         {/* Header Title & Date Range / Search */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-              Welcome back, {user?.name || "Administrator"}
-            </h1>
+          <div className="flex items-center gap-3.5">
+            <Link to="/profile" className="shrink-0 group block" title="Go to profile">
+              <img
+                src={getProfileImageUrl(user?.profileImage, user?.name || "Administrator")}
+                alt={user?.name || "User avatar"}
+                className="h-12 w-12 rounded-full object-cover ring-2 ring-blue-500/20 group-hover:ring-blue-500 shadow-sm transition-all"
+              />
+            </Link>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                  Welcome back, {user?.name || "Administrator"}
+                </h1>
+                {user?.roleName && (
+                  <span className="hidden sm:inline-block rounded-full bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900">
+                    {user.roleName}
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Workspace administration & live system controls overview
+              </p>
+            </div>
           </div>
 
           {/* Inline Search Bar, Date Picker & Live Refresh Button */}
