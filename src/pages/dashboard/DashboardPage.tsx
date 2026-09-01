@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   MoreVert,
   North,
@@ -19,15 +19,22 @@ import {
   SearchOff,
   Close,
   Check,
+  Celebration,
+  RocketLaunch,
+  AutoAwesome,
+  Whatshot,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { dashboardService } from "../../api/dashboard.service";
 import { useAuth } from "../../hooks/useAuth";
 import { getProfileImageUrl } from "../../utils/image";
+import { CrackersBlast } from "../../components/common/CrackersBlast";
 import type { DashboardSummaryResponse, DashboardChartPoint } from "../../types";
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const location = useLocation();
+  const [showCelebration, setShowCelebration] = useState<boolean>(false);
   const [timeframe, setTimeframe] = useState<"7d" | "30d" | "90d">("7d");
   const [timeframeDropdownOpen, setTimeframeDropdownOpen] = useState<boolean>(false);
   const timeframeDropdownRef = useRef<HTMLDivElement>(null);
@@ -44,6 +51,18 @@ export const DashboardPage: React.FC = () => {
   } | null>(null);
   const [selectedSeries, setSelectedSeries] = useState<"all" | "active" | "new" | "audit">("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+
+  // Automatically trigger fireworks blast on login redirect
+  useEffect(() => {
+    const isLoginRedirect =
+      sessionStorage.getItem("celebrate_login") === "true" ||
+      (location.state as any)?.justLoggedIn === true;
+
+    if (isLoginRedirect) {
+      setShowCelebration(true);
+      sessionStorage.removeItem("celebrate_login");
+    }
+  }, [location]);
 
   const timeframeLabels: Record<"7d" | "30d" | "90d", string> = {
     "7d": "Last 7 Days",
@@ -266,20 +285,18 @@ export const DashboardPage: React.FC = () => {
             </div>
             <div className="flex flex-wrap items-center gap-3 sm:gap-4 font-medium">
               <span
-                className={`flex items-center gap-1.5 transition-all duration-150 ${
-                  showActive
-                    ? hoveredSeries
-                      ? hoveredSeries === "active"
-                        ? "opacity-100 font-bold scale-105"
-                        : "opacity-40"
-                      : "opacity-100"
-                    : "opacity-30 line-through"
-                }`}
+                className={`flex items-center gap-1.5 transition-all duration-150 ${showActive
+                  ? hoveredSeries
+                    ? hoveredSeries === "active"
+                      ? "opacity-100 font-bold scale-105"
+                      : "opacity-40"
+                    : "opacity-100"
+                  : "opacity-30 line-through"
+                  }`}
               >
                 <span
-                  className={`h-2.5 w-2.5 rounded-full bg-blue-600 transition-all ${
-                    hoveredSeries === "active" ? "ring-4 ring-blue-500/40" : "ring-2 ring-blue-500/20"
-                  }`}
+                  className={`h-2.5 w-2.5 rounded-full bg-blue-600 transition-all ${hoveredSeries === "active" ? "ring-4 ring-blue-500/40" : "ring-2 ring-blue-500/20"
+                    }`}
                 />
                 <span>
                   Active Users:{" "}
@@ -287,20 +304,18 @@ export const DashboardPage: React.FC = () => {
                 </span>
               </span>
               <span
-                className={`flex items-center gap-1.5 transition-all duration-150 ${
-                  showNew
-                    ? hoveredSeries
-                      ? hoveredSeries === "new"
-                        ? "opacity-100 font-bold scale-105"
-                        : "opacity-40"
-                      : "opacity-100"
-                    : "opacity-30 line-through"
-                }`}
+                className={`flex items-center gap-1.5 transition-all duration-150 ${showNew
+                  ? hoveredSeries
+                    ? hoveredSeries === "new"
+                      ? "opacity-100 font-bold scale-105"
+                      : "opacity-40"
+                    : "opacity-100"
+                  : "opacity-30 line-through"
+                  }`}
               >
                 <span
-                  className={`h-2.5 w-2.5 rounded-full bg-emerald-500 transition-all ${
-                    hoveredSeries === "new" ? "ring-4 ring-emerald-500/40" : "ring-2 ring-emerald-500/20"
-                  }`}
+                  className={`h-2.5 w-2.5 rounded-full bg-emerald-500 transition-all ${hoveredSeries === "new" ? "ring-4 ring-emerald-500/40" : "ring-2 ring-emerald-500/20"
+                    }`}
                 />
                 <span>
                   New Users:{" "}
@@ -308,20 +323,18 @@ export const DashboardPage: React.FC = () => {
                 </span>
               </span>
               <span
-                className={`flex items-center gap-1.5 transition-all duration-150 ${
-                  showAudit
-                    ? hoveredSeries
-                      ? hoveredSeries === "audit"
-                        ? "opacity-100 font-bold scale-105"
-                        : "opacity-40"
-                      : "opacity-100"
-                    : "opacity-30 line-through"
-                }`}
+                className={`flex items-center gap-1.5 transition-all duration-150 ${showAudit
+                  ? hoveredSeries
+                    ? hoveredSeries === "audit"
+                      ? "opacity-100 font-bold scale-105"
+                      : "opacity-40"
+                    : "opacity-100"
+                  : "opacity-30 line-through"
+                  }`}
               >
                 <span
-                  className={`h-2.5 w-2.5 rounded-full bg-purple-500 transition-all ${
-                    hoveredSeries === "audit" ? "ring-4 ring-purple-500/40" : "ring-2 ring-purple-500/20"
-                  }`}
+                  className={`h-2.5 w-2.5 rounded-full bg-purple-500 transition-all ${hoveredSeries === "audit" ? "ring-4 ring-purple-500/40" : "ring-2 ring-purple-500/20"
+                    }`}
                 />
                 <span>
                   Audit Logs:{" "}
@@ -359,13 +372,12 @@ export const DashboardPage: React.FC = () => {
                 top: tooltipPos.isNearTop
                   ? `calc(${tooltipPos.topPercent}% + 14px)`
                   : `calc(${tooltipPos.topPercent}% - 14px)`,
-                transform: `${
-                  tooltipPos.leftPercent < 18
-                    ? "translateX(4px)"
-                    : tooltipPos.leftPercent > 82
+                transform: `${tooltipPos.leftPercent < 18
+                  ? "translateX(4px)"
+                  : tooltipPos.leftPercent > 82
                     ? "translateX(calc(-100% - 4px))"
                     : "translateX(-50%)"
-                } ${tooltipPos.isNearTop ? "translateY(0%)" : "translateY(-100%)"}`,
+                  } ${tooltipPos.isNearTop ? "translateY(0%)" : "translateY(-100%)"}`,
               }}
             >
               {hoveredPoint.series === "active" && (
@@ -724,11 +736,10 @@ export const DashboardPage: React.FC = () => {
               <button
                 type="button"
                 key={d.day + i}
-                className={`cursor-pointer transition-all whitespace-nowrap px-1.5 py-0.5 rounded-md ${
-                  displayIdx === i
-                    ? "font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 shadow-2xs"
-                    : "hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-slate-800/60"
-                }`}
+                className={`cursor-pointer transition-all whitespace-nowrap px-1.5 py-0.5 rounded-md ${displayIdx === i
+                  ? "font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 shadow-2xs"
+                  : "hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-100/60 dark:hover:bg-slate-800/60"
+                  }`}
                 onMouseEnter={() => {
                   setActiveChartPoint(i);
                   setHoveredPoint((prev) => ({
@@ -918,8 +929,8 @@ export const DashboardPage: React.FC = () => {
   const filteredRecentUsers = !q
     ? (summary?.recentUsers || [])
     : isRecentUsersCardExplicit
-    ? (summary?.recentUsers || [])
-    : (summary?.recentUsers || []).filter(
+      ? (summary?.recentUsers || [])
+      : (summary?.recentUsers || []).filter(
         (u) =>
           u.name?.toLowerCase().includes(q) ||
           u.email?.toLowerCase().includes(q) ||
@@ -948,8 +959,8 @@ export const DashboardPage: React.FC = () => {
   const filteredRecentActivities = !q
     ? (summary?.recentActivities || [])
     : isRecentActivityCardExplicit
-    ? (summary?.recentActivities || [])
-    : (summary?.recentActivities || []).filter(
+      ? (summary?.recentActivities || [])
+      : (summary?.recentActivities || []).filter(
         (act) =>
           act.title?.toLowerCase().includes(q) ||
           act.author?.toLowerCase().includes(q) ||
@@ -986,6 +997,14 @@ export const DashboardPage: React.FC = () => {
       onSearchChange={setSearchQuery}
       searchPlaceholder="Search dashboard cards, metrics, users..."
     >
+      {/* Radiant Fireworks Celebration Animation (matching the fireworks night sky image) */}
+      {/* <CrackersBlast
+        isOpen={showCelebration}
+        onClose={() => setShowCelebration(false)}
+        autoCloseDuration={15}
+        showControls={true}
+      /> */}
+
       <div className="w-full min-h-screen bg-slate-50/50 dark:bg-[#0b0f19] px-4 py-6 sm:px-8 space-y-6">
         {/* Header Title & Date Range / Search */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -994,7 +1013,7 @@ export const DashboardPage: React.FC = () => {
               <img
                 src={getProfileImageUrl(user?.profileImage, user?.name || "Administrator")}
                 alt={user?.name || "User avatar"}
-                className="h-12 w-12 rounded-full object-cover ring-2 ring-blue-500/20 group-hover:ring-blue-500 shadow-sm transition-all"
+                className="h-12 w-12 rounded-full object-cover ring-2 ring-indigo-500/30 group-hover:ring-indigo-500 shadow-md transition-all"
               />
             </Link>
             <div>
@@ -1003,7 +1022,7 @@ export const DashboardPage: React.FC = () => {
                   Welcome back, {user?.name || "Administrator"}
                 </h1>
                 {user?.roleName && (
-                  <span className="hidden sm:inline-block rounded-full bg-blue-50 dark:bg-blue-950/60 px-2.5 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900">
+                  <span className="hidden sm:inline-block rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/80 dark:to-purple-950/80 px-2.5 py-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800">
                     {user.roleName}
                   </span>
                 )}
@@ -1014,10 +1033,10 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Inline Search Bar, Date Picker & Live Refresh Button */}
+          {/* Inline Search Bar, Date Picker, Live Refresh & Fireworks Blast Trigger */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Quick in-page Search Input */}
-            <div className="relative w-full sm:w-60">
+            <div className="relative w-full sm:w-56">
               <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                 <Search sx={{ fontSize: 16 }} />
               </div>
@@ -1040,6 +1059,18 @@ export const DashboardPage: React.FC = () => {
               )}
             </div>
 
+            {/* Live Fireworks Blast Button */}
+            {/* <button
+              type="button"
+              onClick={() => setShowCelebration(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:via-purple-700 hover:to-indigo-700 text-white px-3.5 py-2 text-xs font-bold shadow-md shadow-pink-500/25 active:scale-95 transition-all cursor-pointer animate-pulse-glow"
+              title="Launch fireworks animation (rockets shoot from bottom to top and blast)"
+            > */}
+            {/* <Celebration sx={{ fontSize: 16 }} className="text-yellow-300 animate-bounce" /> */}
+            {/* <span className="hidden sm:inline">Blast Fireworks</span> */}
+            <span className="sm:hidden">Fireworks</span>
+            {/* </button> */}
+
             <button
               type="button"
               onClick={() => loadDashboard(timeframe, true)}
@@ -1059,23 +1090,21 @@ export const DashboardPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setHeaderTimeframeOpen((prev) => !prev)}
-                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-semibold shadow-2xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
-                  headerTimeframeOpen
-                    ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                    : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                }`}
+                className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-2xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${headerTimeframeOpen
+                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
+                  : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                  }`}
                 aria-haspopup="listbox"
                 aria-expanded={headerTimeframeOpen}
               >
                 <CalendarTodayOutlined
-                  sx={{ fontSize: 16, color: headerTimeframeOpen ? "#2563eb" : "#64748b" }}
+                  sx={{ fontSize: 15, color: headerTimeframeOpen ? "#2563eb" : "#64748b" }}
                 />
                 <span>{summary?.dateRangeDescription || timeframeLabels[timeframe]}</span>
                 <KeyboardArrowDown
                   sx={{ fontSize: 16 }}
-                  className={`transition-transform duration-200 ${
-                    headerTimeframeOpen ? "rotate-180 text-blue-600" : "text-slate-400"
-                  }`}
+                  className={`transition-transform duration-200 ${headerTimeframeOpen ? "rotate-180 text-blue-600" : "text-slate-400"
+                    }`}
                 />
               </button>
 
@@ -1105,11 +1134,10 @@ export const DashboardPage: React.FC = () => {
                           setTimeframe(opt.value);
                           setHeaderTimeframeOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${
-                          isSelected
-                            ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
-                            : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-700/60"
-                        }`}
+                        className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${isSelected
+                          ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-700/60"
+                          }`}
                       >
                         <div>
                           <span className="block leading-tight">{opt.label}</span>
@@ -1126,6 +1154,48 @@ export const DashboardPage: React.FC = () => {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Festive Colorful Welcome Hero Banner */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900 text-white p-6 sm:p-7 shadow-xl shadow-indigo-950/20 border border-indigo-500/20">
+          {/* Radiant Glows */}
+          <div className="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-pink-500/25 blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-cyan-500/25 blur-3xl pointer-events-none" />
+          <div className="absolute top-1/2 left-1/3 -translate-y-1/2 h-32 w-32 rounded-full bg-amber-500/20 blur-2xl pointer-events-none" />
+
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 backdrop-blur-md px-3 py-1 text-xs font-semibold text-pink-300 border border-white/15">
+                  <Whatshot sx={{ fontSize: 15 }} className="text-pink-400" />
+                  <span>Welcome to RoleVault</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-300 border border-emerald-500/30">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>All Systems Live</span>
+                </span>
+              </div>
+
+              <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight bg-gradient-to-r from-white via-indigo-100 to-pink-200 bg-clip-text text-transparent">
+                Control Hub & Live Activity Overview ✨
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+                Monitor user permissions, active sessions, and security audit logs in real-time. Rockets shoot from bottom to top with radiant colorful fireworks!
+              </p>
+            </div>
+
+            {/* Quick Fireworks Launchers */}
+            {/* <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setShowCelebration(true)}
+                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-pink-500/30 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+              >
+                <RocketLaunch sx={{ fontSize: 16 }} className="animate-bounce" />
+                <span>Launch Fireworks Show</span>
+              </button>
+            </div> */}
           </div>
         </div>
 
@@ -1205,54 +1275,53 @@ export const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* 1. Top KPI Metric Cards Grid - rendered only when matching */}
+        {/* 1. Top KPI Metric Cards Grid - Ultra-Vibrant Colorful Styling */}
         {visibleKpiCount > 0 && (
           <div
-            className={`grid grid-cols-1 gap-5 ${
-              visibleKpiCount === 1
-                ? "sm:grid-cols-1 md:max-w-md"
-                : visibleKpiCount === 2
+            className={`grid grid-cols-1 gap-5 ${visibleKpiCount === 1
+              ? "sm:grid-cols-1 md:max-w-md"
+              : visibleKpiCount === 2
                 ? "sm:grid-cols-2"
                 : visibleKpiCount === 3
-                ? "sm:grid-cols-2 lg:grid-cols-3"
-                : "sm:grid-cols-2 lg:grid-cols-4"
-            }`}
+                  ? "sm:grid-cols-2 lg:grid-cols-3"
+                  : "sm:grid-cols-2 lg:grid-cols-4"
+              }`}
           >
-            {/* Card 1: Total Users */}
+            {/* Card 1: Total Users (Radiant Purple & Fuchsia) */}
             {matchTotalUsers && (
-              <div className="relative overflow-hidden rounded-2xl border border-purple-200/70 dark:border-purple-900/60 bg-gradient-to-br from-purple-500/10 via-white to-white dark:from-purple-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700">
+              <div className="group relative overflow-hidden rounded-2xl border border-purple-200/80 dark:border-purple-800/60 bg-gradient-to-br from-purple-500/15 via-fuchsia-500/5 to-white dark:from-purple-950/40 dark:via-fuchsia-950/20 dark:to-slate-900 p-5 shadow-sm transition-all hover:shadow-lg hover:shadow-purple-500/10 hover:border-purple-400 dark:hover:border-purple-600">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-400">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-purple-100/90 dark:bg-purple-950/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
                       Total Users
                     </span>
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-baseline gap-2 pt-1">
                       <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">
                         {loading && !summary ? "..." : summary?.kpis.totalUsers ?? 0}
                       </span>
-                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center">
-                        <North sx={{ fontSize: 13, strokeWidth: 2 }} />
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md">
+                        <North sx={{ fontSize: 12, strokeWidth: 2.5 }} />
                         <span>{summary?.kpis.usersGrowth || "+12.5%"}</span>
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
                       {summary?.kpis.activeUsers ?? 0} active members
                     </p>
                   </div>
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-purple-500 text-white shadow-md shadow-purple-500/25">
-                    <PersonOutline sx={{ fontSize: 24 }} />
+                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-purple-600 via-fuchsia-600 to-pink-500 text-white shadow-lg shadow-purple-500/35 ring-4 ring-purple-500/20 group-hover:scale-105 transition-transform">
+                    <PersonOutline sx={{ fontSize: 26 }} />
                   </div>
                 </div>
                 {/* Mini Sparkline Purple */}
-                <div className="mt-3 flex items-center justify-between pt-2 border-t border-purple-100/60 dark:border-purple-900/40">
-                  <span className="text-[10px] font-medium text-purple-600/80 dark:text-purple-400/80">
+                <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-purple-100/80 dark:border-purple-900/50">
+                  <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300">
                     30-day user growth
                   </span>
                   <svg className="h-5 w-20 overflow-visible" viewBox="0 0 80 24" fill="none">
                     <path
                       d="M0 16 C 15 14, 25 22, 40 10 C 55 0, 65 18, 80 8"
-                      stroke="#a855f7"
-                      strokeWidth="2"
+                      stroke="#c026d3"
+                      strokeWidth="2.5"
                       strokeLinecap="round"
                     />
                   </svg>
@@ -1260,39 +1329,39 @@ export const DashboardPage: React.FC = () => {
               </div>
             )}
 
-            {/* Card 2: Total Roles */}
+            {/* Card 2: Total Roles (Electric Blue & Cyan) */}
             {matchTotalRoles && (
-              <div className="relative overflow-hidden rounded-2xl border border-blue-200/70 dark:border-blue-900/60 bg-gradient-to-br from-blue-500/10 via-white to-white dark:from-blue-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-blue-300 dark:hover:border-blue-700">
+              <div className="group relative overflow-hidden rounded-2xl border border-blue-200/80 dark:border-blue-800/60 bg-gradient-to-br from-blue-500/15 via-cyan-500/5 to-white dark:from-blue-950/40 dark:via-cyan-950/20 dark:to-slate-900 p-5 shadow-sm transition-all hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-400 dark:hover:border-blue-600">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 dark:text-blue-400">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-blue-100/90 dark:bg-blue-950/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
                       Total Roles
                     </span>
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-baseline gap-2 pt-1">
                       <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">
                         {loading && !summary ? "..." : summary?.kpis.totalRoles ?? 0}
                       </span>
-                      <span className="text-xs font-medium text-blue-600 dark:text-blue-400 flex items-center">
-                        <North sx={{ fontSize: 13, strokeWidth: 2 }} />
+                      <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded-md">
+                        <North sx={{ fontSize: 12, strokeWidth: 2.5 }} />
                         <span>{summary?.kpis.rolesGrowth || "+5.2%"}</span>
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">RBAC role matrix</p>
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">RBAC role matrix</p>
                   </div>
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-blue-500 text-white shadow-md shadow-blue-500/25">
-                    <ShieldOutlined sx={{ fontSize: 24 }} />
+                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white shadow-lg shadow-blue-500/35 ring-4 ring-blue-500/20 group-hover:scale-105 transition-transform">
+                    <ShieldOutlined sx={{ fontSize: 26 }} />
                   </div>
                 </div>
                 {/* Mini Sparkline Blue */}
-                <div className="mt-3 flex items-center justify-between pt-2 border-t border-blue-100/60 dark:border-blue-900/40">
-                  <span className="text-[10px] font-medium text-blue-600/80 dark:text-blue-400/80">
+                <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-blue-100/80 dark:border-blue-900/50">
+                  <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300">
                     Configured hierarchies
                   </span>
                   <svg className="h-5 w-20 overflow-visible" viewBox="0 0 80 24" fill="none">
                     <path
                       d="M0 18 C 20 20, 30 16, 45 14 C 60 12, 65 6, 80 8"
-                      stroke="#3b82f6"
-                      strokeWidth="2"
+                      stroke="#0284c7"
+                      strokeWidth="2.5"
                       strokeLinecap="round"
                     />
                   </svg>
@@ -1300,39 +1369,39 @@ export const DashboardPage: React.FC = () => {
               </div>
             )}
 
-            {/* Card 3: Permissions */}
+            {/* Card 3: Permissions (Vibrant Emerald & Mint) */}
             {matchPermissions && (
-              <div className="relative overflow-hidden rounded-2xl border border-emerald-200/70 dark:border-emerald-900/60 bg-gradient-to-br from-emerald-500/10 via-white to-white dark:from-emerald-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-700">
+              <div className="group relative overflow-hidden rounded-2xl border border-emerald-200/80 dark:border-emerald-800/60 bg-gradient-to-br from-emerald-500/15 via-teal-500/5 to-white dark:from-emerald-950/40 dark:via-teal-950/20 dark:to-slate-900 p-5 shadow-sm transition-all hover:shadow-lg hover:shadow-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-600">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100/90 dark:bg-emerald-950/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
                       Permissions
                     </span>
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-baseline gap-2 pt-1">
                       <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">
                         {loading && !summary ? "..." : summary?.kpis.totalPermissions ?? 0}
                       </span>
-                      <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400 flex items-center">
-                        <North sx={{ fontSize: 13, strokeWidth: 2 }} />
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md">
+                        <North sx={{ fontSize: 12, strokeWidth: 2.5 }} />
                         <span>{summary?.kpis.permissionsGrowth || "+8.7%"}</span>
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Granular access keys</p>
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Granular access keys</p>
                   </div>
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-500 text-white shadow-md shadow-emerald-500/25">
-                    <KeyOutlined sx={{ fontSize: 24 }} />
+                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-green-500 text-white shadow-lg shadow-emerald-500/35 ring-4 ring-emerald-500/20 group-hover:scale-105 transition-transform">
+                    <KeyOutlined sx={{ fontSize: 26 }} />
                   </div>
                 </div>
                 {/* Mini Sparkline Emerald */}
-                <div className="mt-3 flex items-center justify-between pt-2 border-t border-emerald-100/60 dark:border-emerald-900/40">
-                  <span className="text-[10px] font-medium text-emerald-600/80 dark:text-emerald-400/80">
+                <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-emerald-100/80 dark:border-emerald-900/50">
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
                     Active privilege matrix
                   </span>
                   <svg className="h-5 w-20 overflow-visible" viewBox="0 0 80 24" fill="none">
                     <path
                       d="M0 18 C 15 16, 25 22, 40 16 C 55 10, 65 14, 80 8"
-                      stroke="#10b981"
-                      strokeWidth="2"
+                      stroke="#059669"
+                      strokeWidth="2.5"
                       strokeLinecap="round"
                     />
                   </svg>
@@ -1340,39 +1409,39 @@ export const DashboardPage: React.FC = () => {
               </div>
             )}
 
-            {/* Card 4: Active Sessions */}
+            {/* Card 4: Active Sessions (Radiant Amber & Sunset Orange) */}
             {matchActiveSessions && (
-              <div className="relative overflow-hidden rounded-2xl border border-amber-200/70 dark:border-amber-900/60 bg-gradient-to-br from-amber-500/10 via-white to-white dark:from-amber-500/15 dark:via-slate-900 dark:to-slate-900 p-5 shadow-xs transition-all hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700">
+              <div className="group relative overflow-hidden rounded-2xl border border-amber-200/80 dark:border-amber-800/60 bg-gradient-to-br from-amber-500/15 via-orange-500/5 to-white dark:from-amber-950/40 dark:via-orange-950/20 dark:to-slate-900 p-5 shadow-sm transition-all hover:shadow-lg hover:shadow-amber-500/10 hover:border-amber-400 dark:hover:border-amber-600">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                    <span className="inline-flex items-center gap-1 rounded-md bg-amber-100/90 dark:bg-amber-950/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
                       Active Sessions
                     </span>
-                    <div className="flex items-baseline gap-2">
+                    <div className="flex items-baseline gap-2 pt-1">
                       <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">
                         {loading && !summary ? "..." : summary?.kpis.activeSessions ?? 0}
                       </span>
-                      <span className="text-xs font-medium text-amber-600 dark:text-amber-400 flex items-center">
-                        <North sx={{ fontSize: 13, strokeWidth: 2 }} />
+                      <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 flex items-center bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-md">
+                        <North sx={{ fontSize: 12, strokeWidth: 2.5 }} />
                         <span>{summary?.kpis.sessionsGrowth || "+3.1%"}</span>
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Live JWT authenticated</p>
+                    <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Live JWT authenticated</p>
                   </div>
-                  <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-amber-500 text-white shadow-md shadow-amber-500/25">
-                    <AssignmentOutlined sx={{ fontSize: 24 }} />
+                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 text-white shadow-lg shadow-amber-500/35 ring-4 ring-amber-500/20 group-hover:scale-105 transition-transform">
+                    <AssignmentOutlined sx={{ fontSize: 26 }} />
                   </div>
                 </div>
                 {/* Mini Sparkline Amber */}
-                <div className="mt-3 flex items-center justify-between pt-2 border-t border-amber-100/60 dark:border-amber-900/40">
-                  <span className="text-[10px] font-medium text-amber-600/80 dark:text-amber-400/80">
+                <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-amber-100/80 dark:border-amber-900/50">
+                  <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300">
                     Real-time concurrency
                   </span>
                   <svg className="h-5 w-20 overflow-visible" viewBox="0 0 80 24" fill="none">
                     <path
                       d="M0 16 C 15 14, 25 20, 40 14 C 55 8, 65 18, 80 14"
-                      stroke="#f59e0b"
-                      strokeWidth="2"
+                      stroke="#d97706"
+                      strokeWidth="2.5"
                       strokeLinecap="round"
                     />
                   </svg>
@@ -1385,16 +1454,14 @@ export const DashboardPage: React.FC = () => {
         {/* 2. Middle Row: Dynamic Charts Section */}
         {visibleChartCount > 0 && (
           <div
-            className={`grid grid-cols-1 gap-6 ${
-              visibleChartCount === 2 ? "lg:grid-cols-3" : "lg:grid-cols-1"
-            }`}
+            className={`grid grid-cols-1 gap-6 ${visibleChartCount === 2 ? "lg:grid-cols-3" : "lg:grid-cols-1"
+              }`}
           >
             {/* Left Chart: Users Overview */}
             {matchUsersOverview && (
               <div
-                className={`rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xs ${
-                  visibleChartCount === 2 ? "lg:col-span-2" : "w-full"
-                }`}
+                className={`rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xs ${visibleChartCount === 2 ? "lg:col-span-2" : "w-full"
+                  }`}
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-wrap items-center gap-3 sm:gap-6">
@@ -1414,22 +1481,20 @@ export const DashboardPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setSelectedSeries("all")}
-                        className={`rounded-lg px-2 py-1 font-medium transition-all cursor-pointer ${
-                          selectedSeries === "all"
-                            ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-semibold"
-                            : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
-                        }`}
+                        className={`rounded-lg px-2 py-1 font-medium transition-all cursor-pointer ${selectedSeries === "all"
+                          ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs font-semibold"
+                          : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                          }`}
                       >
                         All
                       </button>
                       <button
                         type="button"
                         onClick={() => setSelectedSeries("active")}
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium transition-all cursor-pointer ${
-                          selectedSeries === "active"
-                            ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs font-semibold"
-                            : "text-slate-600 dark:text-slate-400 hover:text-blue-600"
-                        }`}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium transition-all cursor-pointer ${selectedSeries === "active"
+                          ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs font-semibold"
+                          : "text-slate-600 dark:text-slate-400 hover:text-blue-600"
+                          }`}
                       >
                         <span className="h-2 w-2 rounded-full bg-blue-600" />
                         <span>Active</span>
@@ -1437,11 +1502,10 @@ export const DashboardPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setSelectedSeries("new")}
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium transition-all cursor-pointer ${
-                          selectedSeries === "new"
-                            ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold"
-                            : "text-slate-600 dark:text-slate-400 hover:text-emerald-600"
-                        }`}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium transition-all cursor-pointer ${selectedSeries === "new"
+                          ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs font-semibold"
+                          : "text-slate-600 dark:text-slate-400 hover:text-emerald-600"
+                          }`}
                       >
                         <span className="h-2 w-2 rounded-full bg-emerald-500" />
                         <span>New</span>
@@ -1449,11 +1513,10 @@ export const DashboardPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setSelectedSeries("audit")}
-                        className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium transition-all cursor-pointer ${
-                          selectedSeries === "audit"
-                            ? "bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-xs font-semibold"
-                            : "text-slate-600 dark:text-slate-400 hover:text-purple-600"
-                        }`}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium transition-all cursor-pointer ${selectedSeries === "audit"
+                          ? "bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-xs font-semibold"
+                          : "text-slate-600 dark:text-slate-400 hover:text-purple-600"
+                          }`}
                       >
                         <span className="h-2 w-2 rounded-full bg-purple-500" />
                         <span>Audit Logs</span>
@@ -1466,11 +1529,10 @@ export const DashboardPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setTimeframeDropdownOpen((prev) => !prev)}
-                      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition-all cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${
-                        timeframeDropdownOpen
-                          ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold"
-                          : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
-                      }`}
+                      className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition-all cursor-pointer shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${timeframeDropdownOpen
+                        ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 font-semibold"
+                        : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+                        }`}
                       aria-haspopup="listbox"
                       aria-expanded={timeframeDropdownOpen}
                     >
@@ -1480,9 +1542,8 @@ export const DashboardPage: React.FC = () => {
                       <span>{timeframeLabels[timeframe]}</span>
                       <KeyboardArrowDown
                         sx={{ fontSize: 16 }}
-                        className={`transition-transform duration-200 ${
-                          timeframeDropdownOpen ? "rotate-180 text-blue-600" : "text-slate-400"
-                        }`}
+                        className={`transition-transform duration-200 ${timeframeDropdownOpen ? "rotate-180 text-blue-600" : "text-slate-400"
+                          }`}
                       />
                     </button>
 
@@ -1512,11 +1573,10 @@ export const DashboardPage: React.FC = () => {
                                 setTimeframe(opt.value);
                                 setTimeframeDropdownOpen(false);
                               }}
-                              className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${
-                                isSelected
-                                  ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
-                                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-700/60"
-                              }`}
+                              className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${isSelected
+                                ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
+                                : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-700/60"
+                                }`}
                             >
                               <div>
                                 <span className="block leading-tight">{opt.label}</span>
@@ -1549,9 +1609,8 @@ export const DashboardPage: React.FC = () => {
             {/* Right Chart: Users by Role (Donut Chart) */}
             {matchUsersByRole && (
               <div
-                className={`rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xs flex flex-col justify-between ${
-                  visibleChartCount === 2 ? "lg:col-span-1" : "w-full max-w-2xl"
-                }`}
+                className={`rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-2xs flex flex-col justify-between ${visibleChartCount === 2 ? "lg:col-span-1" : "w-full max-w-2xl"
+                  }`}
               >
                 <div>
                   <div className="flex items-center justify-between">
@@ -1652,9 +1711,8 @@ export const DashboardPage: React.FC = () => {
         {/* 3. Bottom Row: Recent Users & Recent Activity Cards Grid */}
         {visibleListCount > 0 && (
           <div
-            className={`grid grid-cols-1 gap-6 ${
-              visibleListCount === 2 ? "lg:grid-cols-2" : "lg:grid-cols-1"
-            }`}
+            className={`grid grid-cols-1 gap-6 ${visibleListCount === 2 ? "lg:grid-cols-2" : "lg:grid-cols-1"
+              }`}
           >
             {/* Left Card: Recent Users Table */}
             {matchRecentUsers && (
@@ -1722,16 +1780,14 @@ export const DashboardPage: React.FC = () => {
                               <td className="py-3">
                                 <div className="flex items-center gap-1.5">
                                   <span
-                                    className={`h-2 w-2 rounded-full ${
-                                      userItem.status === "Active" ? "bg-emerald-500" : "bg-rose-500"
-                                    }`}
+                                    className={`h-2 w-2 rounded-full ${userItem.status === "Active" ? "bg-emerald-500" : "bg-rose-500"
+                                      }`}
                                   />
                                   <span
-                                    className={`font-medium ${
-                                      userItem.status === "Active"
-                                        ? "text-slate-700 dark:text-slate-300"
-                                        : "text-slate-500 dark:text-slate-400"
-                                    }`}
+                                    className={`font-medium ${userItem.status === "Active"
+                                      ? "text-slate-700 dark:text-slate-300"
+                                      : "text-slate-500 dark:text-slate-400"
+                                      }`}
                                   >
                                     {userItem.status}
                                   </span>
@@ -1739,7 +1795,7 @@ export const DashboardPage: React.FC = () => {
                               </td>
                               <td className="py-3 text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap text-xs">
                                 {userItem.lastLogin === "Active now" ||
-                                userItem.lastLogin?.toLowerCase().includes("active") ? (
+                                  userItem.lastLogin?.toLowerCase().includes("active") ? (
                                   <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-xs bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/60">
                                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                     {userItem.lastLogin}
@@ -1862,7 +1918,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         )}
       </div>
-    </WorkspaceLayout>
+    </WorkspaceLayout >
   );
 };
 

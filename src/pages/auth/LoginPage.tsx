@@ -490,13 +490,12 @@ export const LoginPage: React.FC = () => {
                       id="password"
                       name="password"
                       type={showPassword ? "text" : "password"}
-                      className={`w-full rounded-xl border py-2.5 pl-10 pr-10 text-sm shadow-sm transition-all focus:outline-none focus:ring-2 ${
-                        formData.password.length > 0
-                          ? loginPasswordEval?.isStrong
-                            ? "border-emerald-500 max-lg:bg-slate-900/90 max-lg:text-white bg-white text-slate-900 focus:border-emerald-600 focus:ring-emerald-500/20"
-                            : "border-amber-400 max-lg:bg-slate-900/90 max-lg:text-white bg-white text-slate-900 focus:border-amber-500 focus:ring-amber-500/20"
-                          : "max-lg:border-slate-700 max-lg:bg-slate-900/90 max-lg:text-white max-lg:placeholder:text-slate-500 max-lg:focus:border-indigo-500 border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-indigo-500/20"
-                      }`}
+                      className={`w-full rounded-xl border py-2.5 pl-10 pr-10 text-sm shadow-sm transition-all focus:outline-none focus:ring-2 ${formData.password.length > 0
+                        ? loginPasswordEval?.isStrong
+                          ? "border-emerald-500 max-lg:bg-slate-900/90 max-lg:text-white bg-white text-slate-900 focus:border-emerald-600 focus:ring-emerald-500/20"
+                          : "border-amber-400 max-lg:bg-slate-900/90 max-lg:text-white bg-white text-slate-900 focus:border-amber-500 focus:ring-amber-500/20"
+                        : "max-lg:border-slate-700 max-lg:bg-slate-900/90 max-lg:text-white max-lg:placeholder:text-slate-500 max-lg:focus:border-indigo-500 border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:border-indigo-600 focus:ring-indigo-500/20"
+                        }`}
                       placeholder="••••••••••••"
                       value={formData.password}
                       onChange={handleChange}

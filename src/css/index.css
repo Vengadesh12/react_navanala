@@ -21,13 +21,16 @@
     width: 6px;
     height: 6px;
   }
+
   ::-webkit-scrollbar-track {
     background: transparent;
   }
+
   ::-webkit-scrollbar-thumb {
     background: #cbd5e1;
     border-radius: 9999px;
   }
+
   ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
   }
@@ -35,13 +38,29 @@
 
 /* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes pulseGlow {
-  0%, 100% { opacity: 0.8; transform: scale(1); }
-  50% { opacity: 1; transform: scale(1.05); }
+
+  0%,
+  100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
 }
 
 .animate-fade-in {
@@ -60,11 +79,13 @@
   box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
   border: 1px solid #e2e8f0 !important;
 }
+
 .swal2-title {
   font-size: 1.25rem !important;
   font-weight: 700 !important;
   color: #0f172a !important;
 }
+
 .swal2-html-container {
   font-size: 0.875rem !important;
   color: #64748b !important;
@@ -120,8 +141,8 @@ html.dark .border-indigo-200 {
   border-color: #1e293b !important;
 }
 
-html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
-html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+html.dark .divide-slate-100> :not([hidden])~ :not([hidden]),
+html.dark .divide-slate-200> :not([hidden])~ :not([hidden]) {
   border-color: #1e293b !important;
 }
 
@@ -205,7 +226,9 @@ html.dark .swal2-html-container {
 }
 
 @media print {
-  html, body {
+
+  html,
+  body {
     background-color: #ffffff !important;
     color: #0f172a !important;
     margin: 0 !important;
