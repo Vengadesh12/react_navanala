@@ -4,7 +4,7 @@ import { menuService } from "../api/menu.service";
 import { canAccess as checkCanAccess, getFirstAccessiblePath } from "../config/workspace.config";
 import { clearSession, getStoredUser, setStoredToken, setStoredUser } from "../utils/storage";
 import { showErrorAlert } from "../utils/alerts";
-import type { AuthResponseData, LoggedInUser, LoginCredentials, MenuItemDto } from "../types";
+import type { AuthResponseData, LoggedInUser, LoginCredentials, MenuItemDto, GoogleLoginPayload } from "../types";
 
 export interface LoginResult {
   requiresTwoFactor?: boolean;
@@ -17,6 +17,7 @@ interface AuthContextType {
   menus: MenuItemDto[];
   loading: boolean;
   login: (credentials: LoginCredentials) => Promise<LoginResult>;
+  loginWithGoogle: (payload: GoogleLoginPayload) => Promise<string>;
   verify2FaLogin: (email: string, otp: string) => Promise<string>;
   logout: () => Promise<void>;
   refreshPermissions: (force?: boolean) => Promise<string[]>;
@@ -234,6 +235,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginWithGoogle = async (payload: GoogleLoginPayload): Promise<string> => {
+    setLoading(true);
+    try {
+      const response = await authService.googleLogin(payload);
+      return await saveAuthSession(response.data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const verify2FaLogin = async (email: string, otp: string): Promise<string> => {
     setLoading(true);
     try {
@@ -279,6 +290,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         menus,
         loading,
         login,
+        loginWithGoogle,
         verify2FaLogin,
         logout,
         refreshPermissions,

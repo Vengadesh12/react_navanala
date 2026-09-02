@@ -68,4 +68,11 @@ export interface PasswordEvaluationResult {
   message?: string;
 }
 
+export interface GoogleLoginPayload {
+  idToken?: string;
+  email: string;
+  name?: string;
+  profileImage?: string;
+}
+
 

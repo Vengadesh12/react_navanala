@@ -1,5 +1,5 @@
 import { apiClient } from "./client";
-import type { AuthResponse, LoginCredentials, PermissionCheckResponse, PasswordEvaluationResult } from "../types";
+import type { AuthResponse, LoginCredentials, PermissionCheckResponse, PasswordEvaluationResult, GoogleLoginPayload } from "../types";
 
 export interface ForgotPasswordResponse {
   success: boolean;
@@ -21,6 +21,19 @@ export const authService = {
       body: JSON.stringify({
         email: credentials.email.trim(),
         password: credentials.password,
+      }),
+    });
+  },
+
+  googleLogin: async (payload: GoogleLoginPayload): Promise<AuthResponse> => {
+    return apiClient<AuthResponse>("/api/auth/google-login", {
+      method: "POST",
+      includeJson: true,
+      body: JSON.stringify({
+        idToken: payload.idToken,
+        email: payload.email.trim(),
+        name: payload.name?.trim(),
+        profileImage: payload.profileImage,
       }),
     });
   },
