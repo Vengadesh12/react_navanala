@@ -14,6 +14,10 @@ export interface ResetPasswordPayload {
 }
 
 export const authService = {
+  getMaintenanceStatus: async (): Promise<{ isMaintenanceMode: boolean; message: string }> => {
+    return apiClient<{ isMaintenanceMode: boolean; message: string }>("/api/auth/maintenance-status");
+  },
+
   login: async (credentials: LoginCredentials): Promise<AuthResponse> => {
     return apiClient<AuthResponse>("/api/auth/login", {
       method: "POST",

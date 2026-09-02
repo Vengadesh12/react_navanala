@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Visibility,
@@ -17,6 +17,9 @@ import {
   ErrorOutline,
   Security,
   ArrowBack,
+  Engineering,
+  AdminPanelSettings,
+  Refresh,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { authService } from "../../api/auth.service";
@@ -45,6 +48,25 @@ export const LoginPage: React.FC = () => {
       }
     }
   }, [user, navigate]);
+
+  // Maintenance Mode State
+  const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState<string>("");
+  const [isAdminLoginOpen, setIsAdminLoginOpen] = useState<boolean>(false);
+
+  const checkMaintenance = useCallback(async () => {
+    try {
+      const res = await authService.getMaintenanceStatus();
+      setIsMaintenanceMode(Boolean(res?.isMaintenanceMode));
+      setMaintenanceMessage(res?.message || "This website is under maintenance, please come again later.");
+    } catch {
+      // Fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    checkMaintenance();
+  }, [checkMaintenance]);
 
   // Real-time Login Password Evaluation State
   const [loginPasswordEval, setLoginPasswordEval] = useState<PasswordEvaluationResult | null>(null);
@@ -575,18 +597,95 @@ export const LoginPage: React.FC = () => {
                 </div>
               </form>
             </div>
+          ) : isMaintenanceMode && !isAdminLoginOpen ? (
+            /* ========================================================================= */
+            /* STEP B: Maintenance Mode Screen (Non-Admin Notice)                      */
+            /* ========================================================================= */
+            <div className="animate-fade-in space-y-6">
+              <div className="mb-4 inline-block h-12 w-12 overflow-hidden rounded-2xl max-lg:bg-white/10 max-lg:shadow-indigo-500/20 max-lg:backdrop-blur-md max-lg:ring-1 max-lg:ring-white/20 bg-indigo-50 p-1 shadow-xs border border-indigo-100 lg:hidden">
+                <img src="/navanala-icon.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
+              </div>
+
+              <div className="rounded-3xl border max-lg:border-amber-500/30 max-lg:bg-slate-900/90 border-amber-200 bg-amber-50/50 p-7 sm:p-8 text-center shadow-lg shadow-amber-500/5 backdrop-blur-md space-y-5 animate-fadeIn">
+                <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-amber-500/20 text-amber-500 border border-amber-500/30 shadow-inner">
+                  <Engineering sx={{ fontSize: 42 }} />
+                </div>
+
+                <div className="space-y-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 px-3 py-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 ring-1 ring-inset ring-amber-500/30 uppercase tracking-wider">
+                    <span className="h-2 w-2 rounded-full bg-amber-500 animate-ping" />
+                    System Maintenance
+                  </span>
+                  <h2 className="text-xl sm:text-2xl font-black tracking-tight max-lg:text-white text-slate-900 leading-snug">
+                    {maintenanceMessage || "This website is under maintenance, please come again later."}
+                  </h2>
+                  <p className="text-xs sm:text-sm max-lg:text-indigo-200/80 text-slate-600 leading-relaxed max-w-sm mx-auto">
+                    We are performing essential system updates and maintenance. Standard logins are temporarily paused to ensure complete data integrity.
+                  </p>
+                </div>
+
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={checkMaintenance}
+                    className="inline-flex w-full sm:w-auto cursor-pointer items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:from-indigo-700 hover:to-indigo-800 transition-all"
+                  >
+                    <Refresh sx={{ fontSize: 16 }} />
+                    <span>Check Again</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsAdminLoginOpen(true)}
+                    className="inline-flex w-full sm:w-auto cursor-pointer items-center justify-center gap-2 rounded-xl border max-lg:border-slate-700 max-lg:bg-slate-800/80 max-lg:text-slate-200 max-lg:hover:bg-slate-700 border-slate-300 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-xs"
+                  >
+                    <AdminPanelSettings sx={{ fontSize: 16 }} />
+                    <span>Administrator Sign In</span>
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
             /* ========================================================================= */
-            /* STEP B: Standard Email & Password Form                                   */
+            /* STEP C: Standard Email & Password Form                                   */
             /* ========================================================================= */
             <div>
+              {isMaintenanceMode && (
+                <div className="mb-6 rounded-2xl border border-amber-300 dark:border-amber-800/80 bg-gradient-to-r from-amber-500/15 to-orange-500/10 p-4 shadow-xs backdrop-blur-xs flex items-center justify-between animate-fadeIn">
+                  <div className="flex items-center gap-2.5">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30">
+                      <AdminPanelSettings sx={{ fontSize: 20 }} />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                        Maintenance Mode Active
+                      </h4>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-300">
+                        Only authorized administrators may sign in.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAdminLoginOpen(false)}
+                    className="text-xs font-bold text-amber-800 dark:text-amber-300 hover:underline cursor-pointer"
+                  >
+                    View Notice
+                  </button>
+                </div>
+              )}
+
               <div className="mb-8">
                 <div className="mb-4 inline-block h-12 w-12 overflow-hidden rounded-2xl max-lg:bg-white/10 max-lg:shadow-indigo-500/20 max-lg:backdrop-blur-md max-lg:ring-1 max-lg:ring-white/20 bg-indigo-50 p-1 shadow-xs border border-indigo-100 lg:hidden">
                   <img src="/navanala-icon.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight max-lg:text-white text-slate-900">Sign in to your account</h2>
+                <h2 className="text-2xl font-bold tracking-tight max-lg:text-white text-slate-900">
+                  {isMaintenanceMode ? "Administrator Sign In" : "Sign in to your account"}
+                </h2>
                 <p className="mt-1 text-sm max-lg:text-indigo-200/80 text-slate-500">
-                  Enter your authorized credentials to access your workspace.
+                  {isMaintenanceMode
+                    ? "Enter administrative credentials to manage or disable maintenance mode."
+                    : "Enter your authorized credentials to access your workspace."}
                 </p>
               </div>
 
