@@ -2,28 +2,18 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Settings,
   ShieldOutlined,
-  NotificationsNoneOutlined,
-  KeyOutlined,
-  AccessTime,
   Tune,
   Add,
-  Refresh,
   Save,
   CheckCircleOutline,
   Close,
-  CategoryOutlined,
-  StorageOutlined,
-  LockOutlined,
-  LanguageOutlined,
-  PaletteOutlined,
-  DeleteOutline,
   Storage,
-  InfoOutlined,
-  EmailOutlined,
-  CloudUploadOutlined,
   CachedOutlined,
   Search,
   SearchOff,
+  LockOutlined,
+  VerifiedUserOutlined,
+  AdminPanelSettingsOutlined,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { settingService } from "../../api/setting.service";
@@ -32,17 +22,9 @@ import { useTheme } from "../../context/ThemeContext";
 import { showConfirmDialog, showSuccessToast, showErrorToast } from "../../utils/alerts";
 import type { SystemSetting, SettingCategory, CreateSettingRequest } from "../../types";
 
-const AVAILABLE_ICONS = [
-  { key: "Tune", label: "General & Controls", icon: <Tune sx={{ fontSize: 18 }} /> },
-  { key: "Settings", label: "Settings & System", icon: <Settings sx={{ fontSize: 18 }} /> },
-  { key: "ShieldOutlined", label: "Security & MFA", icon: <ShieldOutlined sx={{ fontSize: 18 }} /> },
-  { key: "NotificationsNoneOutlined", label: "Notifications & Alerts", icon: <NotificationsNoneOutlined sx={{ fontSize: 18 }} /> },
-  { key: "KeyOutlined", label: "RBAC & Permissions", icon: <KeyOutlined sx={{ fontSize: 18 }} /> },
-  { key: "AccessTime", label: "Sessions & Expiry", icon: <AccessTime sx={{ fontSize: 18 }} /> },
-  { key: "StorageOutlined", label: "Database & Backups", icon: <StorageOutlined sx={{ fontSize: 18 }} /> },
-  { key: "LanguageOutlined", label: "Email & Web", icon: <LanguageOutlined sx={{ fontSize: 18 }} /> },
-  { key: "PaletteOutlined", label: "Theming & Appearance", icon: <PaletteOutlined sx={{ fontSize: 18 }} /> },
-  { key: "CategoryOutlined", label: "Custom Group", icon: <CategoryOutlined sx={{ fontSize: 18 }} /> },
+const TABS = [
+  { key: "General", label: "General", icon: <Tune sx={{ fontSize: 18 }} /> },
+  { key: "Security", label: "Security", icon: <ShieldOutlined sx={{ fontSize: 18 }} /> },
 ];
 
 export const SettingsPage: React.FC = () => {
@@ -61,28 +43,15 @@ export const SettingsPage: React.FC = () => {
     items_per_page: "10",
     enable_registration: "true",
     email_verification: "true",
-    session_timeout: "30 Minutes",
-    two_factor_auth: "true",
+    session_timeout: "24 Hours",
+    two_factor_auth: "false",
     password_expiry: "true",
     login_attempt_limit: "true",
     maintenance_mode: "false",
-    smtp_host: "smtp.gmail.com",
-    smtp_port: "587",
-    smtp_sender: "admin@rolemanage.io",
-    email_alerts_enabled: "true",
-    browser_push_enabled: "true",
     dark_mode_enabled: "false",
-    auto_backup_enabled: "true",
   });
   const [savingGeneral, setSavingGeneral] = useState<boolean>(false);
   const [clearingCache, setClearingCache] = useState<boolean>(false);
-
-  // Add Category Modal
-  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState<boolean>(false);
-  const [categoryName, setCategoryName] = useState<string>("Custom Category");
-  const [categoryDescription, setCategoryDescription] = useState<string>("");
-  const [categoryIcon, setCategoryIcon] = useState<string>("Tune");
-  const [creatingCategory, setCreatingCategory] = useState<boolean>(false);
 
   // Add Key Modal
   const [isKeyModalOpen, setIsKeyModalOpen] = useState<boolean>(false);
@@ -132,7 +101,7 @@ export const SettingsPage: React.FC = () => {
     fetchCategories();
   }, [fetchSettings, fetchCategories]);
 
-  // Handle single toggle ON / OFF with instant database persistence (except browser-only dark theme)
+  // Handle single toggle ON / OFF with instant database persistence
   const handleToggle = async (key: string, label: string) => {
     if (key === "dark_mode_enabled") {
       const nextIsOn = !isDarkMode;
@@ -209,38 +178,6 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  // Create Category Action
-  const handleCreateCategory = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!categoryName.trim()) {
-      showErrorToast("Category name is required.");
-      return;
-    }
-
-    setCreatingCategory(true);
-    try {
-      const res = await settingService.createCategory({
-        name: categoryName.trim(),
-        description: categoryDescription.trim(),
-        icon: categoryIcon,
-      });
-
-      showSuccessToast(res.message || `Category '${categoryName.trim()}' saved successfully!`);
-      setIsCategoryModalOpen(false);
-      setCategoryName("");
-      setCategoryDescription("");
-      setCategoryIcon("Tune");
-
-      await fetchCategories();
-      await fetchSettings();
-      setActiveTab(categoryName.trim());
-    } catch (err: any) {
-      showErrorToast(err?.message || "Failed to create category.");
-    } finally {
-      setCreatingCategory(false);
-    }
-  };
-
   // Create Custom Key Action
   const handleCreateKey = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -277,28 +214,27 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const defaultTabs = ["General", "Security", "Email", "Notifications", "Appearance", "Backup"];
-  const dbCategoryNames = categories.map((c) => c.name);
-  const allTabs = Array.from(new Set([...defaultTabs, ...dbCategoryNames]));
-
   const renderToggleSwitch = (key: string, label: string, isChecked: boolean) => (
     <button
       type="button"
       role="switch"
       aria-checked={isChecked}
       onClick={() => handleToggle(key, label)}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${isChecked ? "bg-indigo-600" : "bg-slate-300"
-        }`}
+      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+        isChecked ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-700"
+      }`}
     >
       <span
-        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${isChecked ? "translate-x-5" : "translate-x-0"
-          }`}
+        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out ${
+          isChecked ? "translate-x-5" : "translate-x-0"
+        }`}
       />
     </button>
   );
 
   const q = searchQuery.toLowerCase().trim();
 
+  // Search filtering for General
   const matchGeneralSettings =
     !q ||
     [
@@ -321,6 +257,7 @@ export const SettingsPage: React.FC = () => {
       "workspace preferences",
       "user registration",
       "email verification",
+      "maintenance mode",
       "user session timeout",
       "session timeout",
       formValues.session_timeout,
@@ -337,21 +274,56 @@ export const SettingsPage: React.FC = () => {
       user?.name || "",
     ].some((t) => t?.toLowerCase().includes(q));
 
-  const matchSecuritySettingsCard =
+  const matchAnyGeneral =
+    matchGeneralSettings || matchOtherPreferences || matchSystemInformation;
+
+  // Search filtering for Security
+  const matchSecuritySettings =
     !q ||
     [
-      "security settings",
+      "security",
       "two-factor authentication",
       "2fa",
       "password expiry",
       "password",
+      "login attempt limit",
+      "account lockout",
+      "rate limiting",
     ].some((t) => t?.toLowerCase().includes(q));
 
-  const matchAnyGeneral =
-    matchGeneralSettings ||
-    matchOtherPreferences ||
-    matchSystemInformation ||
-    matchSecuritySettingsCard;
+  // Custom setting keys for active tab (excluding pre-rendered core keys)
+  const coreGeneralKeys = [
+    "app_name",
+    "app_url",
+    "timezone",
+    "date_format",
+    "items_per_page",
+    "enable_registration",
+    "email_verification",
+    "session_timeout",
+    "maintenance_mode",
+    "dark_mode_enabled",
+  ];
+
+  const coreSecurityKeys = [
+    "two_factor_auth",
+    "password_expiry",
+    "login_attempt_limit",
+  ];
+
+  const customGeneralSettings = settings.filter(
+    (s) =>
+      s.category.toLowerCase() === "general" &&
+      !coreGeneralKeys.includes(s.settingKey)
+  );
+
+  const customSecuritySettings = settings.filter(
+    (s) =>
+      s.category.toLowerCase() === "security" &&
+      !coreSecurityKeys.includes(s.settingKey)
+  );
+
+  const is2FaEnabled = formValues.two_factor_auth === "true";
 
   return (
     <WorkspaceLayout
@@ -361,7 +333,7 @@ export const SettingsPage: React.FC = () => {
       showHero={false}
       searchValue={searchQuery}
       onSearchChange={setSearchQuery}
-      searchPlaceholder="Search system settings & configurations..."
+      searchPlaceholder="Search settings (e.g. application name, 2FA, timezone)..."
     >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6">
         {/* Active Search Results Banner */}
@@ -395,41 +367,47 @@ export const SettingsPage: React.FC = () => {
             <div className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
               <span className="text-slate-500 hover:text-slate-700 cursor-pointer">Home</span>
               <span>&gt;</span>
-              <span className="text-slate-900 font-semibold">Settings</span>
+              <span className="text-slate-900 dark:text-white font-semibold">Settings</span>
             </div>
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* Tab Navigation                                                           */}
+        {/* Tab Navigation - General & Security Only                                */}
         {/* ========================================================================= */}
-        <div className="flex items-center gap-6 overflow-x-auto border-b border-slate-200 pb-0 scrollbar-thin">
-          {allTabs.map((tab) => {
-            const isActive = activeTab.toLowerCase() === tab.toLowerCase();
+        <div className="flex items-center gap-6 overflow-x-auto border-b border-slate-200 dark:border-slate-800 pb-0">
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
             return (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`pb-3 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap relative ${isActive
-                  ? "text-indigo-600 border-b-2 border-indigo-600"
-                  : "text-slate-500 hover:text-slate-800"
-                  }`}
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 pb-3 text-xs font-semibold transition-all cursor-pointer whitespace-nowrap relative ${
+                  isActive
+                    ? "text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400"
+                    : "text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200"
+                }`}
               >
-                <span>{tab}</span>
+                {tab.icon}
+                <span>{tab.label}</span>
               </button>
             );
           })}
         </div>
 
         {/* ========================================================================= */}
-        {/* Main Tab Content Layout (2 Columns Grid)                                 */}
+        {/* TAB 1: General Settings                                                  */}
         {/* ========================================================================= */}
-        {activeTab === "General" ? (
+        {activeTab === "General" && (
           !matchAnyGeneral ? (
-            <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center">
               <SearchOff sx={{ fontSize: 36, color: "#94a3b8" }} />
-              <h3 className="mt-2 text-sm font-bold text-slate-800">No settings matched &ldquo;{searchQuery}&rdquo;</h3>
-              <p className="mt-1 text-xs text-slate-500">Try searching for application name, timezone, 2FA, session timeout, or password.</p>
+              <h3 className="mt-2 text-sm font-bold text-slate-800 dark:text-slate-200">
+                No settings matched &ldquo;{searchQuery}&rdquo;
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Try searching for application name, timezone, registration, or session timeout.
+              </p>
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
@@ -442,49 +420,75 @@ export const SettingsPage: React.FC = () => {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               {/* Left Column (General Settings + Other Preferences) */}
-              {(matchGeneralSettings || matchOtherPreferences) && (
-                <div className={`${(matchSystemInformation || matchSecuritySettingsCard) ? "lg:col-span-7" : "lg:col-span-12"} space-y-6`}>
-                  {/* Card 1: General Settings */}
-                  {matchGeneralSettings && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
+              <div className="lg:col-span-7 space-y-6">
+                {/* Card 1: General Settings */}
+                {matchGeneralSettings && (
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-5">
+                    <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
                           <Settings sx={{ fontSize: 20 }} />
                         </span>
                         <div>
-                          <h2 className="text-sm font-bold text-slate-900">General Settings</h2>
-                          <p className="text-xs text-slate-500">Configure basic application settings</p>
+                          <h2 className="text-sm font-bold text-slate-900 dark:text-white">General Settings</h2>
+                          <p className="text-xs text-slate-500">Configure basic workspace identity and parameters</p>
                         </div>
                       </div>
 
-                      <form onSubmit={handleSaveGeneral} className="space-y-4 pt-1">
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">Application Name</label>
-                          <input
-                            type="text"
-                            value={formValues.app_name || ""}
-                            onChange={(e) => handleChange("app_name", e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
-                          />
-                        </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setKeyFormData({
+                            settingKey: "",
+                            settingValue: "",
+                            category: "General",
+                            description: "",
+                            dataType: "string",
+                          });
+                          setIsKeyModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50/60 dark:bg-indigo-950/40 px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition-colors cursor-pointer"
+                      >
+                        <Add sx={{ fontSize: 16 }} />
+                        <span>Add Key</span>
+                      </button>
+                    </div>
 
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">Application URL</label>
-                          <input
-                            type="text"
-                            value={formValues.app_url || ""}
-                            onChange={(e) => handleChange("app_url", e.target.value)}
-                            readOnly
-                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
-                          />
-                        </div>
+                    <form onSubmit={handleSaveGeneral} className="space-y-4 pt-1">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Application Name
+                        </label>
+                        <input
+                          type="text"
+                          value={formValues.app_name || ""}
+                          onChange={(e) => handleChange("app_name", e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+                        />
+                      </div>
 
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Application URL
+                        </label>
+                        <input
+                          type="text"
+                          value={formValues.app_url || ""}
+                          onChange={(e) => handleChange("app_url", e.target.value)}
+                          readOnly
+                          className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-600 dark:text-slate-400 cursor-not-allowed focus:outline-hidden"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">Default Timezone</label>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            Default Timezone
+                          </label>
                           <select
                             value={formValues.timezone || "(GMT+05:30) Asia/Kolkata"}
                             onChange={(e) => handleChange("timezone", e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
                           >
                             <option value="(GMT+05:30) Asia/Kolkata">(GMT+05:30) Asia/Kolkata</option>
                             <option value="(GMT+00:00) UTC">(GMT+00:00) UTC</option>
@@ -496,11 +500,13 @@ export const SettingsPage: React.FC = () => {
                         </div>
 
                         <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">Date Format</label>
+                          <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                            Date Format
+                          </label>
                           <select
                             value={formValues.date_format || "DD MMM YYYY"}
                             onChange={(e) => handleChange("date_format", e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
+                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
                           >
                             <option value="DD MMM YYYY">DD MMM YYYY</option>
                             <option value="YYYY-MM-DD">YYYY-MM-DD</option>
@@ -508,520 +514,450 @@ export const SettingsPage: React.FC = () => {
                             <option value="DD/MM/YYYY">DD/MM/YYYY</option>
                           </select>
                         </div>
-
-                        <div>
-                          <label className="block text-xs font-semibold text-slate-700 mb-1">Items Per Page</label>
-                          <select
-                            value={formValues.items_per_page || "10"}
-                            onChange={(e) => handleChange("items_per_page", e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
-                          >
-                            <option value="10">10</option>
-                            <option value="25">25</option>
-                            <option value="50">50</option>
-                            <option value="100">100</option>
-                          </select>
-                        </div>
-
-                        <div className="pt-2">
-                          <button
-                            type="submit"
-                            disabled={savingGeneral}
-                            className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-60"
-                          >
-                            <Save sx={{ fontSize: 16 }} />
-                            <span>{savingGeneral ? "Saving Changes..." : "Save Changes"}</span>
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
-
-                  {/* Card 2: Other Preferences */}
-                  {matchOtherPreferences && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-5">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                          <Tune sx={{ fontSize: 20 }} />
-                        </span>
-                        <div>
-                          <h2 className="text-sm font-bold text-slate-900">Other Preferences</h2>
-                          <p className="text-xs text-slate-500">Workspace registration and access defaults</p>
-                        </div>
                       </div>
 
-                      <div className="divide-y divide-slate-100 space-y-4 pt-1">
-                        {/* Enable Registration */}
-                        <div className="flex items-center justify-between pt-3">
-                          <div>
-                            <h3 className="text-xs font-bold text-slate-800">Enable Registration</h3>
-                            <p className="text-[11px] text-slate-500">Allow new users to register</p>
-                          </div>
-                          {renderToggleSwitch("enable_registration", "User Registration", formValues.enable_registration === "true")}
-                        </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                          Items Per Page
+                        </label>
+                        <select
+                          value={formValues.items_per_page || "10"}
+                          onChange={(e) => handleChange("items_per_page", e.target.value)}
+                          className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+                        >
+                          <option value="10">10</option>
+                          <option value="25">25</option>
+                          <option value="50">50</option>
+                          <option value="100">100</option>
+                        </select>
+                      </div>
 
-                        {/* Email Verification */}
-                        <div className="flex items-center justify-between pt-4">
-                          <div>
-                            <h3 className="text-xs font-bold text-slate-800">Email Verification</h3>
-                            <p className="text-[11px] text-slate-500">Require email verification for new users</p>
-                          </div>
-                          {renderToggleSwitch("email_verification", "Email Verification", formValues.email_verification === "true")}
-                        </div>
+                      <div className="pt-2">
+                        <button
+                          type="submit"
+                          disabled={savingGeneral}
+                          className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-60"
+                        >
+                          <Save sx={{ fontSize: 16 }} />
+                          <span>{savingGeneral ? "Saving Changes..." : "Save Changes"}</span>
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
 
-                        {/* User Session Timeout */}
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4">
-                          <div>
-                            <h3 className="text-xs font-bold text-slate-800">User Session Timeout</h3>
-                            <p className="text-[11px] text-slate-500">Automatically logout user after inactivity</p>
-                          </div>
-                          <select
-                            value={formValues.session_timeout || "30 Minutes"}
-                            onChange={async (e) => {
-                              const val = e.target.value;
-                              handleChange("session_timeout", val);
-                              try {
-                                await settingService.updateSettingsBulk({ session_timeout: val });
-                                showSuccessToast(`Session timeout updated to ${val} in database!`);
-                              } catch (err: any) {
-                                showErrorToast(err?.message || "Failed to update timeout.");
-                              }
-                            }}
-                            className="rounded-xl border border-slate-200 px-3.5 py-1.5 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white min-w-[140px]"
-                          >
-                            <option value="15 Minutes">15 Minutes</option>
-                            <option value="30 Minutes">30 Minutes</option>
-                            <option value="1 Hour">1 Hour</option>
-                            <option value="2 Hours">2 Hours</option>
-                            <option value="24 Hours">24 Hours</option>
-                          </select>
-                        </div>
+                {/* Card 2: Workspace Preferences */}
+                {matchOtherPreferences && (
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-5">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                        <Tune sx={{ fontSize: 20 }} />
+                      </span>
+                      <div>
+                        <h2 className="text-sm font-bold text-slate-900 dark:text-white">Workspace Preferences</h2>
+                        <p className="text-xs text-slate-500">Access controls, registration policies, and timeouts</p>
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
 
-              {/* Right Column (System Info + Security Settings) */}
-              {(matchSystemInformation || matchSecuritySettingsCard) && (
-                <div className={`${(matchGeneralSettings || matchOtherPreferences) ? "lg:col-span-5" : "lg:col-span-12"} space-y-6`}>
-                  {/* Card 1: System Information */}
-                  {matchSystemInformation && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                          <Storage sx={{ fontSize: 20 }} />
-                        </span>
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800 space-y-4 pt-1">
+                      {/* Enable Registration */}
+                      <div className="flex items-center justify-between pt-3">
                         <div>
-                          <h2 className="text-sm font-bold text-slate-900">System Information</h2>
-                          <p className="text-xs text-slate-500">Environment and deployment build</p>
+                          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">Enable Registration</h3>
+                          <p className="text-[11px] text-slate-500">Allow new users to register on portal</p>
                         </div>
+                        {renderToggleSwitch("enable_registration", "User Registration", formValues.enable_registration === "true")}
                       </div>
 
-                      <div className="divide-y divide-slate-100 text-xs pt-1">
-                        <div className="flex items-center justify-between py-2.5">
-                          <span className="font-semibold text-slate-600">System Version</span>
-                          <span className="rounded-md bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
-                            v1.0.0
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between py-2.5">
-                          <span className="font-semibold text-slate-600">Environment</span>
-                          <span className="rounded-md bg-indigo-50 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700">
-                            Development
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between py-2.5">
-                          <span className="font-semibold text-slate-600">Last Updated</span>
-                          <span className="text-slate-700 font-medium">24 May 2025, 10:30 AM</span>
-                        </div>
-
-                        <div className="flex items-center justify-between py-2.5">
-                          <span className="font-semibold text-slate-600">Admin</span>
-                          <span className="text-slate-800 font-bold">{user?.name || "Admin User"}</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Card 2: Security Settings */}
-                  {matchSecuritySettingsCard && (
-                    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-4">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                          <ShieldOutlined sx={{ fontSize: 20 }} />
-                        </span>
+                      {/* Email Verification */}
+                      <div className="flex items-center justify-between pt-4">
                         <div>
-                          <h2 className="text-sm font-bold text-slate-900">Security Settings</h2>
-                          <p className="text-xs text-slate-500">Authentication & password policies</p>
+                          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">Email Verification</h3>
+                          <p className="text-[11px] text-slate-500">Require email confirmation before initial login</p>
                         </div>
+                        {renderToggleSwitch("email_verification", "Email Verification", formValues.email_verification === "true")}
                       </div>
 
-                      <div className="divide-y divide-slate-100 space-y-4 pt-1">
-                        {/* Two-Factor Authentication */}
-                        <div className="flex items-center justify-between pt-2">
-                          <div>
-                            <h3 className="text-xs font-bold text-slate-800">Two-Factor Authentication</h3>
-                            <p className="text-[11px] text-slate-500">Require 2FA for all admin accounts</p>
-                          </div>
-                          {renderToggleSwitch("two_factor_auth", "Two-Factor Authentication", formValues.two_factor_auth === "true")}
+                      {/* Maintenance Mode */}
+                      <div className="flex items-center justify-between pt-4">
+                        <div>
+                          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">Maintenance Mode</h3>
+                          <p className="text-[11px] text-slate-500">Restrict system access to administrative users only</p>
                         </div>
-
-                        {/* Password Expiry */}
-                        <div className="flex items-center justify-between pt-4">
-                          <div>
-                            <h3 className="text-xs font-bold text-slate-800">Password Expiry</h3>
-                            <p className="text-[11px] text-slate-500">Force password change every 90 days</p>
-                          </div>
-                          {renderToggleSwitch("password_expiry", "Password Expiry", formValues.password_expiry === "true")}
-                        </div>
+                        {renderToggleSwitch("maintenance_mode", "Maintenance Mode", formValues.maintenance_mode === "true")}
                       </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        ) : (
-          /* ========================================================================= */
-          /* Dynamic Content for other Tabs (Security, Email, Notifications, etc.)    */
-          /* ========================================================================= */
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            <div className="lg:col-span-8 space-y-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-6">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-                      {activeTab === "Security" && <ShieldOutlined sx={{ fontSize: 22 }} />}
-                      {activeTab === "Email" && <EmailOutlined sx={{ fontSize: 22 }} />}
-                      {activeTab === "Notifications" && <NotificationsNoneOutlined sx={{ fontSize: 22 }} />}
-                      {activeTab === "Appearance" && <PaletteOutlined sx={{ fontSize: 22 }} />}
-                      {activeTab === "Backup" && <StorageOutlined sx={{ fontSize: 22 }} />}
-                      {!["Security", "Email", "Notifications", "Appearance", "Backup"].includes(activeTab) && (
-                        <Tune sx={{ fontSize: 22 }} />
-                      )}
-                    </span>
-                    <div>
-                      <h2 className="text-base font-bold text-slate-900">{activeTab} Configurations</h2>
-                      <p className="text-xs text-slate-500">Manage rules and parameters for {activeTab}</p>
+
+                      {/* User Session Timeout */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4">
+                        <div>
+                          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">User Session Timeout</h3>
+                          <p className="text-[11px] text-slate-500">Automatically log out inactive users</p>
+                        </div>
+                        <select
+                          value={formValues.session_timeout || "24 Hours"}
+                          onChange={async (e) => {
+                            const val = e.target.value;
+                            handleChange("session_timeout", val);
+                            try {
+                              await settingService.updateSettingsBulk({ session_timeout: val });
+                              showSuccessToast(`Session timeout updated to ${val} in database!`);
+                            } catch (err: any) {
+                              showErrorToast(err?.message || "Failed to update timeout.");
+                            }
+                          }}
+                          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden min-w-[140px]"
+                        >
+                          <option value="15 Minutes">15 Minutes</option>
+                          <option value="30 Minutes">30 Minutes</option>
+                          <option value="1 Hour">1 Hour</option>
+                          <option value="2 Hours">2 Hours</option>
+                          <option value="24 Hours">24 Hours</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
+                )}
+
+                {/* Custom General Keys */}
+                {customGeneralSettings.length > 0 && (
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-4">
+                    <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                      Additional General Keys
+                    </h3>
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800 space-y-3">
+                      {customGeneralSettings.map((setting) => {
+                        const isBool =
+                          setting.dataType === "boolean" ||
+                          setting.settingValue === "true" ||
+                          setting.settingValue === "false";
+                        const isValTrue = (formValues[setting.settingKey] ?? setting.settingValue) === "true";
+
+                        return (
+                          <div
+                            key={setting.id}
+                            className="flex items-center justify-between pt-3"
+                          >
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
+                                {setting.settingKey}
+                              </h4>
+                              <p className="text-[11px] text-slate-500">{setting.description}</p>
+                            </div>
+                            <div>
+                              {isBool ? (
+                                renderToggleSwitch(setting.settingKey, setting.settingKey, isValTrue)
+                              ) : (
+                                <input
+                                  type={setting.dataType === "number" ? "number" : "text"}
+                                  value={formValues[setting.settingKey] ?? setting.settingValue}
+                                  onChange={(e) => handleChange(setting.settingKey, e.target.value)}
+                                  className="rounded-xl border border-slate-200 dark:border-slate-800 px-3 py-1 text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-950"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Right Column (System Info & Cache Maintenance) */}
+              <div className="lg:col-span-5 space-y-6">
+                {/* System Information */}
+                {matchSystemInformation && (
+                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                        <Storage sx={{ fontSize: 20 }} />
+                      </span>
+                      <div>
+                        <h2 className="text-sm font-bold text-slate-900 dark:text-white">System Information</h2>
+                        <p className="text-xs text-slate-500">Environment build and deployment specs</p>
+                      </div>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800 text-xs pt-1">
+                      <div className="flex items-center justify-between py-2.5">
+                        <span className="font-semibold text-slate-600 dark:text-slate-400">System Version</span>
+                        <span className="rounded-md bg-indigo-50 dark:bg-indigo-950/60 px-2.5 py-0.5 text-[11px] font-bold text-indigo-700 dark:text-indigo-300">
+                          v1.0.0
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2.5">
+                        <span className="font-semibold text-slate-600 dark:text-slate-400">Environment</span>
+                        <span className="rounded-md bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                          Development
+                        </span>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2.5">
+                        <span className="font-semibold text-slate-600 dark:text-slate-400">Database Engine</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-medium">PostgreSQL 18</span>
+                      </div>
+
+                      <div className="flex items-center justify-between py-2.5">
+                        <span className="font-semibold text-slate-600 dark:text-slate-400">Active Admin</span>
+                        <span className="text-slate-800 dark:text-slate-200 font-bold">{user?.name || "Admin User"}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Workspace Cache Maintenance */}
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+                      <CachedOutlined sx={{ fontSize: 20 }} />
+                    </span>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Workspace Cache</h3>
+                      <p className="text-xs text-slate-500">Purge temporary cache & reload</p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                    Clears client-side session cache and refreshes settings from PostgreSQL.
+                  </p>
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setKeyFormData({
-                        settingKey: "",
-                        settingValue: "",
-                        category: activeTab,
-                        description: "",
-                        dataType: "string",
-                      });
-                      setIsKeyModalOpen(true);
-                    }}
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 transition-colors cursor-pointer"
+                    onClick={handleClearCache}
+                    disabled={clearingCache}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-60"
                   >
-                    <Add sx={{ fontSize: 16 }} />
-                    <span>Add Key</span>
+                    <CachedOutlined sx={{ fontSize: 16 }} />
+                    <span>{clearingCache ? "Clearing Cache..." : "Purge Local Cache"}</span>
                   </button>
                 </div>
 
-                {/* Specific Tab Features */}
-                {activeTab === "Security" && (
-                  <div className="divide-y divide-slate-100 space-y-4">
-                    <div className="flex items-center justify-between pt-2">
+                {/* Real-time DB Sync card */}
+                
+              </div>
+            </div>
+          )
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 2: Security Settings                                                 */}
+        {/* ========================================================================= */}
+        {activeTab === "Security" && (
+          !matchSecuritySettings ? (
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-12 text-center">
+              <SearchOff sx={{ fontSize: 36, color: "#94a3b8" }} />
+              <h3 className="mt-2 text-sm font-bold text-slate-800 dark:text-slate-200">
+                No security settings matched &ldquo;{searchQuery}&rdquo;
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                Try searching for 2FA, password expiry, or login attempts.
+              </p>
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="mt-4 inline-flex items-center gap-1 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 cursor-pointer"
+              >
+                <Close sx={{ fontSize: 14 }} />
+                <span>Clear Search</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left Column (Security Controls) */}
+              <div className="lg:col-span-8 space-y-6">
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-6">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                    <div className="flex items-center gap-3">
+                      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                        <ShieldOutlined sx={{ fontSize: 22 }} />
+                      </span>
                       <div>
-                        <h3 className="text-xs font-bold text-slate-800">Two-Factor Authentication</h3>
-                        <p className="text-[11px] text-slate-500">Require 2FA for all admin accounts</p>
+                        <h2 className="text-base font-bold text-slate-900 dark:text-white">Security Configurations</h2>
+                        <p className="text-xs text-slate-500">
+                          Manage multi-factor authentication, password policies, and login limits
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setKeyFormData({
+                          settingKey: "",
+                          settingValue: "",
+                          category: "Security",
+                          description: "",
+                          dataType: "string",
+                        });
+                        setIsKeyModalOpen(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-indigo-700 transition-colors cursor-pointer"
+                    >
+                      <Add sx={{ fontSize: 16 }} />
+                      <span>Add Key</span>
+                    </button>
+                  </div>
+
+                  {/* Core Security Controls */}
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 space-y-4">
+                    {/* Two-Factor Authentication */}
+                    <div className="flex items-center justify-between pt-2">
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                            Two-Factor Authentication (2FA)
+                          </h3>
+                          <span
+                            className={`rounded-md px-2 py-0.5 text-[10px] font-bold ${
+                              is2FaEnabled
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+                                : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                            }`}
+                          >
+                            {is2FaEnabled ? "Enforced" : "Optional"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          Require two-step verification for all administrative and elevated accounts
+                        </p>
                       </div>
                       {renderToggleSwitch("two_factor_auth", "Two-Factor Authentication", formValues.two_factor_auth === "true")}
                     </div>
+
+                    {/* Password Expiry */}
                     <div className="flex items-center justify-between pt-4">
-                      <div>
-                        <h3 className="text-xs font-bold text-slate-800">Password Expiry</h3>
-                        <p className="text-[11px] text-slate-500">Force password change every 90 days</p>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">Password Expiry</h3>
+                          <span className="rounded-md bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+                            90 Days
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          Force workspace members to cycle and update passwords periodically
+                        </p>
                       </div>
                       {renderToggleSwitch("password_expiry", "Password Expiry", formValues.password_expiry === "true")}
                     </div>
-                  </div>
-                )}
 
-                {activeTab === "Email" && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 mb-1">SMTP Host</label>
-                      <input
-                        type="text"
-                        value={formValues.smtp_host || "smtp.gmail.com"}
-                        onChange={(e) => handleChange("smtp_host", e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">SMTP Port</label>
-                        <input
-                          type="text"
-                          value={formValues.smtp_port || "587"}
-                          onChange={(e) => handleChange("smtp_port", e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 mb-1">Sender Email</label>
-                        <input
-                          type="text"
-                          value={formValues.smtp_sender || "admin@rolemanage.io"}
-                          onChange={(e) => handleChange("smtp_sender", e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await settingService.updateSettingsBulk({
-                          smtp_host: formValues.smtp_host,
-                          smtp_port: formValues.smtp_port,
-                          smtp_sender: formValues.smtp_sender,
-                        });
-                        showSuccessToast("Email SMTP parameters updated in database!");
-                      }}
-                      className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition-colors cursor-pointer"
-                    >
-                      <Save sx={{ fontSize: 16 }} />
-                      <span>Save Email Settings</span>
-                    </button>
-                  </div>
-                )}
-
-                {activeTab === "Notifications" && (
-                  <div className="divide-y divide-slate-100 space-y-4">
-                    <div className="flex items-center justify-between pt-2">
-                      <div>
-                        <h3 className="text-xs font-bold text-slate-800">Email Alerts</h3>
-                        <p className="text-[11px] text-slate-500">Send automatic email notifications on privilege changes</p>
-                      </div>
-                      {renderToggleSwitch("email_alerts_enabled", "Email Alerts", formValues.email_alerts_enabled === "true")}
-                    </div>
+                    {/* Login Attempt Limit */}
                     <div className="flex items-center justify-between pt-4">
-                      <div>
-                        <h3 className="text-xs font-bold text-slate-800">Browser Push Notifications</h3>
-                        <p className="text-[11px] text-slate-500">Show desktop push notifications for urgent security events</p>
+                      <div className="space-y-0.5">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">Login Attempt Limit</h3>
+                          <span className="rounded-md bg-indigo-50 dark:bg-indigo-950/60 px-2 py-0.5 text-[10px] font-bold text-indigo-700 dark:text-indigo-300">
+                            5 Attempts
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">
+                          Automatically lock account after 5 consecutive failed login attempts
+                        </p>
                       </div>
-                      {renderToggleSwitch("browser_push_enabled", "Browser Push", formValues.browser_push_enabled === "true")}
+                      {renderToggleSwitch("login_attempt_limit", "Login Attempt Limit", formValues.login_attempt_limit === "true")}
                     </div>
                   </div>
-                )}
 
-                {activeTab === "Appearance" && (
-                  <div className="divide-y divide-slate-100 space-y-4">
-                    <div className="flex items-center justify-between pt-2">
-                      <div>
-                        <h3 className="text-xs font-bold text-slate-800">Dark Mode Theme</h3>
-                        <p className="text-[11px] text-slate-500">Switch workspace theme to dark palette</p>
-                      </div>
-                      {renderToggleSwitch("dark_mode_enabled", "Dark Mode", isDarkMode)}
-                    </div>
-                  </div>
-                )}
+                  {/* Dynamic Custom Security Setting Keys */}
+                  {customSecuritySettings.length > 0 && (
+                    <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
+                      <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
+                        Additional Security Parameters
+                      </h4>
+                      {customSecuritySettings.map((setting) => {
+                        const isBool =
+                          setting.dataType === "boolean" ||
+                          setting.settingValue === "true" ||
+                          setting.settingValue === "false";
+                        const isValTrue = (formValues[setting.settingKey] ?? setting.settingValue) === "true";
 
-                {activeTab === "Backup" && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-xs font-bold text-slate-800">Automatic Nightly Backup</h3>
-                        <p className="text-[11px] text-slate-500">Create daily snapshot of PostgreSQL database at midnight</p>
-                      </div>
-                      {renderToggleSwitch("auto_backup_enabled", "Auto Backup", formValues.auto_backup_enabled === "true")}
-                    </div>
-                    <div className="p-4 rounded-xl bg-slate-50 border border-slate-200/80 text-xs text-slate-600 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">Last Backup Created:</span>
-                        <span className="text-slate-800 font-mono">Today, 03:00 AM UTC</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold">Snapshot Size:</span>
-                        <span className="text-slate-800 font-mono">14.2 MB</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Render any custom category setting keys */}
-                {!["Security", "Email", "Notifications", "Appearance", "Backup"].includes(activeTab) && (
-                  <div className="space-y-3">
-                    {settings.filter((s) => s.category.toLowerCase() === activeTab.toLowerCase()).length > 0 ? (
-                      settings
-                        .filter((s) => s.category.toLowerCase() === activeTab.toLowerCase())
-                        .map((setting) => {
-                          const isBool =
-                            setting.dataType === "boolean" ||
-                            setting.settingValue === "true" ||
-                            setting.settingValue === "false";
-                          const isValTrue = (formValues[setting.settingKey] ?? setting.settingValue) === "true";
-
-                          return (
-                            <div
-                              key={setting.id}
-                              className="flex items-center justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50"
-                            >
-                              <div>
-                                <h3 className="text-xs font-bold text-slate-800 font-mono">{setting.settingKey}</h3>
-                                <p className="text-[11px] text-slate-500">{setting.description}</p>
-                              </div>
-                              <div>
-                                {isBool ? (
-                                  renderToggleSwitch(setting.settingKey, setting.settingKey, isValTrue)
-                                ) : (
-                                  <input
-                                    type={setting.dataType === "number" ? "number" : "text"}
-                                    value={formValues[setting.settingKey] ?? setting.settingValue}
-                                    onChange={(e) => handleChange(setting.settingKey, e.target.value)}
-                                    className="rounded-xl border border-slate-200 px-3 py-1 text-xs text-slate-800 bg-white"
-                                  />
-                                )}
-                              </div>
+                        return (
+                          <div
+                            key={setting.id}
+                            className="flex items-center justify-between p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40"
+                          >
+                            <div>
+                              <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 font-mono">
+                                {setting.settingKey}
+                              </h4>
+                              <p className="text-[11px] text-slate-500">{setting.description}</p>
                             </div>
-                          );
-                        })
-                    ) : (
-                      <div className="py-10 text-center text-xs text-slate-400">
-                        No settings in this category yet. Click &quot;Add Key&quot; above to add one.
-                      </div>
-                    )}
+                            <div>
+                              {isBool ? (
+                                renderToggleSwitch(setting.settingKey, setting.settingKey, isValTrue)
+                              ) : (
+                                <input
+                                  type={setting.dataType === "number" ? "number" : "text"}
+                                  value={formValues[setting.settingKey] ?? setting.settingValue}
+                                  onChange={(e) => handleChange(setting.settingKey, e.target.value)}
+                                  className="rounded-xl border border-slate-200 dark:border-slate-800 px-3 py-1 text-xs text-slate-800 dark:text-slate-200 bg-white dark:bg-slate-950"
+                                />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column (Security Posture & DB Sync) */}
+              <div className="lg:col-span-4 space-y-6">
+                {/* Security Posture Summary */}
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-xs space-y-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                      <VerifiedUserOutlined sx={{ fontSize: 20 }} />
+                    </span>
+                    <div>
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white">Security Posture</h3>
+                      <p className="text-xs text-slate-500">Active defense & access governance</p>
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
 
-            {/* Right Column Summary */}
-            <div className="lg:col-span-4 space-y-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-3">
-                <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <CheckCircleOutline sx={{ fontSize: 18, color: "#10b981" }} />
-                  <span>Real-Time Database Sync</span>
-                </h3>
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Toggling any setting or modifying configuration parameters automatically updates and commits the values to PostgreSQL.
-                </p>
+                  <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-100 dark:border-slate-800 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Security Tier:</span>
+                      <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                        {is2FaEnabled ? "High (2FA & RBAC)" : "Standard (RBAC)"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Password Policy:</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        {formValues.password_expiry === "true" ? "Enforced (90d)" : "Inactive"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-500">Brute Force Protection:</span>
+                      <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                        {formValues.login_attempt_limit === "true" ? "Active (5 limits)" : "Disabled"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Real-time DB Sync */}
+               
               </div>
             </div>
-          </div>
+          )
         )}
-
       </div>
 
       {/* ========================================================================= */}
-      {/* Modal: Create Category & Save to DB                                      */}
-      {/* ========================================================================= */}
-      {isCategoryModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 animate-scale-up">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600">
-                  <CategoryOutlined sx={{ fontSize: 20 }} />
-                </span>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Create Configuration Category</h3>
-                  <p className="text-[11px] text-slate-500">Saves a new setting group directly into the database.</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setIsCategoryModalOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
-              >
-                <Close sx={{ fontSize: 18 }} />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateCategory} className="mt-4 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Category Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Integrations, Billing, SMTP Email, Cloud Storage"
-                  value={categoryName}
-                  onChange={(e) => setCategoryName(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-medium text-slate-800 focus:border-indigo-500 focus:outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
-                <textarea
-                  rows={2}
-                  placeholder="Explain what configuration settings belong to this category..."
-                  value={categoryDescription}
-                  onChange={(e) => setCategoryDescription(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Category Icon</label>
-                <div className="grid grid-cols-5 gap-2 max-h-40 overflow-y-auto p-1 border border-slate-100 rounded-xl bg-slate-50/50">
-                  {AVAILABLE_ICONS.map((item) => {
-                    const isSelected = categoryIcon === item.key;
-                    return (
-                      <button
-                        type="button"
-                        key={item.key}
-                        onClick={() => setCategoryIcon(item.key)}
-                        title={item.label}
-                        className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all cursor-pointer ${isSelected
-                          ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                          : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
-                          }`}
-                      >
-                        {item.icon}
-                        <span className="text-[9px] font-semibold mt-1 truncate max-w-full">{item.key}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setIsCategoryModalOpen(false)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creatingCategory}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-60"
-                >
-                  <Save sx={{ fontSize: 16 }} />
-                  <span>{creatingCategory ? "Saving to DB..." : "Create & Save in DB"}</span>
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* Modal: Add Setting Key                                                   */}
+      {/* Modal: Add Setting Key (General / Security Only)                          */}
       {/* ========================================================================= */}
       {isKeyModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-fade-in">
-          <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 animate-scale-up">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <h3 className="text-base font-bold text-slate-900">Add Configuration Setting Key</h3>
+          <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-2xl border border-slate-100 dark:border-slate-800 animate-scale-up">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white">Add Configuration Setting Key</h3>
               <button
                 type="button"
                 onClick={() => setIsKeyModalOpen(false)}
-                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
+                className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 cursor-pointer"
               >
                 <Close sx={{ fontSize: 18 }} />
               </button>
@@ -1029,39 +965,36 @@ export const SettingsPage: React.FC = () => {
 
             <form onSubmit={handleCreateKey} className="mt-4 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Setting Key *</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Setting Key *</label>
                 <input
                   type="text"
                   required
                   placeholder="e.g. security_enforce_https"
                   value={keyFormData.settingKey}
                   onChange={(e) => setKeyFormData((prev) => ({ ...prev, settingKey: e.target.value }))}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-mono text-slate-800 focus:border-indigo-500 focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs font-mono text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Category</label>
                   <select
                     value={keyFormData.category}
                     onChange={(e) => setKeyFormData((prev) => ({ ...prev, category: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
                   >
-                    {allTabs.map((t) => (
-                      <option key={t} value={t}>
-                        {t}
-                      </option>
-                    ))}
+                    <option value="General">General</option>
+                    <option value="Security">Security</option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Data Type</label>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Data Type</label>
                   <select
                     value={keyFormData.dataType}
                     onChange={(e) => setKeyFormData((prev) => ({ ...prev, dataType: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden bg-white"
+                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
                   >
                     <option value="string">String / Text</option>
                     <option value="boolean">Boolean (True/False)</option>
@@ -1071,32 +1004,32 @@ export const SettingsPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Initial Value</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Initial Value</label>
                 <input
                   type="text"
                   placeholder="e.g. true or 120"
                   value={keyFormData.settingValue}
                   onChange={(e) => setKeyFormData((prev) => ({ ...prev, settingValue: e.target.value }))}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Description</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Description</label>
                 <textarea
                   rows={2}
                   placeholder="Explain what this configuration controls..."
                   value={keyFormData.description}
                   onChange={(e) => setKeyFormData((prev) => ({ ...prev, description: e.target.value }))}
-                  className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-indigo-500 focus:outline-hidden"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
                 <button
                   type="button"
                   onClick={() => setIsKeyModalOpen(false)}
-                  className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+                  className="rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer"
                 >
                   Cancel
                 </button>

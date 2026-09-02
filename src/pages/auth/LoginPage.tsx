@@ -17,9 +17,6 @@ import {
   ErrorOutline,
   Security,
   ArrowBack,
-  OpenInNew,
-  ContentCopy,
-  InfoOutlined,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { authService } from "../../api/auth.service";
@@ -38,8 +35,6 @@ export const LoginPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loggingIn, setLoggingIn] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [googleSetupModalOpen, setGoogleSetupModalOpen] = useState(false);
-  const [copiedSnippet, setCopiedSnippet] = useState(false);
   const [formData, setFormData] = useState({ email: "", password: "", remember: true });
 
   useEffect(() => {
@@ -237,11 +232,6 @@ export const LoginPage: React.FC = () => {
   }, []);
 
   const handleGoogleSignInClick = () => {
-    if (!isGoogleAuthAvailable()) {
-      setGoogleSetupModalOpen(true);
-      return;
-    }
-
     const google = (window as any).google;
     // Prefer interactive OAuth2 token popup if available
     if (google?.accounts?.oauth2) {
@@ -292,22 +282,22 @@ export const LoginPage: React.FC = () => {
     if (google?.accounts?.id) {
       try {
         google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            setGoogleSetupModalOpen(true);
+          if (notification.isNotDisplayed()) {
+            showWarningAlert(
+              "Google Sign-In",
+              "Google Sign-In prompt could not be displayed. Please check your browser popup blocker settings."
+            );
           }
         });
-      } catch {
-        setGoogleSetupModalOpen(true);
+      } catch (err) {
+        console.error("Google prompt error:", err);
       }
     } else {
-      setGoogleSetupModalOpen(true);
+      showWarningAlert(
+        "Google Sign-In",
+        "Google authentication service is initializing. Please check your connection and try again."
+      );
     }
-  };
-
-  const copyConfigSnippet = () => {
-    navigator.clipboard.writeText("VITE_GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com");
-    setCopiedSnippet(true);
-    setTimeout(() => setCopiedSnippet(false), 2500);
   };
 
   // 2FA OTP Submission
@@ -885,29 +875,8 @@ export const LoginPage: React.FC = () => {
                       </>
                     )}
                   </button>
-
-                  <div className="mt-2 flex items-center justify-between text-[11px]">
-                    <span className="max-lg:text-slate-400 text-slate-500">Fast 1-click SSO access</span>
-                    <button
-                      type="button"
-                      onClick={() => setGoogleSetupModalOpen(true)}
-                      className="inline-flex items-center gap-1 font-semibold max-lg:text-indigo-400 text-indigo-600 hover:underline cursor-pointer"
-                    >
-                      <InfoOutlined sx={{ fontSize: 13 }} /> Setup OAuth
-                    </button>
-                  </div>
                 </div>
 
-                {/* Create Account / Request Access Link */}
-                <div className="pt-2 text-center text-xs max-lg:text-slate-400 text-slate-500">
-                  <span>Don't have an enterprise account? </span>
-                  <a
-                    href="/request-access"
-                    className="font-semibold max-lg:text-indigo-400 max-lg:hover:text-indigo-300 text-indigo-600 hover:text-indigo-700 transition-colors"
-                  >
-                    Request Access &rarr;
-                  </a>
-                </div>
               </form>
             </div>
           )}
@@ -1160,139 +1129,6 @@ export const LoginPage: React.FC = () => {
                 </div>
               </form>
             )}
-          </div>
-        </div>
-      )}
-      {/* Google OAuth Setup & Credentials Guide Modal */}
-      {googleSetupModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl bg-white p-6 shadow-2xl border border-slate-200">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-indigo-600 border border-indigo-100">
-                  {/* Google SVG */}
-                  <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
-                    <path
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                      fill="#4285F4"
-                    />
-                    <path
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                      fill="#34A853"
-                    />
-                    <path
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
-                      fill="#FBBC05"
-                    />
-                    <path
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
-                      fill="#EA4335"
-                    />
-                  </svg>
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-slate-900">Google Authentication Setup</h3>
-                  <p className="text-xs text-slate-500">Configure OAuth 2.0 Client Credentials or Test in Demo Mode</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setGoogleSetupModalOpen(false)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
-              >
-                <Close sx={{ fontSize: 20 }} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="my-5 space-y-4 text-xs text-slate-600">
-              <div className="rounded-xl bg-amber-50 p-3.5 border border-amber-200/80 text-amber-900 leading-relaxed">
-                <div className="flex items-start gap-2">
-                  <InfoOutlined sx={{ fontSize: 18 }} className="text-amber-600 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-bold">Live Google OAuth requires a Google Client ID:</span>
-                    <p className="mt-0.5 text-[11px] text-amber-800">
-                      Follow the steps below to generate an OAuth 2.0 Client ID from Google Cloud Console and paste it into your project configuration.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Step by step instructions */}
-              <div className="space-y-2.5 rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-                <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
-                  How to Create &amp; Link Your Google Client ID:
-                </h4>
-                <ol className="list-decimal pl-4 space-y-1.5 leading-relaxed text-[11.5px]">
-                  <li>
-                    Open the Google Cloud Console:{" "}
-                    <a
-                      href="https://console.cloud.google.com/apis/credentials"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 font-semibold text-indigo-600 hover:text-indigo-800 underline"
-                    >
-                      console.cloud.google.com/apis/credentials
-                      <OpenInNew sx={{ fontSize: 12 }} />
-                    </a>
-                  </li>
-                  <li>Click <strong>+ CREATE CREDENTIALS</strong> and select <strong>OAuth client ID</strong>.</li>
-                  <li>Select Application type: <strong>Web application</strong>.</li>
-                  <li>
-                    Under <strong>Authorized JavaScript origins</strong>, add:
-                    <code className="ml-1 rounded bg-slate-200 px-1 py-0.5 text-slate-800 font-mono">http://localhost:5173</code>
-                  </li>
-                  <li>
-                    Under <strong>Authorized redirect URIs</strong>, add:
-                    <code className="ml-1 rounded bg-slate-200 px-1 py-0.5 text-slate-800 font-mono">http://localhost:5173/login</code>
-                  </li>
-                  <li>
-                    Copy your <strong>Client ID</strong> and paste it into:
-                    <ul className="list-disc pl-4 mt-1 space-y-0.5 text-[11px] text-slate-700">
-                      <li>Frontend: <code className="font-mono bg-white px-1 border border-slate-200 rounded">frornt/csharp/.env</code> &rarr; <span className="font-mono text-indigo-600">VITE_GOOGLE_CLIENT_ID=...</span></li>
-                      <li>Backend: <code className="font-mono bg-white px-1 border border-slate-200 rounded">back/backend/appsettings.json</code> &rarr; <span className="font-mono text-indigo-600">Authentication:Google:ClientId</span></li>
-                    </ul>
-                  </li>
-                </ol>
-              </div>
-
-              {/* Copyable snippet */}
-              <div className="flex items-center justify-between rounded-xl bg-slate-900 px-3.5 py-2.5 text-slate-200">
-                <code className="font-mono text-[11px] text-indigo-300">
-                  VITE_GOOGLE_CLIENT_ID=YOUR_CLIENT_ID.apps.googleusercontent.com
-                </code>
-                <button
-                  type="button"
-                  onClick={copyConfigSnippet}
-                  className="flex items-center gap-1 rounded-lg bg-slate-800 px-2.5 py-1 text-[11px] font-semibold text-white hover:bg-slate-700 cursor-pointer"
-                >
-                  <ContentCopy sx={{ fontSize: 13 }} />
-                  <span>{copiedSnippet ? "Copied!" : "Copy"}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="flex flex-col sm:flex-row gap-2.5 border-t border-slate-100 pt-4">
-              <a
-                href="https://console.cloud.google.com/apis/credentials"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-100 transition-colors"
-              >
-                <OpenInNew sx={{ fontSize: 14 }} />
-                <span>Open Google Cloud Console</span>
-              </a>
-
-              <button
-                type="button"
-                onClick={() => setGoogleSetupModalOpen(false)}
-                className="ml-auto rounded-xl border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 cursor-pointer"
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       )}
