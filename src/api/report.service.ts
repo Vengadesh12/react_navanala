@@ -1,4 +1,6 @@
 import { apiClient } from "./client";
+import { API_URL } from "../config/constants";
+import { getStoredToken } from "../utils/storage";
 import type {
   ReportsOverviewResponse,
   Report,
@@ -17,18 +19,39 @@ export const reportService = {
   },
 
   createReport: async (data: ReportFormData): Promise<{ message?: string; data?: Report }> => {
+    const formData = new FormData();
+    formData.append("title", data.title);
+    formData.append("description", data.description);
+    if (data.categoryId !== undefined && data.categoryId !== null) {
+      formData.append("categoryId", String(data.categoryId));
+    }
+    formData.append("category", data.category);
+    formData.append("format", data.format);
+    if (data.file) {
+      formData.append("file", data.file);
+    }
     return apiClient<{ message?: string; data?: Report }>("/api/reports", {
       method: "POST",
-      includeJson: true,
-      body: JSON.stringify(data),
+      body: formData,
     });
   },
 
   updateReport: async (id: number, data: Partial<ReportFormData> & { status?: string }): Promise<{ message?: string; data?: Report }> => {
+    const formData = new FormData();
+    if (data.title !== undefined) formData.append("title", data.title);
+    if (data.description !== undefined) formData.append("description", data.description);
+    if (data.categoryId !== undefined && data.categoryId !== null) {
+      formData.append("categoryId", String(data.categoryId));
+    }
+    if (data.category !== undefined) formData.append("category", data.category);
+    if (data.format !== undefined) formData.append("format", data.format);
+    if (data.status !== undefined) formData.append("status", data.status);
+    if (data.file) {
+      formData.append("file", data.file);
+    }
     return apiClient<{ message?: string; data?: Report }>(`/api/reports/${id}`, {
       method: "PUT",
-      includeJson: true,
-      body: JSON.stringify(data),
+      body: formData,
     });
   },
 
@@ -58,9 +81,9 @@ export const reportService = {
     });
   },
 
-  downloadReport: async (id: number, title: string, format: string): Promise<void> => {
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-    const response = await fetch(`http://localhost:5125/api/reports/${id}/download`, {
+  downloadReport: async (id: number, title: string, format: string, existingFileName?: string): Promise<void> => {
+    const token = getStoredToken() || localStorage.getItem("token") || sessionStorage.getItem("token") || "";
+    const response = await fetch(`${API_URL}/api/reports/${id}/download`, {
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
@@ -70,12 +93,26 @@ export const reportService = {
       throw new Error("Failed to download report document.");
     }
 
+    // Try to get filename from Content-Disposition header
+    let fileName = existingFileName;
+    const disposition = response.headers.get("Content-Disposition");
+    if (disposition && disposition.includes("filename=")) {
+      const match = disposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+      if (match && match[1]) {
+        fileName = match[1].replace(/['"]/g, "").trim();
+      }
+    }
+
+    if (!fileName) {
+      const ext = format.toLowerCase().trim();
+      fileName = `${title.replace(/\s+/g, "_")}.${ext}`;
+    }
+
     const blob = await response.blob();
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    const ext = format.toLowerCase() === "pdf" ? "txt" : format.toLowerCase();
-    link.download = `${title.replace(/\s+/g, "_")}.${ext}`;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

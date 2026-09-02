@@ -41,6 +41,7 @@ export interface Report {
   createdBy: string;
   status: string;
   fileSize: string;
+  fileName?: string;
   createdAt: string;
   deletedFlag: number;
 }
@@ -51,6 +52,8 @@ export interface ReportFormData {
   categoryId?: number;
   category: string;
   format: string;
+  fileName?: string;
+  file?: File | null;
 }
 
 export interface ReportCategory {
