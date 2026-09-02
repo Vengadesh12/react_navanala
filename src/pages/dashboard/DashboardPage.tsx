@@ -27,12 +27,14 @@ import {
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { dashboardService } from "../../api/dashboard.service";
 import { useAuth } from "../../hooks/useAuth";
+import { useTheme } from "../../context/ThemeContext";
 import { getProfileImageUrl } from "../../utils/image";
 import { CrackersBlast } from "../../components/common/CrackersBlast";
 import type { DashboardSummaryResponse, DashboardChartPoint } from "../../types";
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
+  const { setDarkMode } = useTheme();
   const location = useLocation();
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
   const [timeframe, setTimeframe] = useState<"7d" | "30d" | "90d">("7d");
@@ -59,10 +61,11 @@ export const DashboardPage: React.FC = () => {
       (location.state as any)?.justLoggedIn === true;
 
     if (isLoginRedirect) {
+      setDarkMode(true);
       setShowCelebration(true);
       sessionStorage.removeItem("celebrate_login");
     }
-  }, [location]);
+  }, [location, setDarkMode]);
 
   const timeframeLabels: Record<"7d" | "30d" | "90d", string> = {
     "7d": "Last 7 Days",
@@ -998,12 +1001,12 @@ export const DashboardPage: React.FC = () => {
       searchPlaceholder="Search dashboard cards, metrics, users..."
     >
       {/* Radiant Fireworks Celebration Animation (matching the fireworks night sky image) */}
-      {/* <CrackersBlast
+      <CrackersBlast
         isOpen={showCelebration}
         onClose={() => setShowCelebration(false)}
-        autoCloseDuration={15}
+        autoCloseDuration={45}
         showControls={true}
-      /> */}
+      />
 
       <div className="w-full min-h-screen bg-slate-50/50 dark:bg-[#0b0f19] px-4 py-6 sm:px-8 space-y-6">
         {/* Header Title & Date Range / Search */}
@@ -1060,16 +1063,19 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* Live Fireworks Blast Button */}
-            <button
+            {/* <button
               type="button"
-              onClick={() => setShowCelebration(true)}
+              onClick={() => {
+                setDarkMode(true);
+                setShowCelebration(true);
+              }}
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:via-purple-700 hover:to-indigo-700 text-white px-3.5 py-2 text-xs font-bold shadow-md shadow-pink-500/25 active:scale-95 transition-all cursor-pointer animate-pulse-glow"
-              title="Launch fireworks animation (rockets shoot from bottom to top and blast)"
+              title="Switch to dark theme and blast fireworks celebration"
             >
-              {/* <Celebration sx={{ fontSize: 16 }} className="text-yellow-300 animate-bounce" /> */}
-              {/* <span className="hidden sm:inline">Blast Fireworks</span> */}
+              <Celebration sx={{ fontSize: 16 }} className="text-yellow-300 animate-bounce" />
+              <span className="hidden sm:inline">Blast Fireworks</span>
               <span className="sm:hidden">Fireworks</span>
-            </button>
+            </button> */}
 
             <button
               type="button"
