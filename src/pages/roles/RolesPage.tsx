@@ -24,6 +24,9 @@ import { MetricCard } from "../../components/common/MetricCard";
 import { SearchInput } from "../../components/common/SearchInput";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { EmptyState } from "../../components/common/EmptyState";
+import { Pagination } from "../../components/common/Pagination";
+import { SortableHeader } from "../../components/common/SortableHeader";
+import { useTableSort } from "../../hooks/useTableSort";
 import { RoleModal } from "./components/RoleModal";
 import { roleService } from "../../api/role.service";
 import { userService } from "../../api/user.service";
@@ -109,6 +112,15 @@ export const RolesPage: React.FC = () => {
     return counts;
   }, [permissionMatrix]);
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, typeFilter, sortBy]);
+
   const filteredRoles = useMemo(() => {
     let result = [...roles];
 
@@ -130,24 +142,37 @@ export const RolesPage: React.FC = () => {
       result = result.filter((r) => !(Number(r.id) === 2 || r.name?.toLowerCase().includes("super admin")));
     }
 
-    // Sorting
-    result.sort((a, b) => {
-      if (sortBy === "name") {
-        return (a.name || "").localeCompare(b.name || "");
-      }
-      if (sortBy === "members") {
-        const countA = roleMembersCount[String(a.id)] || 0;
-        const countB = roleMembersCount[String(b.id)] || 0;
-        return countB - countA;
-      }
-      if (sortBy === "id_desc") {
-        return Number(b.id) - Number(a.id);
-      }
-      return Number(a.id) - Number(b.id);
-    });
-
     return result;
-  }, [roles, searchQuery, typeFilter, sortBy, roleMembersCount]);
+  }, [roles, searchQuery, typeFilter]);
+
+  const { sortKey, sortDirection, handleSort, sortedData: sortedRoles } = useTableSort<Role>({
+    data: filteredRoles,
+    initialSortKey: "id",
+    initialDirection: "asc",
+    getSortValue: (role, key) => {
+      switch (key) {
+        case "id":
+          return Number(role.id);
+        case "name":
+          return (role.name || "").toLowerCase();
+        case "description":
+          return (role.description || "").toLowerCase();
+        case "members":
+          return roleMembersCount[String(role.id)] || 0;
+        case "permissions":
+          return rolePermissionsCount[String(role.id)] || 0;
+        case "status":
+          return 1;
+        default:
+          return (role as any)[key];
+      }
+    },
+  });
+
+  const paginatedRoles = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedRoles.slice(start, start + pageSize);
+  }, [sortedRoles, page, pageSize]);
 
   const systemRolesCount = useMemo(() => {
     return roles.filter((r) => Number(r.id) === 2 || r.name?.toLowerCase().includes("super admin")).length;
@@ -646,130 +671,153 @@ export const RolesPage: React.FC = () => {
         {/* Table View */}
         {!loading && !error && filteredRoles.length > 0 && viewMode === "table" && (
           <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <table className="w-full text-left text-sm text-slate-600">
-              <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500">
-                <tr>
-                  <th className="px-6 py-4">ID</th>
-                  <th className="px-6 py-4">Role Name</th>
-                  <th className="px-6 py-4">Description</th>
-                  <th className="px-6 py-4">Members</th>
-                  <th className="px-6 py-4">Permissions</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredRoles.map((role) => {
-                  const isSuper = Number(role.id) === 2 || role.name?.toLowerCase().includes("super admin");
-                  const meta = getRoleMeta(role.id, role.name);
-                  const memberCount = roleMembersCount[String(role.id)] || 0;
-                  const permCount = rolePermissionsCount[String(role.id)];
-                  const totalPerms = permissionMatrix?.permissions?.length || 0;
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-600">
+                <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500">
+                  <tr>
+                    <SortableHeader sortKey="id" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                      ID
+                    </SortableHeader>
+                    <SortableHeader sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                      Role Name
+                    </SortableHeader>
+                    <SortableHeader sortKey="description" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                      Description
+                    </SortableHeader>
+                    <SortableHeader sortKey="members" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                      Members
+                    </SortableHeader>
+                    <SortableHeader sortKey="permissions" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                      Permissions
+                    </SortableHeader>
+                    <SortableHeader sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                      Status
+                    </SortableHeader>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {paginatedRoles.map((role) => {
+                    const isSuper = Number(role.id) === 2 || role.name?.toLowerCase().includes("super admin");
+                    const meta = getRoleMeta(role.id, role.name);
+                    const memberCount = roleMembersCount[String(role.id)] || 0;
+                    const permCount = rolePermissionsCount[String(role.id)];
+                    const totalPerms = permissionMatrix?.permissions?.length || 0;
 
-                  return (
-                    <tr key={role.id} className="transition-colors hover:bg-slate-50/80">
-                      <td className="px-6 py-4 font-mono text-xs font-bold text-slate-400">#{role.id}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2.5">
-                          <span className={`grid h-8 w-8 place-items-center rounded-xl border ${meta.color}`}>
-                            {isSuper ? <Security sx={{ fontSize: 18 }} /> : <Shield sx={{ fontSize: 18 }} />}
-                          </span>
-                          <div>
-                            <strong className="font-bold text-slate-900 capitalize">{role.name}</strong>
-                            {isSuper && (
-                              <span className="ml-2 inline-flex items-center gap-0.5 rounded bg-purple-100 px-1.5 py-0.2 text-[10px] font-bold text-purple-700">
-                                System
-                              </span>
-                            )}
+                    return (
+                      <tr key={role.id} className="transition-colors hover:bg-slate-50/80">
+                        <td className="px-6 py-4 font-mono text-xs font-bold text-slate-400">#{role.id}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2.5">
+                            <span className={`grid h-8 w-8 place-items-center rounded-xl border ${meta.color}`}>
+                              {isSuper ? <Security sx={{ fontSize: 18 }} /> : <Shield sx={{ fontSize: 18 }} />}
+                            </span>
+                            <div>
+                              <strong className="font-bold text-slate-900 capitalize">{role.name}</strong>
+                              {isSuper && (
+                                <span className="ml-2 inline-flex items-center gap-0.5 rounded bg-purple-100 px-1.5 py-0.2 text-[10px] font-bold text-purple-700">
+                                  System
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="max-w-xs px-6 py-4 text-xs text-slate-500">
-                        {role.description || "—"}
-                      </td>
-                      <td className="px-6 py-4">
-                        <Link
-                          to={`/add-user?role=${role.id}`}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
-                        >
-                          <People sx={{ fontSize: 14 }} />
-                          <span>{memberCount}</span>
-                        </Link>
-                      </td>
-                      <td className="px-6 py-4">
-                        {isSuper ? (
+                        </td>
+                        <td className="max-w-xs px-6 py-4 text-xs text-slate-500">
+                          {role.description || "—"}
+                        </td>
+                        <td className="px-6 py-4">
                           <Link
-                            to={`/permissions?roleId=${role.id}`}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:underline"
+                            to={`/add-user?role=${role.id}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
                           >
-                            <Key sx={{ fontSize: 14 }} />
-                            <span>Full System</span>
+                            <People sx={{ fontSize: 14 }} />
+                            <span>{memberCount}</span>
                           </Link>
-                        ) : permCount !== undefined && totalPerms > 0 ? (
-                          <Link
-                            to={`/permissions?roleId=${role.id}`}
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline"
-                          >
-                            <Key sx={{ fontSize: 14 }} />
-                            <span>{permCount}/{totalPerms}</span>
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-slate-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                          Active
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          {canManagePerms && (
+                        </td>
+                        <td className="px-6 py-4">
+                          {isSuper ? (
                             <Link
                               to={`/permissions?roleId=${role.id}`}
-                              className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-indigo-600 shadow-2xs hover:bg-slate-50 transition-colors"
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:underline"
                             >
-                              Matrix
+                              <Key sx={{ fontSize: 14 }} />
+                              <span>Full System</span>
                             </Link>
-                          )}
-                          {canCreateRoles && (
-                            <button
-                              type="button"
-                              onClick={() => handleCloneRole(role)}
-                              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors cursor-pointer"
-                              title="Clone Role"
+                          ) : permCount !== undefined && totalPerms > 0 ? (
+                            <Link
+                              to={`/permissions?roleId=${role.id}`}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline"
                             >
-                              <ContentCopy sx={{ fontSize: 16 }} />
-                            </button>
+                              <Key sx={{ fontSize: 14 }} />
+                              <span>{permCount}/{totalPerms}</span>
+                            </Link>
+                          ) : (
+                            <span className="text-xs text-slate-400">—</span>
                           )}
-                          {canEditRoles && (
-                            <button
-                              type="button"
-                              onClick={() => openEditModal(role)}
-                              className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
-                              title="Edit Role"
-                            >
-                              <Edit sx={{ fontSize: 16 }} />
-                            </button>
-                          )}
-                          {canDeleteRoles && !isSuper && (
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteRole(role)}
-                              className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
-                              title="Delete Role"
-                            >
-                              <Delete sx={{ fontSize: 16 }} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                            Active
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex items-center justify-end gap-1.5">
+                            {canManagePerms && (
+                              <Link
+                                to={`/permissions?roleId=${role.id}`}
+                                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-indigo-600 shadow-2xs hover:bg-slate-50 transition-colors"
+                              >
+                                Matrix
+                              </Link>
+                            )}
+                            {canCreateRoles && (
+                              <button
+                                type="button"
+                                onClick={() => handleCloneRole(role)}
+                                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-800 transition-colors cursor-pointer"
+                                title="Clone Role"
+                              >
+                                <ContentCopy sx={{ fontSize: 16 }} />
+                              </button>
+                            )}
+                            {canEditRoles && (
+                              <button
+                                type="button"
+                                onClick={() => openEditModal(role)}
+                                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition-colors cursor-pointer"
+                                title="Edit Role"
+                              >
+                                <Edit sx={{ fontSize: 16 }} />
+                              </button>
+                            )}
+                            {canDeleteRoles && !isSuper && (
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteRole(role)}
+                                className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                                title="Delete Role"
+                              >
+                                <Delete sx={{ fontSize: 16 }} />
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            <Pagination
+              currentPage={page}
+              totalItems={filteredRoles.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         )}
 

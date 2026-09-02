@@ -25,6 +25,9 @@ import {
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { Pagination } from "../../components/common/Pagination";
+import { SortableHeader } from "../../components/common/SortableHeader";
+import { useTableSort } from "../../hooks/useTableSort";
 import { approvalService } from "../../api/approval.service";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog, showErrorAlert, showSuccessAlert } from "../../utils/alerts";
@@ -87,6 +90,44 @@ export const CreateApprovalPage: React.FC = () => {
   // Managers default to 'all' team requests; Regular employees are locked to 'my' requests
   const [scopeFilter, setScopeFilter] = useState<"all" | "my">(isManagerOrAdmin ? "all" : "my");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Pagination & Sorting
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [statusFilter, categoryFilter, priorityFilter, scopeFilter, searchQuery]);
+
+  const { sortKey, sortDirection, handleSort, sortedData: sortedItems } = useTableSort<ApprovalItem>({
+    data: items,
+    initialSortKey: "id",
+    initialDirection: "desc",
+    getSortValue: (item, key) => {
+      switch (key) {
+        case "id":
+          return Number(item.id);
+        case "employeeName":
+          return (item.employeeName || "").toLowerCase();
+        case "itemName":
+          return (item.itemName || "").toLowerCase();
+        case "description":
+          return (item.description || "").toLowerCase();
+        case "priority":
+          return (item.priority || "").toLowerCase();
+        case "status":
+          return (item.status || "").toLowerCase();
+        default:
+          return (item as any)[key];
+      }
+    },
+  });
+
+  const paginatedItems = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedItems.slice(start, start + pageSize);
+  }, [sortedItems, page, pageSize]);
 
   // Sync scopeFilter if user role status changes
   useEffect(() => {
@@ -617,17 +658,29 @@ export const CreateApprovalPage: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 dark:bg-slate-800/60 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200/80 dark:border-slate-800">
                   <tr>
-                    <th className="py-3.5 px-4">ID & Date</th>
-                    <th className="py-3.5 px-4">Employee / Requester</th>
-                    <th className="py-3.5 px-4">Requested Product / Item</th>
-                    <th className="py-3.5 px-4">Reason / Justification</th>
-                    <th className="py-3.5 px-4">Priority</th>
-                    <th className="py-3.5 px-4">Status & Review</th>
-                    <th className="py-3.5 px-4 text-right">Actions</th>
+                    <SortableHeader sortKey="id" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3.5 px-4 whitespace-nowrap">
+                      ID & Date
+                    </SortableHeader>
+                    <SortableHeader sortKey="employeeName" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3.5 px-4 whitespace-nowrap">
+                      Employee / Requester
+                    </SortableHeader>
+                    <SortableHeader sortKey="itemName" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3.5 px-4 whitespace-nowrap">
+                      Requested Product / Item
+                    </SortableHeader>
+                    <SortableHeader sortKey="description" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3.5 px-4 whitespace-nowrap">
+                      Reason / Justification
+                    </SortableHeader>
+                    <SortableHeader sortKey="priority" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3.5 px-4 whitespace-nowrap">
+                      Priority
+                    </SortableHeader>
+                    <SortableHeader sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3.5 px-4 whitespace-nowrap">
+                      Status & Review
+                    </SortableHeader>
+                    <th className="py-3.5 px-4 text-right whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {items.map((item) => {
+                  {paginatedItems.map((item) => {
                     const isPending = item.status?.toLowerCase() === "pending";
                     const isOwner = Number(item.userId) === Number(user?.id);
 
@@ -778,6 +831,17 @@ export const CreateApprovalPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!loading && items.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalItems={items.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           )}
         </div>
       </div>

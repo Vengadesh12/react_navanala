@@ -24,6 +24,9 @@ import {
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { Pagination } from "../../components/common/Pagination";
+import { SortableHeader } from "../../components/common/SortableHeader";
+import { useTableSort } from "../../hooks/useTableSort";
 import { invoiceService } from "../../api/invoice.service";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog, showErrorAlert, showSuccessAlert } from "../../utils/alerts";
@@ -79,6 +82,48 @@ export const InvoicesPage: React.FC = () => {
   // Filters
   const [search, setSearch] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+
+  // Pagination & Sorting
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter]);
+
+  const { sortKey, sortDirection, handleSort, sortedData: sortedInvoices } = useTableSort<InvoiceDto>({
+    data: invoices,
+    initialSortKey: "invoiceDate",
+    initialDirection: "desc",
+    getSortValue: (inv, key) => {
+      switch (key) {
+        case "invoiceNumber":
+          return inv.invoiceNumber || "";
+        case "customerName":
+          return (inv.customerName || "").toLowerCase();
+        case "invoiceDate":
+          return inv.invoiceDate || "";
+        case "items":
+          return inv.items?.length || 0;
+        case "subtotal":
+          return Number(inv.subtotal || 0);
+        case "taxAmount":
+          return Number(inv.taxAmount || 0);
+        case "totalAmount":
+          return Number(inv.totalAmount || 0);
+        case "status":
+          return (inv.status || "").toLowerCase();
+        default:
+          return (inv as any)[key];
+      }
+    },
+  });
+
+  const paginatedInvoices = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedInvoices.slice(start, start + pageSize);
+  }, [sortedInvoices, page, pageSize]);
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -517,19 +562,35 @@ export const InvoicesPage: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="border-b border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-950/50 font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                   <tr>
-                    <th className="px-5 py-3.5">Invoice #</th>
-                    <th className="px-5 py-3.5">Customer / Client</th>
-                    <th className="px-5 py-3.5">Date</th>
-                    <th className="px-5 py-3.5">Products</th>
-                    <th className="px-5 py-3.5">Subtotal</th>
-                    <th className="px-5 py-3.5">GST</th>
-                    <th className="px-5 py-3.5">Grand Total</th>
-                    <th className="px-5 py-3.5">Status</th>
+                    <SortableHeader sortKey="invoiceNumber" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                      Invoice #
+                    </SortableHeader>
+                    <SortableHeader sortKey="customerName" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                      Customer / Client
+                    </SortableHeader>
+                    <SortableHeader sortKey="invoiceDate" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                      Date
+                    </SortableHeader>
+                    <SortableHeader sortKey="items" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                      Products
+                    </SortableHeader>
+                    <SortableHeader sortKey="subtotal" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                      Subtotal
+                    </SortableHeader>
+                    <SortableHeader sortKey="taxAmount" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                      GST
+                    </SortableHeader>
+                    <SortableHeader sortKey="totalAmount" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                      Grand Total
+                    </SortableHeader>
+                    <SortableHeader sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                      Status
+                    </SortableHeader>
                     <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                  {invoices.map((inv) => (
+                  {paginatedInvoices.map((inv) => (
                     <tr key={inv.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors">
                       <td className="px-5 py-4 font-mono font-bold text-indigo-600 dark:text-indigo-400">
                         #{inv.invoiceNumber}
@@ -600,17 +661,6 @@ export const InvoicesPage: React.FC = () => {
                             <PrintOutlined sx={{ fontSize: 18 }} />
                           </button>
 
-                          {/* {(can("invoices.edit") || can("invoices.manage")) && (
-                            <button
-                              type="button"
-                              title="Edit Invoice"
-                              onClick={() => openEditModal(inv)}
-                              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition-colors cursor-pointer"
-                            >
-                              <EditOutlined sx={{ fontSize: 18 }} />
-                            </button>
-                          )} */}
-
                           {can("invoices.delete") && (
                             <button
                               type="button"
@@ -628,6 +678,17 @@ export const InvoicesPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!loading && invoices.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalItems={invoices.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           )}
         </div>
       </div>

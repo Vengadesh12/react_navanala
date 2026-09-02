@@ -25,6 +25,9 @@ import {
   Whatshot,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
+import { Pagination } from "../../components/common/Pagination";
+import { SortableHeader } from "../../components/common/SortableHeader";
+import { useTableSort } from "../../hooks/useTableSort";
 import { dashboardService } from "../../api/dashboard.service";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../context/ThemeContext";
@@ -942,6 +945,44 @@ export const DashboardPage: React.FC = () => {
           u.lastLogin?.toLowerCase().includes(q)
       );
 
+  // Recent Users Sorting & Pagination
+  const [recentUsersPage, setRecentUsersPage] = useState<number>(1);
+  const [recentUsersPageSize, setRecentUsersPageSize] = useState<number>(5);
+
+  useEffect(() => {
+    setRecentUsersPage(1);
+  }, [searchQuery]);
+
+  const {
+    sortKey: userSortKey,
+    sortDirection: userSortDirection,
+    handleSort: handleUserSort,
+    sortedData: sortedRecentUsers,
+  } = useTableSort<any>({
+    data: filteredRecentUsers,
+    initialSortKey: "name",
+    initialDirection: "asc",
+    getSortValue: (u, key) => {
+      switch (key) {
+        case "name":
+          return (u.name || "").toLowerCase();
+        case "role":
+          return (u.role || "").toLowerCase();
+        case "status":
+          return (u.status || "").toLowerCase();
+        case "lastLogin":
+          return (u.lastLogin || "").toLowerCase();
+        default:
+          return (u as any)[key];
+      }
+    },
+  });
+
+  const paginatedRecentUsers = (sortedRecentUsers || []).slice(
+    (recentUsersPage - 1) * recentUsersPageSize,
+    recentUsersPage * recentUsersPageSize
+  );
+
   const matchRecentUsers =
     !q || isRecentUsersCardExplicit || filteredRecentUsers.length > 0;
 
@@ -1703,16 +1744,24 @@ export const DashboardPage: React.FC = () => {
                     <table className="w-full text-left text-xs">
                       <thead>
                         <tr className="border-b border-slate-100 dark:border-slate-800 text-[11px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                          <th className="pb-3 font-semibold">USER</th>
-                          <th className="pb-3 font-semibold">ROLE</th>
-                          <th className="pb-3 font-semibold">STATUS</th>
-                          <th className="pb-3 font-semibold">LAST LOGIN</th>
+                          <SortableHeader sortKey="name" currentSortKey={userSortKey} currentSortDirection={userSortDirection} onSort={handleUserSort} className="pb-3 font-semibold">
+                            USER
+                          </SortableHeader>
+                          <SortableHeader sortKey="role" currentSortKey={userSortKey} currentSortDirection={userSortDirection} onSort={handleUserSort} className="pb-3 font-semibold">
+                            ROLE
+                          </SortableHeader>
+                          <SortableHeader sortKey="status" currentSortKey={userSortKey} currentSortDirection={userSortDirection} onSort={handleUserSort} className="pb-3 font-semibold">
+                            STATUS
+                          </SortableHeader>
+                          <SortableHeader sortKey="lastLogin" currentSortKey={userSortKey} currentSortDirection={userSortDirection} onSort={handleUserSort} className="pb-3 font-semibold">
+                            LAST LOGIN
+                          </SortableHeader>
                           <th className="pb-3 font-semibold text-right"></th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50 dark:divide-slate-800/60">
-                        {filteredRecentUsers.length > 0 ? (
-                          filteredRecentUsers.slice(0, 5).map((userItem) => (
+                        {paginatedRecentUsers.length > 0 ? (
+                          paginatedRecentUsers.map((userItem) => (
                             <tr
                               key={userItem.id}
                               className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
@@ -1796,6 +1845,19 @@ export const DashboardPage: React.FC = () => {
                       </tbody>
                     </table>
                   </div>
+
+                  {filteredRecentUsers.length > recentUsersPageSize && (
+                    <div className="mt-2">
+                      <Pagination
+                        currentPage={recentUsersPage}
+                        totalItems={filteredRecentUsers.length}
+                        pageSize={recentUsersPageSize}
+                        pageSizeOptions={[5, 10, 20]}
+                        onPageChange={setRecentUsersPage}
+                        onPageSizeChange={setRecentUsersPageSize}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">

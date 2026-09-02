@@ -24,6 +24,9 @@ import {
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { SearchInput } from "../../components/common/SearchInput";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { Pagination } from "../../components/common/Pagination";
+import { SortableHeader } from "../../components/common/SortableHeader";
+import { useTableSort } from "../../hooks/useTableSort";
 import { DepartmentModal } from "./components/DepartmentModal";
 import { MapDesignationModal } from "./components/MapDesignationModal";
 import { AssignDesignationModal } from "./components/AssignDesignationModal";
@@ -135,6 +138,15 @@ export const DepartmentsPage: React.FC = () => {
     }
   };
 
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Reset page when search query changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
   // Filtered departments based on search query
   const filteredDepartments = useMemo(() => {
     if (!overview?.departments) return [];
@@ -148,6 +160,31 @@ export const DepartmentsPage: React.FC = () => {
         (d.designations && d.designations.some((des) => des.name.toLowerCase().includes(q)))
     );
   }, [overview, searchQuery]);
+
+  const { sortKey, sortDirection, handleSort, sortedData: sortedDepartments } = useTableSort<Department>({
+    data: filteredDepartments,
+    initialSortKey: "id",
+    initialDirection: "asc",
+    getSortValue: (dept, key) => {
+      switch (key) {
+        case "id":
+          return Number(dept.id);
+        case "name":
+          return (dept.name || "").toLowerCase();
+        case "designations":
+          return (dept.designations || []).length;
+        case "members":
+          return Number(dept.userCount || 0);
+        default:
+          return (dept as any)[key];
+      }
+    },
+  });
+
+  const paginatedDepartments = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedDepartments.slice(start, start + pageSize);
+  }, [sortedDepartments, page, pageSize]);
 
   const canCreate = can("departments.create") || can("departments.manage");
   const canEdit = can("departments.edit") || can("departments.manage");
@@ -717,21 +754,30 @@ export const DepartmentsPage: React.FC = () => {
               <table className="w-full text-left text-xs text-slate-600 dark:text-slate-300">
                 <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400">
                   <tr>
-                    <th className="px-6 py-4">#</th>
-                    <th className="px-6 py-4">Department</th>
-                    <th className="px-6 py-4">Mapped Designations</th>
-                    <th className="px-6 py-4">Members</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    <SortableHeader sortKey="id" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                      #
+                    </SortableHeader>
+                    <SortableHeader sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                      Department
+                    </SortableHeader>
+                    <SortableHeader sortKey="designations" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                      Mapped Designations
+                    </SortableHeader>
+                    <SortableHeader sortKey="members" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                      Members
+                    </SortableHeader>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {filteredDepartments.map((dept, index) => {
+                  {paginatedDepartments.map((dept, index) => {
                     const designations = dept.designations || [];
+                    const rowNum = (page - 1) * pageSize + index + 1;
 
                     return (
                       <tr key={dept.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40 transition-colors">
                         <td className="px-6 py-4 font-mono font-bold text-slate-900 dark:text-white">
-                          #{index + 1}
+                          #{rowNum}
                         </td>
                         <td className="px-6 py-4">
                           <div className="font-bold text-slate-900 dark:text-white">
@@ -809,6 +855,15 @@ export const DepartmentsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            <Pagination
+              currentPage={page}
+              totalItems={filteredDepartments.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         )}
 

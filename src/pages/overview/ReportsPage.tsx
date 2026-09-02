@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   Assessment,
   Search,
@@ -15,6 +15,9 @@ import {
   FormatListBulletedOutlined,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
+import { Pagination } from "../../components/common/Pagination";
+import { SortableHeader } from "../../components/common/SortableHeader";
+import { useTableSort } from "../../hooks/useTableSort";
 import { reportService } from "../../api/report.service";
 import { showConfirmDialog, showSuccessToast, showErrorToast } from "../../utils/alerts";
 import { CreateReportCategoryModal } from "./components/CreateReportCategoryModal";
@@ -71,6 +74,44 @@ export const ReportsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [viewMode, setViewMode] = useState<"card" | "column">("card");
+
+  // Pagination & Sorting
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  // Reset page when search or category filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [selectedCategory, searchTerm]);
+
+  const { sortKey, sortDirection, handleSort, sortedData: sortedReports } = useTableSort<Report>({
+    data: reports,
+    initialSortKey: "id",
+    initialDirection: "desc",
+    getSortValue: (r, key) => {
+      switch (key) {
+        case "id":
+          return Number(r.id);
+        case "title":
+          return (r.title || "").toLowerCase();
+        case "category":
+          return (r.category || "").toLowerCase();
+        case "format":
+          return (r.format || "").toLowerCase();
+        case "createdBy":
+          return (r.createdBy || "").toLowerCase();
+        case "createdAt":
+          return r.createdAt || "";
+        default:
+          return (r as any)[key];
+      }
+    },
+  });
+
+  const paginatedReports = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedReports.slice(start, start + pageSize);
+  }, [sortedReports, page, pageSize]);
 
   // Category Modal state
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState<boolean>(false);
@@ -509,61 +550,72 @@ export const ReportsPage: React.FC = () => {
           </div>
         ) : viewMode === "card" ? (
           /* CARD WISE VIEW */
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {reports.map((report) => (
-              <div
-                key={report.id}
-                className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 hover:shadow-md"
-              >
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${getCategoryBadge(report.category)}`}>
-                      {report.category}
-                    </span>
-                    <span className={`rounded-md px-2 py-0.5 text-[10px] font-mono font-bold ${getFormatBadge(report.format)}`}>
-                      {report.format} · {report.fileSize || "Ready"}
-                    </span>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {paginatedReports.map((report: Report) => (
+                <div
+                  key={report.id}
+                  className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 hover:shadow-md"
+                >
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${getCategoryBadge(report.category)}`}>
+                        {report.category}
+                      </span>
+                      <span className={`rounded-md px-2 py-0.5 text-[10px] font-mono font-bold ${getFormatBadge(report.format)}`}>
+                        {report.format} · {report.fileSize || "Ready"}
+                      </span>
+                    </div>
+
+                    <h3 className="text-sm font-bold text-slate-900 mt-3 leading-snug">{report.title}</h3>
+                    <p className="text-xs text-slate-500 mt-1.5 leading-relaxed line-clamp-3">{report.description}</p>
                   </div>
 
-                  <h3 className="text-sm font-bold text-slate-900 mt-3 leading-snug">{report.title}</h3>
-                  <p className="text-xs text-slate-500 mt-1.5 leading-relaxed line-clamp-3">{report.description}</p>
+                  <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                    <div className="flex flex-col text-[11px] text-slate-400">
+                      <span>By {report.createdBy || "System"}</span>
+                      {report.createdAt && <span className="text-[10px] text-slate-400">{formatDate(report.createdAt)}</span>}
+                    </div>
+
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(report)}
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer"
+                        title="Download Certified Export"
+                      >
+                        <DownloadOutlined sx={{ fontSize: 18 }} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(report)}
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
+                        title="Edit"
+                      >
+                        <EditOutlined sx={{ fontSize: 18 }} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(report.id)}
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
+                        title="Delete"
+                      >
+                        <DeleteOutline sx={{ fontSize: 18 }} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              ))}
+            </div>
 
-                <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
-                  <div className="flex flex-col text-[11px] text-slate-400">
-                    <span>By {report.createdBy || "System"}</span>
-                    {report.createdAt && <span className="text-[10px] text-slate-400">{formatDate(report.createdAt)}</span>}
-                  </div>
-
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleDownload(report)}
-                      className="rounded-lg p-1.5 text-slate-500 hover:bg-blue-50 hover:text-blue-600 transition-colors cursor-pointer"
-                      title="Download Certified Export"
-                    >
-                      <DownloadOutlined sx={{ fontSize: 18 }} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(report)}
-                      className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
-                      title="Edit"
-                    >
-                      <EditOutlined sx={{ fontSize: 18 }} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(report.id)}
-                      className="rounded-lg p-1.5 text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-colors cursor-pointer"
-                      title="Delete"
-                    >
-                      <DeleteOutline sx={{ fontSize: 18 }} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+            <Pagination
+              currentPage={page}
+              totalItems={reports.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+              className="rounded-2xl border border-slate-200 bg-white shadow-xs"
+            />
           </div>
         ) : (
           /* COLUMN WISE / TABLE VIEW */
@@ -572,15 +624,23 @@ export const ReportsPage: React.FC = () => {
               <table className="w-full text-left text-sm text-slate-600">
                 <thead className="border-b border-slate-200 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                   <tr>
-                    <th className="px-6 py-4">Report Details</th>
-                    <th className="px-6 py-4">Category</th>
-                    <th className="px-6 py-4">Format & Size</th>
-                    <th className="px-6 py-4">Generated By</th>
-                    <th className="px-6 py-4 text-right">Actions</th>
+                    <SortableHeader sortKey="title" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-6 py-4">
+                      Report Details
+                    </SortableHeader>
+                    <SortableHeader sortKey="category" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-6 py-4">
+                      Category
+                    </SortableHeader>
+                    <SortableHeader sortKey="format" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-6 py-4">
+                      Format & Size
+                    </SortableHeader>
+                    <SortableHeader sortKey="createdBy" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-6 py-4">
+                      Generated By
+                    </SortableHeader>
+                    <th className="px-6 py-4 text-right whitespace-nowrap">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {reports.map((report) => (
+                  {paginatedReports.map((report: Report) => (
                     <tr key={report.id} className="transition-colors hover:bg-slate-50/80">
                       <td className="px-6 py-4">
                         <div className="flex items-start gap-3">
@@ -654,6 +714,15 @@ export const ReportsPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+
+            {/* Pagination Controls */}
+            <Pagination
+              currentPage={page}
+              totalItems={reports.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           </div>
         )}
       </div>

@@ -26,6 +26,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { Pagination } from "../../components/common/Pagination";
+import { SortableHeader } from "../../components/common/SortableHeader";
+import { useTableSort } from "../../hooks/useTableSort";
 import { purchaseService } from "../../api/purchase.service";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog, showErrorAlert, showSuccessAlert } from "../../utils/alerts";
@@ -110,6 +113,44 @@ export const PurchasesPage: React.FC = () => {
   const [search, setSearch] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+
+  // Pagination & Sorting
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  // Reset page when search or filters change
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, categoryFilter]);
+
+  const { sortKey, sortDirection, handleSort, sortedData: sortedPurchases } = useTableSort<PurchaseDto>({
+    data: purchases,
+    initialSortKey: "itemName",
+    initialDirection: "asc",
+    getSortValue: (p, key) => {
+      switch (key) {
+        case "itemName":
+          return (p.itemName || "").toLowerCase();
+        case "employeeName":
+          return (p.employeeName || "").toLowerCase();
+        case "vendorName":
+          return (p.vendorName || "").toLowerCase();
+        case "quotationAmount":
+          return Number(p.quotationAmount || 0);
+        case "quotationDate":
+          return p.quotationDate || "";
+        case "status":
+          return (p.status || "").toLowerCase();
+        default:
+          return (p as any)[key];
+      }
+    },
+  });
+
+  const paginatedPurchases = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedPurchases.slice(start, start + pageSize);
+  }, [sortedPurchases, page, pageSize]);
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
@@ -717,17 +758,29 @@ export const PurchasesPage: React.FC = () => {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                    <th className="py-3 px-4">Product / Item Name</th>
-                    <th className="py-3 px-4">Employee & Dept</th>
-                    <th className="py-3 px-4">Vendor Details</th>
-                    <th className="py-3 px-4">Quotation Amount</th>
-                    <th className="py-3 px-4">Delivery & Terms</th>
-                    <th className="py-3 px-4">Status</th>
+                    <SortableHeader sortKey="itemName" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3 px-4">
+                      Product / Item Name
+                    </SortableHeader>
+                    <SortableHeader sortKey="employeeName" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3 px-4">
+                      Employee & Dept
+                    </SortableHeader>
+                    <SortableHeader sortKey="vendorName" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3 px-4">
+                      Vendor Details
+                    </SortableHeader>
+                    <SortableHeader sortKey="quotationAmount" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3 px-4">
+                      Quotation Amount
+                    </SortableHeader>
+                    <SortableHeader sortKey="quotationDate" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3 px-4">
+                      Delivery & Terms
+                    </SortableHeader>
+                    <SortableHeader sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="py-3 px-4">
+                      Status
+                    </SortableHeader>
                     <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-xs">
-                  {purchases.map((purchase) => {
+                  {paginatedPurchases.map((purchase) => {
                     const estAmount = purchase.estimatedAmount || 0;
                     const diff = estAmount > 0 ? purchase.quotationAmount - estAmount : 0;
                     const isSaving = diff < 0;
@@ -848,14 +901,14 @@ export const PurchasesPage: React.FC = () => {
                                   ? "text-emerald-600 dark:text-emerald-400"
                                   : diff === 0
                                     ? "text-slate-500"
-                                    : "text-rose-600 dark:text-rose-400"
+                                    : "text-amber-600 dark:text-amber-400"
                                   }`}
                               >
                                 {isSaving
-                                  ? `Save ₹${Math.abs(diff).toLocaleString()} vs est`
+                                  ? `Saving ₹${Math.abs(diff).toLocaleString()} vs est.`
                                   : diff === 0
-                                    ? "Exact Est Budget"
-                                    : `+₹${diff.toLocaleString()} over est`}
+                                    ? "Matches estimated"
+                                    : `+₹${diff.toLocaleString()} over est.`}
                               </p>
                             )}
                           </div>
@@ -863,40 +916,41 @@ export const PurchasesPage: React.FC = () => {
 
                         {/* Delivery & Terms */}
                         <td className="py-3.5 px-4">
-                          <div className="text-[11px]">
-                            <p className="font-medium text-slate-700 dark:text-slate-300">
-                              {purchase.deliveryTimeline || "3-5 Business Days"}
+                          <div>
+                            <p className="font-medium text-slate-800 dark:text-slate-200 flex items-center gap-1">
+                              <LocalShippingOutlined sx={{ fontSize: 13 }} />
+                              <span>{purchase.deliveryTimeline}</span>
                             </p>
-                            <p className="text-slate-400 dark:text-slate-500 mt-0.5">
-                              {purchase.paymentTerms || "Net 30"}
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                              {purchase.paymentTerms}
                             </p>
+                            {purchase.quotationDate && (
+                              <p className="text-[10px] text-slate-400 mt-0.5">
+                                Date: {purchase.quotationDate}
+                              </p>
+                            )}
                           </div>
                         </td>
 
-                        {/* Status Badge */}
+                        {/* Status */}
                         <td className="py-3.5 px-4">
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${getStatusBadge(
-                              purchase.status
-                            )}`}
-                          >
-                            {purchase.status}
-                          </span>
+                          <div>
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold ${getStatusBadge(
+                                purchase.status
+                              )}`}
+                            >
+                              {purchase.status === "Completed" && (
+                                <CheckCircle sx={{ fontSize: 12 }} />
+                              )}
+                              <span>{purchase.status}</span>
+                            </span>
+                          </div>
                         </td>
 
                         {/* Actions */}
                         <td className="py-3.5 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
-                            {hasMultipleVendors && (
-                              <button
-                                type="button"
-                                onClick={() => handleOpenCompareModal(purchase.approvalRequestId)}
-                                title="Compare All Vendor Quotes for this Item"
-                                className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                              >
-                                <CompareArrows sx={{ fontSize: 16 }} />
-                              </button>
-                            )}
                             <button
                               type="button"
                               onClick={() => handleOpenDetailModal(purchase)}
@@ -929,6 +983,17 @@ export const PurchasesPage: React.FC = () => {
                 </tbody>
               </table>
             </div>
+          )}
+
+          {/* Pagination Controls */}
+          {!loading && purchases.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalItems={purchases.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
           )}
         </div>
       </div>

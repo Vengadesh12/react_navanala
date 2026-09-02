@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   History,
   Search,
@@ -12,6 +12,9 @@ import {
   Close,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
+import { Pagination } from "../../components/common/Pagination";
+import { SortableHeader } from "../../components/common/SortableHeader";
+import { useTableSort } from "../../hooks/useTableSort";
 import { auditService } from "../../api/audit.service";
 import { showConfirmDialog, showSuccessToast, showErrorToast } from "../../utils/alerts";
 import type { AuditLog, AuditLogFormData } from "../../types";
@@ -22,6 +25,44 @@ export const AuditPage: React.FC = () => {
   const [stats, setStats] = useState({ totalEvents: 0, successfulLogins: 0, privilegeChanges: 0 });
   const [selectedModule, setSelectedModule] = useState<string>("ALL");
   const [searchTerm, setSearchTerm] = useState<string>("");
+
+  // Pagination & Sorting
+  const [page, setPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(10);
+
+  // Reset page when module or search changes
+  useEffect(() => {
+    setPage(1);
+  }, [selectedModule, searchTerm]);
+
+  const { sortKey, sortDirection, handleSort, sortedData: sortedLogs } = useTableSort<AuditLog>({
+    data: logs,
+    initialSortKey: "createdAt",
+    initialDirection: "desc",
+    getSortValue: (log, key) => {
+      switch (key) {
+        case "action":
+          return (log.action || "").toLowerCase();
+        case "module":
+          return (log.module || "").toLowerCase();
+        case "performedBy":
+          return (log.performedBy || "").toLowerCase();
+        case "status":
+          return (log.status || "").toLowerCase();
+        case "ipAddress":
+          return (log.ipAddress || "").toLowerCase();
+        case "createdAt":
+          return log.createdAt || "";
+        default:
+          return (log as any)[key];
+      }
+    },
+  });
+
+  const paginatedLogs = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedLogs.slice(start, start + pageSize);
+  }, [sortedLogs, page, pageSize]);
 
   // Modals state
   const [isCreateOpen, setIsCreateOpen] = useState<boolean>(false);
@@ -322,18 +363,30 @@ export const AuditPage: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-slate-100 bg-slate-50/60 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                  <th className="px-5 py-3.5">EVENT ACTION</th>
-                  <th className="px-5 py-3.5">MODULE</th>
-                  <th className="px-5 py-3.5">PERFORMED BY</th>
-                  <th className="px-5 py-3.5">STATUS</th>
-                  <th className="px-5 py-3.5">IP ADDRESS</th>
-                  <th className="px-5 py-3.5">TIMESTAMP</th>
+                  <SortableHeader sortKey="action" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                    EVENT ACTION
+                  </SortableHeader>
+                  <SortableHeader sortKey="module" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                    MODULE
+                  </SortableHeader>
+                  <SortableHeader sortKey="performedBy" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                    PERFORMED BY
+                  </SortableHeader>
+                  <SortableHeader sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                    STATUS
+                  </SortableHeader>
+                  <SortableHeader sortKey="ipAddress" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                    IP ADDRESS
+                  </SortableHeader>
+                  <SortableHeader sortKey="createdAt" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="px-5 py-3.5">
+                    TIMESTAMP
+                  </SortableHeader>
                   <th className="px-5 py-3.5 text-right">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {logs.length > 0 ? (
-                  logs.map((log) => (
+                {paginatedLogs.length > 0 ? (
+                  paginatedLogs.map((log: AuditLog) => (
                     <tr key={log.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-5 py-3.5 font-bold text-slate-900 max-w-[220px] truncate" title={log.action}>
                         {log.action}
@@ -379,6 +432,17 @@ export const AuditPage: React.FC = () => {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {!loading && logs.length > 0 && (
+            <Pagination
+              currentPage={page}
+              totalItems={logs.length}
+              pageSize={pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          )}
         </div>
       </div>
 

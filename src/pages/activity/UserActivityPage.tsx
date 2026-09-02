@@ -23,6 +23,9 @@ import {
   ShieldOutlined,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
+import { Pagination } from "../../components/common/Pagination";
+import { SortableHeader } from "../../components/common/SortableHeader";
+import { useTableSort } from "../../hooks/useTableSort";
 import { userActivityService } from "../../api/userActivity.service";
 import { useAuth } from "../../hooks/useAuth";
 import { getRoleMeta } from "../../config/workspace.config";
@@ -56,7 +59,7 @@ export const UserActivityPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [page, setPage] = useState<number>(1);
-  const [pageSize] = useState<number>(15);
+  const [pageSize, setPageSize] = useState<number>(15);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [pagedActivities, setPagedActivities] = useState<UserSessionItem[]>([]);
 
@@ -409,6 +412,82 @@ export const UserActivityPage: React.FC = () => {
       ].some((val) => val?.toLowerCase().includes(q))
     );
   }, [summary.activeSessions, q]);
+
+  // Active Sessions sorting & pagination
+  const [activePage, setActivePage] = useState<number>(1);
+  const [activePageSize, setActivePageSize] = useState<number>(10);
+
+  useEffect(() => {
+    setActivePage(1);
+  }, [searchTerm]);
+
+  const {
+    sortKey: activeSortKey,
+    sortDirection: activeSortDir,
+    handleSort: handleActiveSort,
+    sortedData: sortedActiveSessions,
+  } = useTableSort<UserSessionItem>({
+    data: filteredActiveSessions,
+    initialSortKey: "loginTime",
+    initialDirection: "desc",
+    getSortValue: (s, key) => {
+      switch (key) {
+        case "userName":
+          return (s.userName || "").toLowerCase();
+        case "roleName":
+          return (s.roleName || "").toLowerCase();
+        case "ipAddress":
+          return (s.ipAddress || "").toLowerCase();
+        case "device":
+          return `${s.browser || ""} ${s.os || ""}`.toLowerCase();
+        case "loginTime":
+          return s.loginTime || "";
+        case "duration":
+          return s.loginTime || "";
+        default:
+          return (s as any)[key];
+      }
+    },
+  });
+
+  const paginatedActiveSessions = useMemo(() => {
+    const start = (activePage - 1) * activePageSize;
+    return sortedActiveSessions.slice(start, start + activePageSize);
+  }, [sortedActiveSessions, activePage, activePageSize]);
+
+  // History Tab sorting
+  const {
+    sortKey: historySortKey,
+    sortDirection: historySortDir,
+    handleSort: handleHistorySort,
+    sortedData: sortedHistoryActivities,
+  } = useTableSort<UserSessionItem>({
+    data: pagedActivities,
+    initialSortKey: "loginTime",
+    initialDirection: "desc",
+    getSortValue: (s, key) => {
+      switch (key) {
+        case "userName":
+          return (s.userName || "").toLowerCase();
+        case "status":
+          return s.isActive && !s.logoutTime ? "active" : "logged out";
+        case "roleName":
+          return (s.roleName || "").toLowerCase();
+        case "ipAddress":
+          return (s.ipAddress || "").toLowerCase();
+        case "device":
+          return `${s.browser || ""} ${s.os || ""}`.toLowerCase();
+        case "loginTime":
+          return s.loginTime || "";
+        case "logoutTime":
+          return s.logoutTime || "";
+        case "duration":
+          return s.durationFormatted || "";
+        default:
+          return (s as any)[key];
+      }
+    },
+  });
 
   return (
     <WorkspaceLayout
@@ -853,17 +932,29 @@ export const UserActivityPage: React.FC = () => {
                   <table className="w-full text-left text-xs">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                        <th className="px-5 py-3.5 whitespace-nowrap">USER</th>
-                        <th className="px-5 py-3.5 whitespace-nowrap">ROLE</th>
-                        <th className="px-5 py-3.5 whitespace-nowrap">IP ADDRESS</th>
-                        <th className="px-5 py-3.5 whitespace-nowrap">CLIENT / DEVICE</th>
-                        <th className="px-5 py-3.5 whitespace-nowrap">LOGGED IN AT</th>
-                        <th className="px-5 py-3.5 whitespace-nowrap">DURATION</th>
+                        <SortableHeader sortKey="userName" currentSortKey={activeSortKey} currentSortDirection={activeSortDir} onSort={handleActiveSort} className="px-5 py-3.5 whitespace-nowrap">
+                          USER
+                        </SortableHeader>
+                        <SortableHeader sortKey="roleName" currentSortKey={activeSortKey} currentSortDirection={activeSortDir} onSort={handleActiveSort} className="px-5 py-3.5 whitespace-nowrap">
+                          ROLE
+                        </SortableHeader>
+                        <SortableHeader sortKey="ipAddress" currentSortKey={activeSortKey} currentSortDirection={activeSortDir} onSort={handleActiveSort} className="px-5 py-3.5 whitespace-nowrap">
+                          IP ADDRESS
+                        </SortableHeader>
+                        <SortableHeader sortKey="device" currentSortKey={activeSortKey} currentSortDirection={activeSortDir} onSort={handleActiveSort} className="px-5 py-3.5 whitespace-nowrap">
+                          CLIENT / DEVICE
+                        </SortableHeader>
+                        <SortableHeader sortKey="loginTime" currentSortKey={activeSortKey} currentSortDirection={activeSortDir} onSort={handleActiveSort} className="px-5 py-3.5 whitespace-nowrap">
+                          LOGGED IN AT
+                        </SortableHeader>
+                        <SortableHeader sortKey="duration" currentSortKey={activeSortKey} currentSortDirection={activeSortDir} onSort={handleActiveSort} className="px-5 py-3.5 whitespace-nowrap">
+                          DURATION
+                        </SortableHeader>
                         <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTIONS</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {filteredActiveSessions.map((session: UserSessionItem) => {
+                      {paginatedActiveSessions.map((session: UserSessionItem) => {
                         const roleMeta = getRoleMeta(undefined, session.roleName);
                         const isCurrentSelf =
                           currentUser?.id === session.userId ||
@@ -929,6 +1020,17 @@ export const UserActivityPage: React.FC = () => {
                     </tbody>
                   </table>
                 </div>
+
+                {/* Pagination for Active Sessions */}
+                {filteredActiveSessions.length > 0 && (
+                  <Pagination
+                    currentPage={activePage}
+                    totalItems={filteredActiveSessions.length}
+                    pageSize={activePageSize}
+                    onPageChange={setActivePage}
+                    onPageSizeChange={setActivePageSize}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -942,20 +1044,36 @@ export const UserActivityPage: React.FC = () => {
                 <table className="w-full text-left text-xs">
                   <thead>
                     <tr className="border-b border-slate-100 bg-slate-50/70 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                      <th className="px-5 py-3.5 whitespace-nowrap">USER</th>
-                      <th className="px-5 py-3.5 whitespace-nowrap">EVENT STATUS</th>
-                      <th className="px-5 py-3.5 whitespace-nowrap">ROLE</th>
-                      <th className="px-5 py-3.5 whitespace-nowrap">IP ADDRESS</th>
-                      <th className="px-5 py-3.5 whitespace-nowrap">DEVICE / BROWSER</th>
-                      <th className="px-5 py-3.5 whitespace-nowrap">LOGIN TIME</th>
-                      <th className="px-5 py-3.5 whitespace-nowrap">LOGOUT TIME</th>
-                      <th className="px-5 py-3.5 whitespace-nowrap">DURATION</th>
+                      <SortableHeader sortKey="userName" currentSortKey={historySortKey} currentSortDirection={historySortDir} onSort={handleHistorySort} className="px-5 py-3.5 whitespace-nowrap">
+                        USER
+                      </SortableHeader>
+                      <SortableHeader sortKey="status" currentSortKey={historySortKey} currentSortDirection={historySortDir} onSort={handleHistorySort} className="px-5 py-3.5 whitespace-nowrap">
+                        EVENT STATUS
+                      </SortableHeader>
+                      <SortableHeader sortKey="roleName" currentSortKey={historySortKey} currentSortDirection={historySortDir} onSort={handleHistorySort} className="px-5 py-3.5 whitespace-nowrap">
+                        ROLE
+                      </SortableHeader>
+                      <SortableHeader sortKey="ipAddress" currentSortKey={historySortKey} currentSortDirection={historySortDir} onSort={handleHistorySort} className="px-5 py-3.5 whitespace-nowrap">
+                        IP ADDRESS
+                      </SortableHeader>
+                      <SortableHeader sortKey="device" currentSortKey={historySortKey} currentSortDirection={historySortDir} onSort={handleHistorySort} className="px-5 py-3.5 whitespace-nowrap">
+                        DEVICE / BROWSER
+                      </SortableHeader>
+                      <SortableHeader sortKey="loginTime" currentSortKey={historySortKey} currentSortDirection={historySortDir} onSort={handleHistorySort} className="px-5 py-3.5 whitespace-nowrap">
+                        LOGIN TIME
+                      </SortableHeader>
+                      <SortableHeader sortKey="logoutTime" currentSortKey={historySortKey} currentSortDirection={historySortDir} onSort={handleHistorySort} className="px-5 py-3.5 whitespace-nowrap">
+                        LOGOUT TIME
+                      </SortableHeader>
+                      <SortableHeader sortKey="duration" currentSortKey={historySortKey} currentSortDirection={historySortDir} onSort={handleHistorySort} className="px-5 py-3.5 whitespace-nowrap">
+                        DURATION
+                      </SortableHeader>
                       <th className="px-5 py-3.5 text-right whitespace-nowrap">ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {pagedActivities.length > 0 ? (
-                      pagedActivities.map((session) => {
+                    {sortedHistoryActivities.length > 0 ? (
+                      sortedHistoryActivities.map((session) => {
                         const roleMeta = getRoleMeta(undefined, session.roleName);
                         const isLive = session.isActive && !session.logoutTime;
 
@@ -1063,36 +1181,17 @@ export const UserActivityPage: React.FC = () => {
               </div>
 
               {/* Pagination controls */}
-              {totalCount > pageSize && (
-                <div className="flex items-center justify-between px-5 py-3.5 border-t border-slate-100 bg-slate-50/50">
-                  <span className="text-xs text-slate-500">
-                    Showing <span className="font-semibold text-slate-800">{(page - 1) * pageSize + 1}</span> to{" "}
-                    <span className="font-semibold text-slate-800">{Math.min(page * pageSize, totalCount)}</span> of{" "}
-                    <span className="font-semibold text-slate-800">{totalCount}</span> records
-                  </span>
-
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      disabled={page <= 1}
-                      onClick={() => setPage(page - 1)}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
-                    >
-                      Previous
-                    </button>
-                    <span className="text-xs font-medium text-slate-600">
-                      Page {page} of {totalPages}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={page >= totalPages}
-                      onClick={() => setPage(page + 1)}
-                      className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 cursor-pointer"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
+              {totalCount > 0 && (
+                <Pagination
+                  currentPage={page}
+                  totalItems={totalCount}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={(newSize) => {
+                    setPageSize(newSize);
+                    setPage(1);
+                  }}
+                />
               )}
             </div>
           </div>

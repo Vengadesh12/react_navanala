@@ -22,6 +22,9 @@ import { MetricCard } from "../../components/common/MetricCard";
 import { SearchInput } from "../../components/common/SearchInput";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { EmptyState } from "../../components/common/EmptyState";
+import { Pagination } from "../../components/common/Pagination";
+import { SortableHeader } from "../../components/common/SortableHeader";
+import { useTableSort } from "../../hooks/useTableSort";
 import { UserModal } from "./components/UserModal";
 import { CreateDesignationModal } from "./components/CreateDesignationModal";
 import { userService } from "../../api/user.service";
@@ -53,12 +56,21 @@ export const UsersPage: React.FC = () => {
   const [roleFilter, setRoleFilter] = useState(() => searchParams.get("role") || "ALL");
   const [statusFilter, setStatusFilter] = useState<UserStatusFilter>("ALL");
 
+  // Pagination & Sorting State
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   useEffect(() => {
     const roleParam = searchParams.get("role");
     if (roleParam) {
       setRoleFilter(roleParam);
     }
   }, [searchParams]);
+
+  // Reset to page 1 on filter or search changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery, roleFilter, statusFilter]);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [designationModalOpen, setDesignationModalOpen] = useState(false);
@@ -170,6 +182,48 @@ export const UsersPage: React.FC = () => {
       return matchesSearch && matchesRole && matchesStatus;
     });
   }, [users, roles, designations, searchQuery, roleFilter, statusFilter, activeUserIds]);
+
+  const { sortKey, sortDirection, handleSort, sortedData: sortedUsers } = useTableSort<User>({
+    data: filteredUsers,
+    initialSortKey: "id",
+    initialDirection: "asc",
+    getSortValue: (u, key) => {
+      const userId = Number(u.id ?? u.Id);
+      const userRoleId = u.roleId ?? u.RoleId;
+      const userRole = roles.find((r) => String(r.id) === String(userRoleId));
+      const roleName = userRole?.name || "";
+
+      const userDesId = u.designationId ?? u.DesignationId;
+      const userDes = designations.find((d) => String(d.id ?? d.Id) === String(userDesId));
+      const designationName = u.designationName ?? u.DesignationName ?? userDes?.name ?? "";
+
+      switch (key) {
+        case "id":
+          return userId;
+        case "name":
+          return (u.name || u.Name || "").toLowerCase();
+        case "role":
+          return roleName.toLowerCase();
+        case "designation":
+          return designationName.toLowerCase();
+        case "phone":
+          return u.phone || u.Phone || "";
+        case "age":
+          return Number(u.age ?? u.Age ?? 0);
+        case "address":
+          return (u.address || u.Address || "").toLowerCase();
+        case "status":
+          return isUserActive(u) ? 1 : 0;
+        default:
+          return (u as any)[key];
+      }
+    },
+  });
+
+  const paginatedUsers = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return sortedUsers.slice(start, start + pageSize);
+  }, [sortedUsers, page, pageSize]);
 
   const openAddModal = () => {
     setEditingUser(null);
@@ -483,19 +537,35 @@ export const UsersPage: React.FC = () => {
                 <table className="w-full text-left text-sm text-slate-600">
                   <thead className="border-b border-slate-200 bg-slate-50/80 text-xs font-bold uppercase tracking-wider text-slate-500">
                     <tr>
-                      <th className="px-6 py-4 whitespace-nowrap">#</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Member</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Role</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Designation</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Contact</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Age</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Address</th>
-                      <th className="px-6 py-4 whitespace-nowrap">Status</th>
+                      <SortableHeader sortKey="id" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                        #
+                      </SortableHeader>
+                      <SortableHeader sortKey="name" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                        Member
+                      </SortableHeader>
+                      <SortableHeader sortKey="role" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                        Role
+                      </SortableHeader>
+                      <SortableHeader sortKey="designation" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                        Designation
+                      </SortableHeader>
+                      <SortableHeader sortKey="phone" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                        Contact
+                      </SortableHeader>
+                      <SortableHeader sortKey="age" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                        Age
+                      </SortableHeader>
+                      <SortableHeader sortKey="address" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                        Address
+                      </SortableHeader>
+                      <SortableHeader sortKey="status" currentSortKey={sortKey} currentSortDirection={sortDirection} onSort={handleSort} className="whitespace-nowrap">
+                        Status
+                      </SortableHeader>
                       <th className="px-6 py-4 text-right whitespace-nowrap">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filteredUsers.map((u, idx) => {
+                    {paginatedUsers.map((u, idx) => {
                       const userId = Number(u.id ?? u.Id);
                       const userRoleId = u.roleId ?? u.RoleId;
                       const role = roles.find((r) => String(r.id) === String(userRoleId));
@@ -513,11 +583,12 @@ export const UsersPage: React.FC = () => {
                       const initial = userName.charAt(0).toUpperCase();
                       const isActive = isUserActive(u);
                       const isOnline = activeUserIds.has(userId);
+                      const rowNumber = (page - 1) * pageSize + idx + 1;
 
                       return (
                         <tr key={u.id ?? u.Id ?? idx} className="transition-colors hover:bg-slate-50/80">
                           <td className="px-6 py-4 font-mono text-xs text-slate-400 whitespace-nowrap">
-                            {String(idx + 1).padStart(2, "0")}
+                            {String(rowNumber).padStart(2, "0")}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center gap-3">
@@ -633,6 +704,17 @@ export const UsersPage: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+            )}
+
+            {/* Pagination Controls */}
+            {!loading && !usersError && filteredUsers.length > 0 && (
+              <Pagination
+                currentPage={page}
+                totalItems={filteredUsers.length}
+                pageSize={pageSize}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
+              />
             )}
           </div>
         )}
