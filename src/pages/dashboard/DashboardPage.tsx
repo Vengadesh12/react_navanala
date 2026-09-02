@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   MoreVert,
   North,
@@ -39,6 +39,7 @@ export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { setDarkMode } = useTheme();
   const location = useLocation();
+  const navigate = useNavigate();
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
   const [timeframe, setTimeframe] = useState<"7d" | "30d" | "90d">("7d");
   const [timeframeDropdownOpen, setTimeframeDropdownOpen] = useState<boolean>(false);
@@ -1294,7 +1295,11 @@ export const DashboardPage: React.FC = () => {
           >
             {/* Card 1: Total Users (Radiant Purple & Fuchsia) */}
             {matchTotalUsers && (
-              <div className="group relative overflow-hidden rounded-2xl border border-purple-200/80 dark:border-purple-800/60 bg-gradient-to-br from-purple-500/15 via-fuchsia-500/5 to-white dark:from-purple-950/40 dark:via-fuchsia-950/20 dark:to-slate-900 p-5 shadow-sm transition-all hover:shadow-lg hover:shadow-purple-500/10 hover:border-purple-400 dark:hover:border-purple-600">
+              <Link
+                to="/users"
+                title="View Total Users Directory"
+                className="group relative block cursor-pointer select-none overflow-hidden rounded-2xl border border-purple-200/80 dark:border-purple-800/60 bg-gradient-to-br from-purple-500/15 via-fuchsia-500/5 to-white dark:from-purple-950/40 dark:via-fuchsia-950/20 dark:to-slate-900 p-5 shadow-sm transition-all duration-200 hover:shadow-xl hover:shadow-purple-500/15 hover:border-purple-400 dark:hover:border-purple-600 hover:-translate-y-1 active:scale-[0.99]"
+              >
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <span className="inline-flex items-center gap-1 rounded-md bg-purple-100/90 dark:bg-purple-950/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
@@ -1313,14 +1318,15 @@ export const DashboardPage: React.FC = () => {
                       {summary?.kpis.activeUsers ?? 0} active members
                     </p>
                   </div>
-                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-purple-600 via-fuchsia-600 to-pink-500 text-white shadow-lg shadow-purple-500/35 ring-4 ring-purple-500/20 group-hover:scale-105 transition-transform">
+                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-purple-600 via-fuchsia-600 to-pink-500 text-white shadow-lg shadow-purple-500/35 ring-4 ring-purple-500/20 group-hover:scale-110 transition-transform">
                     <PersonOutline sx={{ fontSize: 26 }} />
                   </div>
                 </div>
                 {/* Mini Sparkline Purple */}
                 <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-purple-100/80 dark:border-purple-900/50">
-                  <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300">
-                    30-day user growth
+                  <span className="text-[10px] font-semibold text-purple-700 dark:text-purple-300 inline-flex items-center gap-1 group-hover:underline">
+                    <span>30-day user growth</span>
+                    <ArrowForward sx={{ fontSize: 12 }} className="transition-transform duration-200 group-hover:translate-x-1" />
                   </span>
                   <svg className="h-5 w-20 overflow-visible" viewBox="0 0 80 24" fill="none">
                     <path
@@ -1331,12 +1337,16 @@ export const DashboardPage: React.FC = () => {
                     />
                   </svg>
                 </div>
-              </div>
+              </Link>
             )}
 
             {/* Card 2: Total Roles (Electric Blue & Cyan) */}
             {matchTotalRoles && (
-              <div className="group relative overflow-hidden rounded-2xl border border-blue-200/80 dark:border-blue-800/60 bg-gradient-to-br from-blue-500/15 via-cyan-500/5 to-white dark:from-blue-950/40 dark:via-cyan-950/20 dark:to-slate-900 p-5 shadow-sm transition-all hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-400 dark:hover:border-blue-600">
+              <Link
+                to="/roles"
+                title="View and Manage Roles"
+                className="group relative block cursor-pointer select-none overflow-hidden rounded-2xl border border-blue-200/80 dark:border-blue-800/60 bg-gradient-to-br from-blue-500/15 via-cyan-500/5 to-white dark:from-blue-950/40 dark:via-cyan-950/20 dark:to-slate-900 p-5 shadow-sm transition-all duration-200 hover:shadow-xl hover:shadow-blue-500/15 hover:border-blue-400 dark:hover:border-blue-600 hover:-translate-y-1 active:scale-[0.99]"
+              >
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <span className="inline-flex items-center gap-1 rounded-md bg-blue-100/90 dark:bg-blue-950/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
@@ -1353,14 +1363,15 @@ export const DashboardPage: React.FC = () => {
                     </div>
                     <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">RBAC role matrix</p>
                   </div>
-                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white shadow-lg shadow-blue-500/35 ring-4 ring-blue-500/20 group-hover:scale-105 transition-transform">
+                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white shadow-lg shadow-blue-500/35 ring-4 ring-blue-500/20 group-hover:scale-110 transition-transform">
                     <ShieldOutlined sx={{ fontSize: 26 }} />
                   </div>
                 </div>
                 {/* Mini Sparkline Blue */}
                 <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-blue-100/80 dark:border-blue-900/50">
-                  <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300">
-                    Configured hierarchies
+                  <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 inline-flex items-center gap-1 group-hover:underline">
+                    <span>Configured hierarchies</span>
+                    <ArrowForward sx={{ fontSize: 12 }} className="transition-transform duration-200 group-hover:translate-x-1" />
                   </span>
                   <svg className="h-5 w-20 overflow-visible" viewBox="0 0 80 24" fill="none">
                     <path
@@ -1371,12 +1382,16 @@ export const DashboardPage: React.FC = () => {
                     />
                   </svg>
                 </div>
-              </div>
+              </Link>
             )}
 
             {/* Card 3: Permissions (Vibrant Emerald & Mint) */}
             {matchPermissions && (
-              <div className="group relative overflow-hidden rounded-2xl border border-emerald-200/80 dark:border-emerald-800/60 bg-gradient-to-br from-emerald-500/15 via-teal-500/5 to-white dark:from-emerald-950/40 dark:via-teal-950/20 dark:to-slate-900 p-5 shadow-sm transition-all hover:shadow-lg hover:shadow-emerald-500/10 hover:border-emerald-400 dark:hover:border-emerald-600">
+              <Link
+                to="/permissions"
+                title="View Granular Permissions Matrix"
+                className="group relative block cursor-pointer select-none overflow-hidden rounded-2xl border border-emerald-200/80 dark:border-emerald-800/60 bg-gradient-to-br from-emerald-500/15 via-teal-500/5 to-white dark:from-emerald-950/40 dark:via-teal-950/20 dark:to-slate-900 p-5 shadow-sm transition-all duration-200 hover:shadow-xl hover:shadow-emerald-500/15 hover:border-emerald-400 dark:hover:border-emerald-600 hover:-translate-y-1 active:scale-[0.99]"
+              >
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <span className="inline-flex items-center gap-1 rounded-md bg-emerald-100/90 dark:bg-emerald-950/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
@@ -1393,14 +1408,15 @@ export const DashboardPage: React.FC = () => {
                     </div>
                     <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Granular access keys</p>
                   </div>
-                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-green-500 text-white shadow-lg shadow-emerald-500/35 ring-4 ring-emerald-500/20 group-hover:scale-105 transition-transform">
+                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-600 to-green-500 text-white shadow-lg shadow-emerald-500/35 ring-4 ring-emerald-500/20 group-hover:scale-110 transition-transform">
                     <KeyOutlined sx={{ fontSize: 26 }} />
                   </div>
                 </div>
                 {/* Mini Sparkline Emerald */}
                 <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-emerald-100/80 dark:border-emerald-900/50">
-                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
-                    Active privilege matrix
+                  <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 inline-flex items-center gap-1 group-hover:underline">
+                    <span>Active privilege matrix</span>
+                    <ArrowForward sx={{ fontSize: 12 }} className="transition-transform duration-200 group-hover:translate-x-1" />
                   </span>
                   <svg className="h-5 w-20 overflow-visible" viewBox="0 0 80 24" fill="none">
                     <path
@@ -1411,12 +1427,16 @@ export const DashboardPage: React.FC = () => {
                     />
                   </svg>
                 </div>
-              </div>
+              </Link>
             )}
 
             {/* Card 4: Active Sessions (Radiant Amber & Sunset Orange) */}
             {matchActiveSessions && (
-              <div className="group relative overflow-hidden rounded-2xl border border-amber-200/80 dark:border-amber-800/60 bg-gradient-to-br from-amber-500/15 via-orange-500/5 to-white dark:from-amber-950/40 dark:via-orange-950/20 dark:to-slate-900 p-5 shadow-sm transition-all hover:shadow-lg hover:shadow-amber-500/10 hover:border-amber-400 dark:hover:border-amber-600">
+              <Link
+                to="/user-activity"
+                title="View Real-Time Active Sessions & Activity"
+                className="group relative block cursor-pointer select-none overflow-hidden rounded-2xl border border-amber-200/80 dark:border-amber-800/60 bg-gradient-to-br from-amber-500/15 via-orange-500/5 to-white dark:from-amber-950/40 dark:via-orange-950/20 dark:to-slate-900 p-5 shadow-sm transition-all duration-200 hover:shadow-xl hover:shadow-amber-500/15 hover:border-amber-400 dark:hover:border-amber-600 hover:-translate-y-1 active:scale-[0.99]"
+              >
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <span className="inline-flex items-center gap-1 rounded-md bg-amber-100/90 dark:bg-amber-950/80 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
@@ -1433,14 +1453,15 @@ export const DashboardPage: React.FC = () => {
                     </div>
                     <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Live JWT authenticated</p>
                   </div>
-                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 text-white shadow-lg shadow-amber-500/35 ring-4 ring-amber-500/20 group-hover:scale-105 transition-transform">
+                  <div className="grid h-13 w-13 shrink-0 place-items-center rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 text-white shadow-lg shadow-amber-500/35 ring-4 ring-amber-500/20 group-hover:scale-110 transition-transform">
                     <AssignmentOutlined sx={{ fontSize: 26 }} />
                   </div>
                 </div>
                 {/* Mini Sparkline Amber */}
                 <div className="mt-3.5 flex items-center justify-between pt-2.5 border-t border-amber-100/80 dark:border-amber-900/50">
-                  <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300">
-                    Real-time concurrency
+                  <span className="text-[10px] font-semibold text-amber-700 dark:text-amber-300 inline-flex items-center gap-1 group-hover:underline">
+                    <span>Real-time concurrency</span>
+                    <ArrowForward sx={{ fontSize: 12 }} className="transition-transform duration-200 group-hover:translate-x-1" />
                   </span>
                   <svg className="h-5 w-20 overflow-visible" viewBox="0 0 80 24" fill="none">
                     <path
@@ -1451,7 +1472,7 @@ export const DashboardPage: React.FC = () => {
                     />
                   </svg>
                 </div>
-              </div>
+              </Link>
             )}
           </div>
         )}
@@ -1472,9 +1493,14 @@ export const DashboardPage: React.FC = () => {
                   <div className="flex flex-wrap items-center gap-3 sm:gap-6">
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                          Users & Audit Overview
-                        </h3>
+                        <Link
+                          to="/audit"
+                          className="group/hdr flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100 hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                          title="Explore full audit trail & user events"
+                        >
+                          <span>Users & Audit Overview</span>
+                          <ArrowForward sx={{ fontSize: 14 }} className="opacity-0 -translate-x-1 group-hover/hdr:opacity-100 group-hover/hdr:translate-x-0 transition-all text-purple-600 dark:text-purple-400" />
+                        </Link>
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-slate-400">
                         Active logins, registrations & audit activity trail
@@ -1619,11 +1645,19 @@ export const DashboardPage: React.FC = () => {
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Users by Role</h3>
+                    <Link
+                      to="/roles"
+                      className="group/rolehdr flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                      title="Manage roles and role assignments"
+                    >
+                      <span>Users by Role</span>
+                      <ArrowForward sx={{ fontSize: 14 }} className="opacity-0 -translate-x-1 group-hover/rolehdr:opacity-100 group-hover/rolehdr:translate-x-0 transition-all text-blue-600 dark:text-blue-400" />
+                    </Link>
                     <Link
                       to="/roles"
                       className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                       aria-label="View all roles"
+                      title="View all roles"
                     >
                       <MoreVert sx={{ fontSize: 18 }} />
                     </Link>
@@ -1661,44 +1695,53 @@ export const DashboardPage: React.FC = () => {
                         ))}
                       </svg>
 
-                      {/* Center Text inside Donut */}
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 leading-none">
+                      {/* Center Text inside Donut - Clickable to /roles */}
+                      <Link
+                        to="/roles"
+                        className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer group/donut transition-transform hover:scale-105"
+                        title="View roles matrix"
+                      >
+                        <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 leading-none group-hover/donut:text-blue-600 dark:group-hover/donut:text-blue-400 transition-colors">
                           {summary?.kpis.activeUsers ?? summary?.kpis.totalUsers ?? 0}
                         </span>
-                        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">
+                        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-0.5 group-hover/donut:underline">
                           Active Users
                         </span>
-                      </div>
+                      </Link>
                     </div>
 
                     {/* Roles Breakdown Legend from Database */}
                     <div className="flex-1 space-y-2.5 w-full">
                       {summary?.roleDistribution && summary.roleDistribution.length > 0 ? (
                         summary.roleDistribution.map((item) => (
-                          <div
+                          <Link
                             key={item.name + item.roleId}
-                            className="flex items-center justify-between text-xs"
+                            to="/roles"
+                            className="flex items-center justify-between text-xs p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-colors cursor-pointer group"
+                            title={`Configure ${item.name} role`}
                           >
                             <div className="flex items-center gap-2">
                               <span
-                                className="h-2.5 w-2.5 rounded-full shrink-0"
+                                className="h-2.5 w-2.5 rounded-full shrink-0 group-hover:scale-125 transition-transform"
                                 style={{ backgroundColor: item.color }}
                               />
                               <span
-                                className="font-medium text-slate-700 dark:text-slate-300 truncate max-w-[110px]"
+                                className="font-medium text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate max-w-[110px]"
                                 title={item.name}
                               >
                                 {item.name}
                               </span>
                             </div>
-                            <span className="font-semibold text-slate-800 dark:text-slate-200 shrink-0">
-                              {item.count}{" "}
-                              <span className="font-normal text-slate-400 dark:text-slate-500">
-                                ({item.percentage})
+                            <span className="font-semibold text-slate-800 dark:text-slate-200 shrink-0 flex items-center gap-1">
+                              <span>
+                                {item.count}{" "}
+                                <span className="font-normal text-slate-400 dark:text-slate-500">
+                                  ({item.percentage})
+                                </span>
                               </span>
+                              <ArrowForward sx={{ fontSize: 11 }} className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-blue-600 dark:text-blue-400" />
                             </span>
-                          </div>
+                          </Link>
                         ))
                       ) : (
                         <div className="text-xs text-slate-400 dark:text-slate-500 py-4 text-center">
@@ -1707,6 +1750,16 @@ export const DashboardPage: React.FC = () => {
                       )}
                     </div>
                   </div>
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <Link
+                    to="/roles"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 transition-colors"
+                  >
+                    <span>Manage role hierarchies</span>
+                    <ArrowForward sx={{ fontSize: 14 }} />
+                  </Link>
                 </div>
               </div>
             )}
@@ -1725,7 +1778,14 @@ export const DashboardPage: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Recent Users</h3>
+                      <Link
+                        to="/users"
+                        className="group/usershdr flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        title="View all users in directory"
+                      >
+                        <span>Recent Users</span>
+                        <ArrowForward sx={{ fontSize: 14 }} className="opacity-0 -translate-x-1 group-hover/usershdr:opacity-100 group-hover/usershdr:translate-x-0 transition-all text-blue-600 dark:text-blue-400" />
+                      </Link>
                       <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300">
                         {q && !isRecentUsersCardExplicit
                           ? `${filteredRecentUsers.length} matched`
@@ -1764,17 +1824,19 @@ export const DashboardPage: React.FC = () => {
                           paginatedRecentUsers.map((userItem) => (
                             <tr
                               key={userItem.id}
-                              className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition-colors"
+                              onClick={() => navigate("/users")}
+                              className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors cursor-pointer group/row"
+                              title={`View ${userItem.name} in Users directory`}
                             >
                               <td className="py-3">
                                 <div className="flex items-center gap-3">
                                   <img
                                     src={userItem.avatar}
                                     alt={userItem.name}
-                                    className="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700"
+                                    className="h-8 w-8 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 group-hover/row:ring-blue-500 transition-all"
                                   />
                                   <div>
-                                    <span className="block font-bold text-slate-900 dark:text-slate-100 leading-tight">
+                                    <span className="block font-bold text-slate-900 dark:text-slate-100 leading-tight group-hover/row:text-blue-600 dark:group-hover/row:text-blue-400 transition-colors">
                                       {userItem.name}
                                     </span>
                                     <span className="block text-[11px] text-slate-400 dark:text-slate-500 leading-tight">
@@ -1824,6 +1886,7 @@ export const DashboardPage: React.FC = () => {
                                   to="/users"
                                   className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
                                   aria-label="User actions"
+                                  onClick={(e) => e.stopPropagation()}
                                 >
                                   <MoreVert sx={{ fontSize: 18 }} />
                                 </Link>
@@ -1878,7 +1941,14 @@ export const DashboardPage: React.FC = () => {
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Recent Activity</h3>
+                      <Link
+                        to="/audit"
+                        className="group/acthdr flex items-center gap-1.5 text-sm font-bold text-slate-900 dark:text-slate-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        title="View full audit logs"
+                      >
+                        <span>Recent Activity</span>
+                        <ArrowForward sx={{ fontSize: 14 }} className="opacity-0 -translate-x-1 group-hover/acthdr:opacity-100 group-hover/acthdr:translate-x-0 transition-all text-blue-600 dark:text-blue-400" />
+                      </Link>
                       <span className="rounded-full bg-indigo-50 dark:bg-indigo-950 px-2 py-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
                         {q && !isRecentActivityCardExplicit
                           ? `${filteredRecentActivities.length} matched`
@@ -1898,16 +1968,18 @@ export const DashboardPage: React.FC = () => {
                       filteredRecentActivities.map((act) => (
                         <div
                           key={act.id}
-                          className="flex items-center justify-between gap-3 p-1.5 hover:bg-slate-50/70 dark:hover:bg-slate-800/50 rounded-xl transition-colors"
+                          onClick={() => navigate("/audit")}
+                          className="flex items-center justify-between gap-3 p-1.5 hover:bg-slate-50/80 dark:hover:bg-slate-800/60 rounded-xl transition-colors cursor-pointer group"
+                          title="View in audit trail"
                         >
                           <div className="flex items-center gap-3">
                             <div
-                              className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${act.iconBg}`}
+                              className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${act.iconBg} group-hover:scale-105 transition-transform`}
                             >
                               {getActivityIcon(act.type)}
                             </div>
                             <div>
-                              <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug">
+                              <p className="text-xs text-slate-700 dark:text-slate-300 leading-snug group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                                 {act.title}
                               </p>
                               <span className="text-[11px] text-slate-400 dark:text-slate-500">
@@ -1915,8 +1987,9 @@ export const DashboardPage: React.FC = () => {
                               </span>
                             </div>
                           </div>
-                          <span className="shrink-0 text-xs font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap">
-                            {act.time}
+                          <span className="shrink-0 text-xs font-medium text-slate-400 dark:text-slate-500 whitespace-nowrap flex items-center gap-1">
+                            <span>{act.time}</span>
+                            <ArrowForward sx={{ fontSize: 12 }} className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-indigo-600 dark:text-indigo-400" />
                           </span>
                         </div>
                       ))

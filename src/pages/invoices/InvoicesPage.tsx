@@ -652,6 +652,17 @@ export const InvoicesPage: React.FC = () => {
                             <VisibilityOutlined sx={{ fontSize: 18 }} />
                           </button>
 
+                          {/* {(can("invoices.edit") || can("invoices.manage")) && (
+                            <button
+                              type="button"
+                              title="Edit Invoice"
+                              onClick={() => openEditModal(inv)}
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                            >
+                              <EditOutlined sx={{ fontSize: 18 }} />
+                            </button>
+                          )} */}
+
                           <button
                             type="button"
                             title="Print Invoice Bill"
