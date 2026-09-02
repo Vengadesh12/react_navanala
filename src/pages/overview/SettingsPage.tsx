@@ -132,18 +132,22 @@ export const SettingsPage: React.FC = () => {
     fetchCategories();
   }, [fetchSettings, fetchCategories]);
 
-  // Handle single toggle ON / OFF with instant database persistence
+  // Handle single toggle ON / OFF with instant database persistence (except browser-only dark theme)
   const handleToggle = async (key: string, label: string) => {
-    const isCurrentlyOn = key === "dark_mode_enabled" ? isDarkMode : formValues[key] === "true";
+    if (key === "dark_mode_enabled") {
+      const nextIsOn = !isDarkMode;
+      setDarkMode(nextIsOn);
+      setFormValues((prev) => ({ ...prev, [key]: nextIsOn ? "true" : "false" }));
+      showSuccessToast(`${label} ${nextIsOn ? "enabled" : "disabled"}`);
+      return;
+    }
+
+    const isCurrentlyOn = formValues[key] === "true";
     const nextIsOn = !isCurrentlyOn;
     const nextValue = nextIsOn ? "true" : "false";
 
     // Instant optimistic UI update
     setFormValues((prev) => ({ ...prev, [key]: nextValue }));
-
-    if (key === "dark_mode_enabled") {
-      setDarkMode(nextIsOn);
-    }
 
     try {
       await settingService.updateSettingsBulk({ [key]: nextValue });
@@ -151,9 +155,6 @@ export const SettingsPage: React.FC = () => {
     } catch (err: any) {
       // Revert if error
       setFormValues((prev) => ({ ...prev, [key]: isCurrentlyOn ? "true" : "false" }));
-      if (key === "dark_mode_enabled") {
-        setDarkMode(isCurrentlyOn);
-      }
       showErrorToast(err?.message || "Failed to update setting in database.");
     }
   };

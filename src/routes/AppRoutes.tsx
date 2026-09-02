@@ -17,6 +17,7 @@ import { UserActivityPage } from "../pages/activity/UserActivityPage";
 import { CreateApprovalPage } from "../pages/approvals/CreateApprovalPage";
 import { PurchasesPage } from "../pages/purchases/PurchasesPage";
 import { InvoicesPage } from "../pages/invoices/InvoicesPage";
+import { RequestAccessPage } from "../pages/access/RequestAccessPage";
 
 export const AppRoutes: React.FC = () => {
   return (
@@ -107,6 +108,14 @@ export const AppRoutes: React.FC = () => {
         }
       />
       <Route path="/invoice" element={<Navigate to="/invoices" replace />} />
+      <Route
+        path="/request-access"
+        element={
+          <ProtectedRoute>
+            <RequestAccessPage />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/reports"
         element={

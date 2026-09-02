@@ -18,10 +18,12 @@ import {
   CorporateFare,
   FactCheckOutlined,
   ShoppingCartOutlined,
+  KeyOutlined,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog } from "../../utils/alerts";
 import { approvalService } from "../../api/approval.service";
+import { accessRequestService } from "../../api/accessRequest.service";
 import type { LoggedInUser } from "../../types";
 
 export interface SidebarProps {
@@ -42,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const currentPath = location.pathname;
 
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState<number>(0);
+  const [pendingAccessRequestsCount, setPendingAccessRequestsCount] = useState<number>(0);
 
   const fetchPendingApprovals = useCallback(async () => {
     try {
@@ -54,16 +57,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   }, []);
 
+  const fetchPendingAccessRequests = useCallback(async () => {
+    try {
+      const res = await accessRequestService.getSummary();
+      if (res && typeof res.pendingRequests === "number") {
+        setPendingAccessRequestsCount(res.pendingRequests);
+      }
+    } catch {
+      // silent fallback
+    }
+  }, []);
+
   useEffect(() => {
     fetchPendingApprovals();
-    const interval = setInterval(fetchPendingApprovals, 15000);
-    const handleUpdate = () => fetchPendingApprovals();
+    fetchPendingAccessRequests();
+    const interval = setInterval(() => {
+      fetchPendingApprovals();
+      fetchPendingAccessRequests();
+    }, 15000);
+    const handleUpdate = () => {
+      fetchPendingApprovals();
+      fetchPendingAccessRequests();
+    };
     window.addEventListener("approvals-updated", handleUpdate);
+    window.addEventListener("access-requests-updated", handleUpdate);
     return () => {
       clearInterval(interval);
       window.removeEventListener("approvals-updated", handleUpdate);
+      window.removeEventListener("access-requests-updated", handleUpdate);
     };
-  }, [fetchPendingApprovals]);
+  }, [fetchPendingApprovals, fetchPendingAccessRequests]);
 
   const handleLogout = async () => {
     const res = await showConfirmDialog(
@@ -87,6 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: "Create Approval", path: "/create-approval", permissionKey: "approvals.view", icon: <FactCheckOutlined sx={{ fontSize: 18 }} /> },
     { label: "Purchases", path: "/purchases", permissionKey: "purchases.view", icon: <ShoppingCartOutlined sx={{ fontSize: 18 }} /> },
     { label: "Invoice", path: "/invoices", permissionKey: "invoices.view", icon: <ReceiptLongOutlined sx={{ fontSize: 18 }} /> },
+    { label: "Request Access", path: "/request-access", icon: <KeyOutlined sx={{ fontSize: 18 }} /> },
   ];
 
   const navSystem = [
@@ -221,6 +245,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             >
                               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
                               <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-xs shadow-rose-500/50"></span>
+                            </span>
+                          )}
+                          {item.path === "/request-access" && pendingAccessRequestsCount > 0 && (
+                            <span
+                              className="relative flex h-2 w-2 shrink-0"
+                              title={`${pendingAccessRequestsCount} pending permission access request(s)`}
+                            >
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500 shadow-xs shadow-amber-500/50"></span>
                             </span>
                           )}
                         </span>

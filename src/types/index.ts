@@ -8,3 +8,4 @@ export * from "./modules";
 export * from "./userActivity";
 export * from "./approval";
 export * from "./purchase";
+export * from "./accessRequest";

@@ -10,6 +10,7 @@ export const workspaceMenus: NavMenuItem[] = [
   { key: "approvals.view", label: "Create Approval", icon: "✓", to: "/create-approval", group: "Core Access", desc: "Raise resource requests and manager approval workflows" },
   { key: "purchases.view", label: "Purchases", icon: "🛒", to: "/purchases", group: "Core Access", desc: "Manage approved product vendor quotations & procurement" },
   { key: "invoices.view", label: "Invoice", icon: "🧾", to: "/invoices", group: "Core Access", desc: "Generate & manage customer invoices with GST and PDF download" },
+  { key: "request_access.view", label: "Request Access", icon: "🔑", to: "/request-access", group: "Core Access", desc: "Request system permissions and review access requests" },
   { key: "user_activity.view", label: "User Activity", icon: "⏱", to: "/user-activity", group: "Operations & Audit", desc: "Live active sessions & login/logout tracking" },
   { key: "audit.view", label: "Audit Logs", icon: "◌", to: "/audit", group: "Operations & Audit", desc: "Activity & security events" },
   { key: "reports.view", label: "Reports", icon: "▤", to: "/reports", group: "Operations & Audit", desc: "Insights & exports" },
@@ -28,7 +29,7 @@ export const canAccess = (user: LoggedInUser | null, permission?: string): boole
   // Super Admin bypass
   if (roleId === SUPER_ADMIN_ROLE_ID || roleName.includes("super admin") || roleName === "admin") return true;
 
-  if (!permission) return true;
+  if (!permission || permission === "request_access.view") return true;
 
   // Purchases module specific access rule: Super Admin, Manager, or HR Department
   if (permission === "purchases.view" || permission === "purchases.manage" || permission === "purchases.create") {

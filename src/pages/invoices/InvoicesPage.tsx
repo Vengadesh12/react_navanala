@@ -453,11 +453,10 @@ export const InvoicesPage: React.FC = () => {
                 key={tab.id}
                 type="button"
                 onClick={() => setStatusFilter(tab.id)}
-                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
-                  statusFilter === tab.id
-                    ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/20"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200/80 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
-                }`}
+                className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer ${statusFilter === tab.id
+                  ? "bg-indigo-600 text-white shadow-sm shadow-indigo-600/20"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200/80 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+                  }`}
               >
                 {tab.label}
               </button>
@@ -544,10 +543,10 @@ export const InvoicesPage: React.FC = () => {
                       <td className="px-5 py-4 text-slate-600 dark:text-slate-300">
                         {inv.invoiceDate
                           ? new Date(inv.invoiceDate).toLocaleDateString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              year: "numeric",
-                            })
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })
                           : "-"}
                       </td>
                       <td className="px-5 py-4">
@@ -601,9 +600,16 @@ export const InvoicesPage: React.FC = () => {
                             <PrintOutlined sx={{ fontSize: 18 }} />
                           </button>
 
-                          {(can("invoices.edit") || can("invoices.manage")) && (""
-                            
-                          )}
+                          {/* {(can("invoices.edit") || can("invoices.manage")) && (
+                            <button
+                              type="button"
+                              title="Edit Invoice"
+                              onClick={() => openEditModal(inv)}
+                              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-indigo-600 dark:hover:bg-slate-800 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                            >
+                              <EditOutlined sx={{ fontSize: 18 }} />
+                            </button>
+                          )} */}
 
                           {can("invoices.delete") && (
                             <button
@@ -701,11 +707,10 @@ export const InvoicesPage: React.FC = () => {
                         value={companyGstin}
                         onChange={(e) => setCompanyGstin(e.target.value)}
                         placeholder="e.g. 36AAAAA0000A1Z5"
-                        className={`w-full rounded-xl border px-3 py-2 text-xs uppercase font-mono tracking-wider transition-all ${
-                          canEditGst
-                            ? "border-indigo-300 bg-white text-slate-900 focus:border-indigo-600 focus:outline-hidden dark:border-indigo-500/50 dark:bg-slate-900 dark:text-white"
-                            : "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400 cursor-not-allowed"
-                        }`}
+                        className={`w-full rounded-xl border px-3 py-2 text-xs uppercase font-mono tracking-wider transition-all ${canEditGst
+                          ? "border-indigo-300 bg-white text-slate-900 focus:border-indigo-600 focus:outline-hidden dark:border-indigo-500/50 dark:bg-slate-900 dark:text-white"
+                          : "border-slate-200 bg-slate-100 text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400 cursor-not-allowed"
+                          }`}
                       />
                       {!canEditGst && (
                         <LockOutlined
@@ -927,11 +932,10 @@ export const InvoicesPage: React.FC = () => {
                                 key={rate}
                                 type="button"
                                 onClick={() => handleItemChange(idx, "taxRate", rate)}
-                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${
-                                  Number(item.taxRate) === rate
-                                    ? "bg-indigo-600 text-white font-bold"
-                                    : "bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
-                                }`}
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium transition-colors cursor-pointer ${Number(item.taxRate) === rate
+                                  ? "bg-indigo-600 text-white font-bold"
+                                  : "bg-slate-100 hover:bg-slate-200 text-slate-600 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300"
+                                  }`}
                               >
                                 {rate}%
                               </button>
