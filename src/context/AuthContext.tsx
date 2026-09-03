@@ -259,20 +259,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const currentUserId = user?.id;
     const currentUserEmail = user?.email;
 
-    // Immediately & synchronously wipe local session and state
-    clearSession();
-    cachedUserId.current = null;
-    syncRequest.current = null;
-    setUser(null);
-    setMenus([]);
-
-    // Notify backend asynchronously so database tracks logout session and IP
+    // Notify backend first so database receives authorization token and records session logout cleanly
     try {
       if (currentUserId || currentUserEmail) {
         await authService.logout(currentUserId, currentUserEmail);
       }
     } catch (err) {
       console.warn("Backend logout notification failed:", err);
+    } finally {
+      // Immediately & synchronously wipe local session and state
+      clearSession();
+      cachedUserId.current = null;
+      syncRequest.current = null;
+      setUser(null);
+      setMenus([]);
     }
   }, [user]);
 

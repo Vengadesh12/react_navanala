@@ -809,121 +809,133 @@ export const UserActivityPage: React.FC = () => {
               </div>
             ) : activeViewMode === "cards" ? (
               /* CARD GRID VIEW */
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredActiveSessions.map((session: UserSessionItem) => {
-                  const roleMeta = getRoleMeta(undefined, session.roleName);
-                  const isCurrentSelf =
-                    currentUser?.id === session.userId ||
-                    Boolean(currentUser?.email && session.email && currentUser.email.toLowerCase() === session.email.toLowerCase());
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {paginatedActiveSessions.map((session: UserSessionItem) => {
+                    const roleMeta = getRoleMeta(undefined, session.roleName);
+                    const isCurrentSelf =
+                      currentUser?.id === session.userId ||
+                      Boolean(currentUser?.email && session.email && currentUser.email.toLowerCase() === session.email.toLowerCase());
 
-                  return (
-                    <div
-                      key={session.id}
-                      className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md"
-                    >
-                      {/* Top Row: User Avatar & Live Badge */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-sm font-bold text-white shadow-sm">
-                              {session.userName ? session.userName.charAt(0).toUpperCase() : "U"}
+                    return (
+                      <div
+                        key={session.id}
+                        className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all hover:border-emerald-300 hover:shadow-md"
+                      >
+                        {/* Top Row: User Avatar & Live Badge */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="relative">
+                              <div className="grid h-11 w-11 place-items-center rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 text-sm font-bold text-white shadow-sm">
+                                {session.userName ? session.userName.charAt(0).toUpperCase() : "U"}
+                              </div>
+                              <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white">
+                                <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              </span>
                             </div>
-                            <span className="absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-white">
-                              <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-slate-900 text-xs truncate" title={session.userName}>
+                                  {session.userName}
+                                </h4>
+                                {isCurrentSelf && (
+                                  <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-600 border border-blue-200/60">
+                                    You
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 truncate" title={session.email}>
+                                {session.email}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Role Badge */}
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${roleMeta.color}`}>
+                            <ShieldOutlined sx={{ fontSize: 11 }} />
+                            <span>{session.roleName}</span>
+                          </span>
+                        </div>
+
+                        {/* Middle Details Grid */}
+                        <div className="my-4 space-y-2 rounded-xl bg-slate-50/70 p-3 text-[11px] border border-slate-100">
+                          <div className="flex items-center justify-between text-slate-600">
+                            <span className="flex items-center gap-1 text-slate-400">
+                              <AccessTime sx={{ fontSize: 13 }} />
+                              <span>Logged In:</span>
+                            </span>
+                            <span className="font-semibold text-slate-800">
+                              {new Date(session.loginTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           </div>
 
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-bold text-slate-900 text-xs truncate" title={session.userName}>
-                                {session.userName}
-                              </h4>
-                              {isCurrentSelf && (
-                                <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[9px] font-bold text-blue-600 border border-blue-200/60">
-                                  You
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-slate-500 truncate" title={session.email}>
-                              {session.email}
-                            </p>
+                          <div className="flex items-center justify-between text-slate-600">
+                            <span className="flex items-center gap-1.5 text-slate-400">
+                              <FiberManualRecord sx={{ fontSize: 11 }} className="text-emerald-500 animate-pulse" />
+                              <span>Online Duration:</span>
+                            </span>
+                            <span className="font-bold text-emerald-700 font-mono tracking-tight">
+                              {getLiveDuration(session, currentTime)}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-slate-600">
+                            <span className="flex items-center gap-1 text-slate-400">
+                              <Language sx={{ fontSize: 13 }} />
+                              <span>IP Address:</span>
+                            </span>
+                            <span className="font-mono text-[11px] font-medium text-slate-700">{session.ipAddress}</span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-slate-600">
+                            <span className="flex items-center gap-1 text-slate-400">
+                              {getDeviceIcon(session.os)}
+                              <span>Client / Device:</span>
+                            </span>
+                            <span className="text-[11px] text-slate-700 font-medium truncate max-w-[140px]" title={`${session.browser} on ${session.os}`}>
+                              {session.browser} • {session.os}
+                            </span>
                           </div>
                         </div>
 
-                        {/* Role Badge */}
-                        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-bold border ${roleMeta.color}`}>
-                          <ShieldOutlined sx={{ fontSize: 11 }} />
-                          <span>{session.roleName}</span>
-                        </span>
-                      </div>
-
-                      {/* Middle Details Grid */}
-                      <div className="my-4 space-y-2 rounded-xl bg-slate-50/70 p-3 text-[11px] border border-slate-100">
-                        <div className="flex items-center justify-between text-slate-600">
-                          <span className="flex items-center gap-1 text-slate-400">
-                            <AccessTime sx={{ fontSize: 13 }} />
-                            <span>Logged In:</span>
-                          </span>
-                          <span className="font-semibold text-slate-800">
-                            {new Date(session.loginTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-slate-600">
-                          <span className="flex items-center gap-1.5 text-slate-400">
-                            <FiberManualRecord sx={{ fontSize: 11 }} className="text-emerald-500 animate-pulse" />
-                            <span>Online Duration:</span>
-                          </span>
-                          <span className="font-bold text-emerald-700 font-mono tracking-tight">
-                            {getLiveDuration(session, currentTime)}
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-slate-600">
-                          <span className="flex items-center gap-1 text-slate-400">
-                            <Language sx={{ fontSize: 13 }} />
-                            <span>IP Address:</span>
-                          </span>
-                          <span className="font-mono text-[11px] font-medium text-slate-700">{session.ipAddress}</span>
-                        </div>
-
-                        <div className="flex items-center justify-between text-slate-600">
-                          <span className="flex items-center gap-1 text-slate-400">
-                            {getDeviceIcon(session.os)}
-                            <span>Client / Device:</span>
-                          </span>
-                          <span className="text-[11px] text-slate-700 font-medium truncate max-w-[140px]" title={`${session.browser} on ${session.os}`}>
-                            {session.browser} • {session.os}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Bottom Action Buttons */}
-                      <div className="flex items-center justify-between pt-1 border-t border-slate-100 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setInspectSession(session)}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
-                        >
-                          <VisibilityOutlined sx={{ fontSize: 15, color: "#64748b" }} />
-                          <span>Details</span>
-                        </button>
-
-                        {canForceLogout && (
+                        {/* Bottom Action Buttons */}
+                        <div className="flex items-center justify-between pt-1 border-t border-slate-100 gap-2">
                           <button
                             type="button"
-                            onClick={() => handleTerminateSession(session)}
-                            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-50 border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
-                            title="Terminate this session immediately"
+                            onClick={() => setInspectSession(session)}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors cursor-pointer"
                           >
-                            <LogoutOutlined sx={{ fontSize: 14 }} />
-                            <span>Force Logout</span>
+                            <VisibilityOutlined sx={{ fontSize: 15, color: "#64748b" }} />
+                            <span>Details</span>
                           </button>
-                        )}
+
+                          {canForceLogout && (
+                            <button
+                              type="button"
+                              onClick={() => handleTerminateSession(session)}
+                              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-50 border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-100 transition-colors cursor-pointer"
+                              title="Terminate this session immediately"
+                            >
+                              <LogoutOutlined sx={{ fontSize: 14 }} />
+                              <span>Force Logout</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+
+                {filteredActiveSessions.length > activePageSize && (
+                  <Pagination
+                    currentPage={activePage}
+                    totalItems={filteredActiveSessions.length}
+                    pageSize={activePageSize}
+                    onPageChange={setActivePage}
+                    onPageSizeChange={setActivePageSize}
+                  />
+                )}
               </div>
             ) : (
               /* ACTIVE TABLE VIEW */
