@@ -14,12 +14,17 @@ import {
   LockOutlined,
   VerifiedUserOutlined,
   AdminPanelSettingsOutlined,
+  Key,
+  HourglassEmpty,
+  Refresh,
+  Send,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { settingService } from "../../api/setting.service";
+import { accessRequestService } from "../../api/accessRequest.service";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../context/ThemeContext";
-import { showConfirmDialog, showSuccessToast, showErrorToast } from "../../utils/alerts";
+import { showConfirmDialog, showSuccessToast, showErrorToast, showWarningAlert } from "../../utils/alerts";
 import type { SystemSetting, SettingCategory, CreateSettingRequest } from "../../types";
 
 const TABS = [
@@ -28,8 +33,22 @@ const TABS = [
 ];
 
 export const SettingsPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, can, refreshPermissions } = useAuth();
   const { isDarkMode, setDarkMode } = useTheme();
+
+  // Role & Maintenance Mode Permission Logic
+  const roleId = Number(user?.roleId);
+  const roleName = (user?.roleName || "").toLowerCase();
+  const isSuperAdminOrAdmin = roleId === 2 || roleName.includes("super admin") || roleName === "admin";
+  const hasMaintenancePermission = isSuperAdminOrAdmin || can("settings.maintenance");
+
+  const [maintenanceRequestPending, setMaintenanceRequestPending] = useState<boolean>(false);
+  const [checkingStatus, setCheckingStatus] = useState<boolean>(false);
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState<boolean>(false);
+  const [requestReason, setRequestReason] = useState<string>("");
+  const [requestPriority, setRequestPriority] = useState<"Low" | "Normal" | "High" | "Urgent">("Normal");
+  const [submittingAccessRequest, setSubmittingAccessRequest] = useState<boolean>(false);
+
   const [settings, setSettings] = useState<SystemSetting[]>([]);
   const [categories, setCategories] = useState<SettingCategory[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -63,6 +82,23 @@ export const SettingsPage: React.FC = () => {
     dataType: "string",
   });
   const [savingKey, setSavingKey] = useState<boolean>(false);
+
+  const checkMaintenanceRequest = useCallback(async () => {
+    if (!user || hasMaintenancePermission) return;
+    try {
+      const myReqs = await accessRequestService.getMyRequests();
+      const pending = myReqs.some(
+        (r) => r.permissionKey.toLowerCase() === "settings.maintenance" && r.status === "Pending"
+      );
+      setMaintenanceRequestPending(pending);
+    } catch {
+      // Fallback
+    }
+  }, [user, hasMaintenancePermission]);
+
+  useEffect(() => {
+    checkMaintenanceRequest();
+  }, [checkMaintenanceRequest]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -103,6 +139,14 @@ export const SettingsPage: React.FC = () => {
 
   // Handle single toggle ON / OFF with instant database persistence
   const handleToggle = async (key: string, label: string) => {
+    if (key === "maintenance_mode" && !hasMaintenancePermission) {
+      showErrorToast("Access Denied: Maintenance Mode requires 'settings.maintenance' permission or Super Admin / Admin role.");
+      if (!maintenanceRequestPending) {
+        setIsAccessModalOpen(true);
+      }
+      return;
+    }
+
     if (key === "dark_mode_enabled") {
       const nextIsOn = !isDarkMode;
       setDarkMode(nextIsOn);
@@ -214,13 +258,28 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const renderToggleSwitch = (key: string, label: string, isChecked: boolean) => (
+  const renderToggleSwitch = (key: string, label: string, isChecked: boolean, disabled: boolean = false) => (
     <button
       type="button"
       role="switch"
       aria-checked={isChecked}
-      onClick={() => handleToggle(key, label)}
-      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+      disabled={disabled}
+      onClick={() => {
+        if (disabled) {
+          if (key === "maintenance_mode") {
+            if (maintenanceRequestPending) {
+              showWarningAlert("Request Pending", "Your request for Maintenance Mode permission is currently pending review by a Super Admin.");
+            } else {
+              setIsAccessModalOpen(true);
+            }
+          }
+          return;
+        }
+        handleToggle(key, label);
+      }}
+      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+        disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+      } ${
         isChecked ? "bg-indigo-600" : "bg-slate-300 dark:bg-slate-700"
       }`}
     >
@@ -579,12 +638,79 @@ export const SettingsPage: React.FC = () => {
                       </div>
 
                       {/* Maintenance Mode */}
-                      <div className="flex items-center justify-between pt-4">
-                        <div>
-                          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">Maintenance Mode</h3>
-                          <p className="text-[11px] text-slate-500">Restrict system access to administrative users only</p>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">Maintenance Mode</h3>
+                            {hasMaintenancePermission ? (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                <AdminPanelSettingsOutlined sx={{ fontSize: 13 }} />
+                                {isSuperAdminOrAdmin ? "Admin Access" : "Permission Granted"}
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:text-amber-300">
+                                <LockOutlined sx={{ fontSize: 13 }} />
+                                Super Admin & Admin Only
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[11px] text-slate-500">
+                            Restrict system access to administrative users only
+                            {!hasMaintenancePermission && (
+                              <span className="block sm:inline text-amber-600 dark:text-amber-400 font-medium sm:ml-1">
+                                (Requires &lsquo;settings.maintenance&rsquo; permission)
+                              </span>
+                            )}
+                          </p>
                         </div>
-                        {renderToggleSwitch("maintenance_mode", "Maintenance Mode", formValues.maintenance_mode === "true")}
+
+                        <div className="flex items-center gap-2.5 self-end sm:self-center">
+                          {!hasMaintenancePermission && (
+                            maintenanceRequestPending ? (
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
+                                  <HourglassEmpty sx={{ fontSize: 13 }} />
+                                  <span>Request Pending</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    setCheckingStatus(true);
+                                    try {
+                                      await refreshPermissions();
+                                      await checkMaintenanceRequest();
+                                      showSuccessToast("Checked permission status!");
+                                    } finally {
+                                      setCheckingStatus(false);
+                                    }
+                                  }}
+                                  disabled={checkingStatus}
+                                  title="Check if access request has been approved"
+                                  className="inline-flex items-center justify-center h-7 w-7 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:opacity-50"
+                                >
+                                  <Refresh sx={{ fontSize: 14 }} className={checkingStatus ? "animate-spin" : ""} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setIsAccessModalOpen(true)}
+                                className="inline-flex items-center gap-1.5 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 transition-colors shadow-2xs cursor-pointer"
+                              >
+                                <Key sx={{ fontSize: 14 }} />
+                                <span>Request Access</span>
+                              </button>
+                            )
+                          )}
+                          <div>
+                            {renderToggleSwitch(
+                              "maintenance_mode",
+                              "Maintenance Mode",
+                              formValues.maintenance_mode === "true",
+                              !hasMaintenancePermission
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       {/* User Session Timeout */}
@@ -1039,6 +1165,120 @@ export const SettingsPage: React.FC = () => {
                   className="rounded-xl bg-indigo-600 px-5 py-2 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors cursor-pointer disabled:opacity-60"
                 >
                   {savingKey ? "Saving..." : "Save Setting Key"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* Maintenance Mode Access Request Modal                                    */}
+      {/* ========================================================================= */}
+      {isAccessModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-fade-in">
+          <div className="relative w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+                  <Key sx={{ fontSize: 22 }} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                    Request Maintenance Mode Access
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Submit permission request to Super Admin
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAccessModalOpen(false)}
+                className="rounded-lg p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <Close sx={{ fontSize: 18 }} />
+              </button>
+            </div>
+
+            <div className="rounded-xl border border-amber-200/70 dark:border-amber-900/60 bg-amber-50/50 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+              <LockOutlined sx={{ fontSize: 18, color: "#d97706", flexShrink: 0, mt: 0.2 }} />
+              <div className="text-[11px] leading-relaxed">
+                Permission <code className="px-1 py-0.5 font-bold rounded bg-amber-100 dark:bg-amber-900/60">settings.maintenance</code> allows switching the entire workspace into maintenance mode.
+              </div>
+            </div>
+
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!requestReason.trim()) {
+                  showErrorToast("Please provide a reason for requesting this permission.");
+                  return;
+                }
+                setSubmittingAccessRequest(true);
+                try {
+                  await accessRequestService.createRequest({
+                    permissionKey: "settings.maintenance",
+                    reason: requestReason.trim(),
+                    priority: requestPriority,
+                  });
+                  showSuccessToast("Access request submitted successfully! Super Admin will review it.");
+                  setIsAccessModalOpen(false);
+                  setRequestReason("");
+                  setMaintenanceRequestPending(true);
+                } catch (err: any) {
+                  showErrorToast(err?.message || "Failed to submit access request.");
+                } finally {
+                  setSubmittingAccessRequest(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Justification / Business Reason <span className="text-rose-500">*</span>
+                </label>
+                <textarea
+                  rows={3}
+                  value={requestReason}
+                  onChange={(e) => setRequestReason(e.target.value)}
+                  placeholder="E.g., Need to toggle maintenance mode during scheduled upgrade..."
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-3 text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 focus:border-indigo-500 focus:outline-hidden"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Urgency / Priority
+                </label>
+                <select
+                  value={requestPriority}
+                  onChange={(e) => setRequestPriority(e.target.value as any)}
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+                >
+                  <option value="Low">Low - General administrative inquiry</option>
+                  <option value="Normal">Normal - Standard operational requirement</option>
+                  <option value="High">High - Scheduled deployment or audit</option>
+                  <option value="Urgent">Urgent - Critical outage / live issue resolution</option>
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAccessModalOpen(false)}
+                  className="rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingAccessRequest}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-indigo-700 transition-colors disabled:opacity-60 cursor-pointer"
+                >
+                  <Send sx={{ fontSize: 14 }} />
+                  <span>{submittingAccessRequest ? "Submitting..." : "Submit Request"}</span>
                 </button>
               </div>
             </form>

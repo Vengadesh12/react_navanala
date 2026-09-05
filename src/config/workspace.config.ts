@@ -17,6 +17,7 @@ export const workspaceMenus: NavMenuItem[] = [
   { key: "projects.view", label: "Projects", icon: "◇", to: "/projects", group: "Operations & Audit", desc: "Project initiatives" },
   { key: "calendar.view", label: "Schedule", icon: "□", to: "/calendar", group: "Operations & Audit", desc: "Team rhythm & reviews" },
   { key: "settings.view", label: "Settings", icon: "⚙", to: "/settings", group: "Preferences", desc: "Workspace configuration" },
+  { key: "settings.maintenance", label: "Maintenance Mode", icon: "🛠", to: "/settings", group: "Preferences", desc: "Workspace maintenance mode & access restrictions" },
 ];
 
 export const canAccess = (user: LoggedInUser | null, permission?: string): boolean => {

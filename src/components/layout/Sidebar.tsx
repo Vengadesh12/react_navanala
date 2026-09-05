@@ -19,6 +19,7 @@ import {
   FactCheckOutlined,
   ShoppingCartOutlined,
   KeyOutlined,
+  BuildCircleOutlined,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog } from "../../utils/alerts";
@@ -120,6 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: "Projects", path: "/projects", permissionKey: "projects.view", icon: <Assignment sx={{ fontSize: 18 }} /> },
     { label: "Schedule", path: "/calendar", permissionKey: "calendar.view", icon: <CalendarMonth sx={{ fontSize: 18 }} /> },
     { label: "Settings", path: "/settings", permissionKey: "settings.view", icon: <SettingsOutlined sx={{ fontSize: 18 }} /> },
+    { label: "Maintenance Mode", path: "/settings", permissionKey: "settings.maintenance", icon: <BuildCircleOutlined sx={{ fontSize: 18 }} /> },
   ];
 
   const navAccount: { label: string; path: string; icon: React.ReactNode; permissionKey?: string }[] = [

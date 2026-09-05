@@ -104,7 +104,7 @@ const PERMISSION_CATEGORIES: PermissionCategory[] = [
     desc: "System configurations, live user activity monitoring, session force logout, and immutable audit logs",
     icon: <Tune sx={{ fontSize: 20 }} />,
     color: "bg-amber-50 text-amber-700 border-amber-200",
-    keys: ["settings.view", "audit.view", "user_activity.view", "user_activity.force_logout", "user_activity.manage"],
+    keys: ["settings.view", "settings.maintenance", "audit.view", "user_activity.view", "user_activity.force_logout", "user_activity.manage"],
   },
 ];
 
