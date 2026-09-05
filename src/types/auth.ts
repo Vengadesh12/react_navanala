@@ -11,6 +11,7 @@ export interface LoggedInUser {
   designationName?: string;
   permissions: string[];
   menus?: MenuItemDto[];
+  menuNames?: string[];
   token?: string;
   phone?: string;
   age?: number;
@@ -35,7 +36,11 @@ export interface AuthResponseData {
   designationName?: string;
   permissions: string[];
   menus?: MenuItemDto[];
+  menuNames?: string[];
   token: string;
+  phone?: string;
+  age?: number;
+  address?: string;
   isFirstLogin?: boolean;
 }
 

@@ -18,7 +18,7 @@ export const reportService = {
     return apiClient<ReportsOverviewResponse>(`/api/reports${queryString ? `?${queryString}` : ""}`);
   },
 
-  createReport: async (data: ReportFormData): Promise<{ message?: string; data?: Report }> => {
+  createReport: async (data: ReportFormData, signal?: AbortSignal): Promise<{ message?: string; data?: Report }> => {
     const formData = new FormData();
     formData.append("title", data.title);
     formData.append("description", data.description);
@@ -33,10 +33,11 @@ export const reportService = {
     return apiClient<{ message?: string; data?: Report }>("/api/reports", {
       method: "POST",
       body: formData,
+      signal,
     });
   },
 
-  updateReport: async (id: number, data: Partial<ReportFormData> & { status?: string }): Promise<{ message?: string; data?: Report }> => {
+  updateReport: async (id: number, data: Partial<ReportFormData> & { status?: string }, signal?: AbortSignal): Promise<{ message?: string; data?: Report }> => {
     const formData = new FormData();
     if (data.title !== undefined) formData.append("title", data.title);
     if (data.description !== undefined) formData.append("description", data.description);
@@ -52,6 +53,7 @@ export const reportService = {
     return apiClient<{ message?: string; data?: Report }>(`/api/reports/${id}`, {
       method: "PUT",
       body: formData,
+      signal,
     });
   },
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Assessment,
   Search,
@@ -86,6 +86,18 @@ export const ReportsPage: React.FC = () => {
   useEffect(() => {
     setPage(1);
   }, [selectedCategory, searchTerm]);
+
+  const saveAbortControllerRef = useRef<AbortController | null>(null);
+
+  // Abort any ongoing save request when user redirects/navigates to other menu (unmounts)
+  useEffect(() => {
+    return () => {
+      if (saveAbortControllerRef.current) {
+        saveAbortControllerRef.current.abort();
+        saveAbortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   const { sortKey, sortDirection, handleSort, sortedData: sortedReports } = useTableSort<Report>({
     data: reports,
@@ -217,14 +229,23 @@ export const ReportsPage: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const closeModal = () => {
+    if (saveAbortControllerRef.current) {
+      saveAbortControllerRef.current.abort();
+      saveAbortControllerRef.current = null;
+    }
+    setSubmitting(false);
+    setIsModalOpen(false);
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Strict 5 MB check: 5 * 1024 * 1024 bytes = 5,242,880 bytes
-    const MAX_SIZE = 5 * 1024 * 1024;
+    // Strict 15 MB check: 15 * 1024 * 1024 bytes = 15,728,640 bytes
+    const MAX_SIZE = 15 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
-      showErrorToast(`File size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds 5 MB limit. Please select a smaller file.`);
+      showErrorToast(`File size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds 15 MB limit. Please select a smaller file.`);
       e.target.value = "";
       return;
     }
@@ -284,6 +305,13 @@ export const ReportsPage: React.FC = () => {
     );
     const finalCategoryId = formData.categoryId || matchedCat?.id;
 
+    // Abort previous in-flight save if any
+    if (saveAbortControllerRef.current) {
+      saveAbortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    saveAbortControllerRef.current = controller;
+
     setSubmitting(true);
     try {
       if (editingReport) {
@@ -294,7 +322,7 @@ export const ReportsPage: React.FC = () => {
           category: finalCategory,
           format: formData.format,
           file: formData.file,
-        });
+        }, controller.signal);
         showSuccessToast("Report updated successfully!");
       } else {
         await reportService.createReport({
@@ -304,16 +332,21 @@ export const ReportsPage: React.FC = () => {
           category: finalCategory,
           format: formData.format,
           file: formData.file,
-        });
+        }, controller.signal);
         showSuccessToast("Report generated and saved successfully!");
       }
       setIsModalOpen(false);
       fetchReports();
       fetchCategories();
     } catch (err: any) {
+      if (err?.name === "AbortError" || controller.signal.aborted) {
+        console.log("Report save cancelled by user redirect/navigation.");
+        return;
+      }
       showErrorToast(err?.message || "Failed to save report.");
     } finally {
       setSubmitting(false);
+      saveAbortControllerRef.current = null;
     }
   };
 
@@ -796,7 +829,7 @@ export const ReportsPage: React.FC = () => {
 
       {/* Generate / Edit Report Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-fade-in">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 animate-fade-in">
           <div className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl border border-slate-100 animate-scale-up">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <h3 className="text-base font-bold text-slate-900">
@@ -804,7 +837,7 @@ export const ReportsPage: React.FC = () => {
               </h3>
               <button
                 type="button"
-                onClick={() => setIsModalOpen(false)}
+                onClick={closeModal}
                 className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
               >
                 <Close sx={{ fontSize: 18 }} />
@@ -824,10 +857,10 @@ export const ReportsPage: React.FC = () => {
                 />
               </div>
 
-              {/* Choose File Option (< 5 MB) */}
+              {/* Choose File Option (< 15 MB) */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Attach Report Document <span className="text-slate-400 font-normal">(Max 5 MB)</span>
+                  Attach Report Document <span className="text-slate-400 font-normal">(Max 15 MB)</span>
                 </label>
                 {!formData.file && !formData.fileName ? (
                   <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer bg-slate-50/50 hover:bg-slate-100/60 hover:border-blue-400 transition-all group">
@@ -837,7 +870,7 @@ export const ReportsPage: React.FC = () => {
                         Click to choose file or drag & drop
                       </p>
                       <p className="text-[10px] text-slate-400 mt-0.5">
-                        PDF, CSV, Excel, Word, JSON, TXT · Maximum 5 MB
+                        PDF, CSV, Excel, Word, JSON, TXT · Maximum 15 MB
                       </p>
                     </div>
                     <input
@@ -859,7 +892,7 @@ export const ReportsPage: React.FC = () => {
                         </p>
                         <p className="text-[10px] text-blue-600 font-mono">
                           {formData.file
-                            ? `${(formData.file.size / (1024 * 1024)).toFixed(2)} MB / 5 MB limit`
+                            ? `${(formData.file.size / (1024 * 1024)).toFixed(2)} MB / 15 MB limit`
                             : "Existing document in database"}
                         </p>
                       </div>
@@ -971,7 +1004,7 @@ export const ReportsPage: React.FC = () => {
               <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeModal}
                   className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
                 >
                   Cancel

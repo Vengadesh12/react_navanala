@@ -32,7 +32,12 @@ import { dashboardService } from "../../api/dashboard.service";
 import { useAuth } from "../../hooks/useAuth";
 import { useTheme } from "../../context/ThemeContext";
 import { getProfileImageUrl } from "../../utils/image";
-import { CrackersBlast } from "../../components/common/CrackersBlast";
+import {
+  CrackersBlast,
+  CrackersBlastHandle,
+  CrackerType,
+  CRACKER_DEFINITIONS,
+} from "../../components/common/CrackersBlast";
 import type { DashboardSummaryResponse, DashboardChartPoint } from "../../types";
 
 export const DashboardPage: React.FC = () => {
@@ -40,7 +45,10 @@ export const DashboardPage: React.FC = () => {
   const { setDarkMode } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  const crackersBlastRef = useRef<CrackersBlastHandle | null>(null);
   const [showCelebration, setShowCelebration] = useState<boolean>(false);
+  const [showCrackerShelf, setShowCrackerShelf] = useState<boolean>(false);
+  const [selectedCrackerForBlast, setSelectedCrackerForBlast] = useState<CrackerType | null>(null);
   const [timeframe, setTimeframe] = useState<"7d" | "30d" | "90d">("7d");
   const [timeframeDropdownOpen, setTimeframeDropdownOpen] = useState<boolean>(false);
   const timeframeDropdownRef = useRef<HTMLDivElement>(null);
@@ -1033,6 +1041,15 @@ export const DashboardPage: React.FC = () => {
   const totalVisibleCards =
     visibleKpiCount + visibleChartCount + visibleListCount;
 
+  const handleTriggerCracker = (type: CrackerType) => {
+    setDarkMode(true);
+    setSelectedCrackerForBlast(type);
+    setShowCelebration(true);
+    setTimeout(() => {
+      crackersBlastRef.current?.blastCracker(type);
+    }, 120);
+  };
+
   return (
     <WorkspaceLayout
       permission="dashboard.view"
@@ -1042,12 +1059,17 @@ export const DashboardPage: React.FC = () => {
       onSearchChange={setSearchQuery}
       searchPlaceholder="Search dashboard cards, metrics, users..."
     >
-      {/* Radiant Fireworks Celebration Animation (matching the fireworks night sky image) */}
+      {/* Radiant Fireworks & Diwali Crackers Celebration Animation */}
       <CrackersBlast
+        ref={crackersBlastRef}
         isOpen={showCelebration}
-        onClose={() => setShowCelebration(false)}
-        autoCloseDuration={45}
+        onClose={() => {
+          setShowCelebration(false);
+          setSelectedCrackerForBlast(null);
+        }}
+        autoCloseDuration={60}
         showControls={true}
+        initialCracker={selectedCrackerForBlast}
       />
 
       <div className="w-full min-h-screen bg-slate-50/50 dark:bg-[#0b0f19] px-4 py-6 sm:px-8 space-y-6">
@@ -1109,17 +1131,15 @@ export const DashboardPage: React.FC = () => {
               type="button"
               onClick={() => {
                 setDarkMode(true);
-                setShowCelebration(true);
+                setShowCrackerShelf((prev) => !prev);
               }}
               className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:via-purple-700 hover:to-indigo-700 text-white px-3.5 py-2 text-xs font-bold shadow-md shadow-pink-500/25 active:scale-95 transition-all cursor-pointer animate-pulse-glow"
-              title="Switch to dark theme and blast fireworks celebration"
+              title="Show Diwali crackers and blast your choice"
             >
               <Celebration sx={{ fontSize: 16 }} className="text-yellow-300 animate-bounce" />
               <span className="hidden sm:inline">Blast Fireworks</span>
               <span className="sm:hidden">Fireworks</span>
-            </button> */}
-
-            <button
+            </button> */}            <button
               type="button"
               onClick={() => loadDashboard(timeframe, true)}
               disabled={refreshing}
@@ -1204,6 +1224,102 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Diwali Crackers Showcase Shelf (Shown below header when Blast Fireworks is clicked) */}
+        {showCrackerShelf && (
+          <div className="rounded-2xl bg-gradient-to-r from-slate-900/95 via-indigo-950/95 to-slate-900/95 border border-amber-500/30 p-4 sm:p-5 shadow-2xl backdrop-blur-xl animate-fade-in space-y-3.5 text-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-inner">
+                  <Whatshot sx={{ fontSize: 20 }} />
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-extrabold tracking-tight text-white flex items-center gap-2">
+                    <span>Diwali Crackers Showcase</span>
+                    <span className="rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold">
+                      Click Cracker to Blast
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-300">
+                    Select a cracker below to ignite its authentic colorful fireworks blast!
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDarkMode(true);
+                    setShowCelebration(true);
+                    setTimeout(() => {
+                      crackersBlastRef.current?.blastAll();
+                    }, 120);
+                  }}
+                  className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                >
+                  <AutoAwesome sx={{ fontSize: 14 }} />
+                  <span>Blast All Combo</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCrackerShelf(false)}
+                  className="rounded-xl p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                  title="Close crackers shelf"
+                >
+                  <Close sx={{ fontSize: 18 }} />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 pt-1">
+              {CRACKER_DEFINITIONS.map((cracker) => (
+                <div
+                  key={cracker.id}
+                  onClick={() => handleTriggerCracker(cracker.id)}
+                  className="group relative flex flex-col items-center p-3 rounded-2xl bg-white/5 border border-white/10 hover:border-amber-400/80 hover:bg-white/10 transition-all duration-300 cursor-pointer shadow-lg hover:shadow-amber-500/20 hover:-translate-y-0.5"
+                >
+                  {/* Image container */}
+                  <div className="relative w-full aspect-square max-h-32 sm:max-h-36 rounded-xl overflow-hidden mb-2.5 bg-slate-950 ring-1 ring-white/15 shadow-inner">
+                    <img
+                      src={cracker.image}
+                      alt={cracker.name}
+                      className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-500"
+                    />
+                    <span className="absolute top-1.5 right-1.5 rounded-md bg-slate-950/85 backdrop-blur-xs px-2 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-400/40 shadow-sm">
+                      {cracker.badge}
+                    </span>
+                  </div>
+
+                  {/* Header info */}
+                  <div className="w-full flex items-center justify-between px-0.5">
+                    <span className="text-xs sm:text-sm font-extrabold text-white group-hover:text-amber-300 transition-colors">
+                      {cracker.name}
+                    </span>
+                    <span className="text-[11px] font-semibold text-amber-400">
+                      {cracker.tamilName}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 line-clamp-1 w-full text-left mt-0.5">
+                    {cracker.tagline}
+                  </p>
+
+                  {/* Action button */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTriggerCracker(cracker.id);
+                    }}
+                    className={`w-full mt-2.5 inline-flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-gradient-to-r ${cracker.gradient} text-white font-bold text-xs shadow-md active:scale-95 transition-all cursor-pointer hover:brightness-110`}
+                  >
+                    <AutoAwesome sx={{ fontSize: 14 }} />
+                    <span>Blast {cracker.name}</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Error Alert */}
         {error && (

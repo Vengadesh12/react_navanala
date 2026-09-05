@@ -116,7 +116,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       designationName: data.designationName,
       permissions: data.permissions || [],
       menus: userMenus,
+      menuNames: data.menuNames || userMenus.map(m => m.label || (m as any).name || "").filter(Boolean),
       token: data.token,
+      phone: data.phone,
+      age: data.age,
+      address: data.address,
       isFirstLogin: data.isFirstLogin ?? false,
     };
 
