@@ -9,6 +9,7 @@ export interface MetricCardProps {
   iconBgColor?: string;
   color?: "indigo" | "emerald" | "amber" | "blue" | "purple" | "rose";
   className?: string;
+  onClick?: () => void;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -20,6 +21,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   iconBgColor,
   color,
   className = "",
+  onClick,
 }) => {
   // Infer color from iconBgColor if color prop not explicitly set
   const themeColor = color || (
@@ -72,7 +74,22 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${themeStyles.card} ${className}`}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={`relative overflow-hidden rounded-2xl border p-5 shadow-xs transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+        onClick ? "cursor-pointer select-none active:scale-[0.99]" : ""
+      } ${themeStyles.card} ${className}`}
     >
       <div className="flex items-center justify-between">
         <div className="space-y-1 min-w-0 flex-1 pr-3">

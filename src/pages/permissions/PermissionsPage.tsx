@@ -458,20 +458,7 @@ export const PermissionsPage: React.FC = () => {
         </div>
 
         {/* Department Permission Inheritance Explanation Banner */}
-        {scope === "department" && (
-          <div className="mb-6 flex items-center gap-3 rounded-2xl border border-teal-200 bg-teal-50/80 p-4 text-xs dark:border-teal-900/60 dark:bg-teal-950/40">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300">
-              <AccountTreeOutlined sx={{ fontSize: 20 }} />
-            </div>
-            <div>
-              <strong className="font-bold text-teal-900 dark:text-teal-200">
-                Department-Level Permission Inheritance Active
-              </strong>
-              <p className="text-[11px] text-teal-700 dark:text-teal-400 mt-0.5">
-                Any permissions assigned to a department are automatically granted to all users whose designation belongs to that department (in addition to their role permissions).
-              </p>
-            </div>
-          </div>
+        {scope === "department" && (""
         )}
 
         {/* Active Search Results Banner */}

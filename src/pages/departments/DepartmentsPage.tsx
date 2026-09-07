@@ -32,9 +32,10 @@ import { MapDesignationModal } from "./components/MapDesignationModal";
 import { AssignDesignationModal } from "./components/AssignDesignationModal";
 import { departmentService } from "../../api/department.service";
 import { designationService } from "../../api/designation.service";
+import { userService } from "../../api/user.service";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog, showErrorAlert, showSuccessAlert } from "../../utils/alerts";
-import type { Department, Designation, DepartmentOverviewResponse } from "../../types";
+import type { Department, Designation, DepartmentOverviewResponse, User } from "../../types";
 
 export const DepartmentsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -42,6 +43,7 @@ export const DepartmentsPage: React.FC = () => {
 
   const [overview, setOverview] = useState<DepartmentOverviewResponse | null>(null);
   const [allDesignations, setAllDesignations] = useState<Designation[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [viewMode, setViewMode] = useState<"tree" | "cards" | "table">("tree");
@@ -55,15 +57,79 @@ export const DepartmentsPage: React.FC = () => {
   const [assignModalOpen, setAssignModalOpen] = useState(false);
   const [selectedUnassignedDesId, setSelectedUnassignedDesId] = useState<number | null>(null);
 
+  const isUserActive = (user: User): boolean => {
+    const rawFlag = user.deletedFlag ?? user.DeletedFlag ?? user.deletedflag;
+    if (rawFlag === undefined || rawFlag === null) return true;
+    const deletedFlag = typeof rawFlag === "string" ? Number(rawFlag.trim()) : Number(rawFlag);
+    return !isNaN(deletedFlag) && deletedFlag !== 0;
+  };
+
+  // Precompute user counts by department for full consistency with user directory
+  const deptUserStats = useMemo(() => {
+    const desToDeptMap = new Map<number, number>();
+    allDesignations.forEach((des) => {
+      const desId = Number(des.id ?? des.Id);
+      const deptId = Number(des.departmentId ?? des.DepartmentId);
+      if (desId && deptId) {
+        desToDeptMap.set(desId, deptId);
+      }
+    });
+
+    const stats: Record<number, { total: number; active: number; deleted: number }> = {};
+
+    users.forEach((u) => {
+      const desId = Number(u.designationId ?? u.DesignationId);
+      if (!desId) return;
+      const deptId = desToDeptMap.get(desId);
+      if (!deptId) return;
+
+      if (!stats[deptId]) {
+        stats[deptId] = { total: 0, active: 0, deleted: 0 };
+      }
+      stats[deptId].total += 1;
+      if (isUserActive(u)) {
+        stats[deptId].active += 1;
+      } else {
+        stats[deptId].deleted += 1;
+      }
+    });
+
+    return stats;
+  }, [users, allDesignations]);
+
+  const getDeptCounts = (dept: Department) => {
+    const computed = deptUserStats[dept.id];
+    if (computed) {
+      return computed;
+    }
+    const total = dept.userCount ?? 0;
+    const active = dept.activeUserCount ?? (dept.deletedUserCount !== undefined ? total - dept.deletedUserCount : total);
+    const deleted = dept.deletedUserCount ?? Math.max(0, total - active);
+    return { total, active, deleted };
+  };
+
+  const desMemberCounts = useMemo(() => {
+    const counts: Record<number, number> = {};
+    users.forEach((u) => {
+      const desId = Number(u.designationId ?? u.DesignationId);
+      if (desId) {
+        counts[desId] = (counts[desId] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [users]);
+
   const fetchOverview = async () => {
     setLoading(true);
     try {
-      const [data, designations] = await Promise.all([
+      const [data, designations, usersData] = await Promise.all([
         departmentService.getOverview(),
         designationService.getDesignations(),
+        userService.getUsers().catch(() => [] as User[]),
       ]);
       setOverview(data);
       setAllDesignations(Array.isArray(designations) ? designations : []);
+      setUsers(Array.isArray(usersData) ? usersData : []);
 
       // Auto-expand all departments by default in tree view
       if (data.departments) {
@@ -174,7 +240,7 @@ export const DepartmentsPage: React.FC = () => {
         case "designations":
           return (dept.designations || []).length;
         case "members":
-          return Number(dept.userCount || 0);
+          return getDeptCounts(dept).total;
         default:
           return (dept as any)[key];
       }
@@ -513,11 +579,18 @@ export const DepartmentsPage: React.FC = () => {
                           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                             {designations.length} {designations.length === 1 ? "Role" : "Roles"}
                           </span>
-                          {dept.userCount !== undefined && dept.userCount > 0 && (
-                            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300">
-                              {dept.userCount} {dept.userCount === 1 ? "Member" : "Members"}
-                            </span>
-                          )}
+                          {(() => {
+                            const { total, active, deleted } = getDeptCounts(dept);
+                            if (total === 0) return null;
+                            return (
+                              <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700 dark:bg-indigo-950/80 dark:text-indigo-300 inline-flex items-center gap-1">
+                                <span>{total} {total === 1 ? "Member" : "Members"}</span>
+                                {deleted > 0 && (
+                                  <span className="font-semibold text-rose-600 dark:text-rose-400">({deleted} deleted)</span>
+                                )}
+                              </span>
+                            );
+                          })()}
                         </div>
                         {dept.description && (
                           <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
@@ -621,6 +694,16 @@ export const DepartmentsPage: React.FC = () => {
                                         <span className="text-xs font-bold text-slate-900 dark:text-white">
                                           {des.name}
                                         </span>
+                                        {(() => {
+                                          const desId = Number(des.id ?? des.Id ?? 0);
+                                          const count = desMemberCounts[desId] ?? des.userCount ?? 0;
+                                          if (count === 0) return null;
+                                          return (
+                                            <span className="rounded-md bg-teal-50 px-1.5 py-0.5 text-[10px] font-medium text-teal-700 border border-teal-200/60 dark:bg-teal-950 dark:text-teal-300 dark:border-teal-800">
+                                              {count} {count === 1 ? "user" : "users"}
+                                            </span>
+                                          );
+                                        })()}
                                       </div>
                                       {des.description && (
                                         <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
@@ -704,9 +787,26 @@ export const DepartmentsPage: React.FC = () => {
 
                   {/* Card Footer Actions */}
                   <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
-                    <span className="text-xs font-semibold text-slate-500">
-                      {dept.userCount || 0} Members
-                    </span>
+                    <div>
+                      {(() => {
+                        const { total, active, deleted } = getDeptCounts(dept);
+                        return (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                              {total} {total === 1 ? "Member" : "Members"}
+                            </span>
+                            {deleted > 0 && (
+                              <span
+                                className="inline-flex items-center rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 border border-rose-200/60 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
+                                title={`${active} active, ${deleted} deleted`}
+                              >
+                                {deleted} deleted
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
 
                     <div className="flex items-center gap-1.5">
                       {can("permissions.manage") && (
@@ -803,7 +903,27 @@ export const DepartmentsPage: React.FC = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-300">
-                          {dept.userCount || 0}
+                          {(() => {
+                            const { total, active, deleted } = getDeptCounts(dept);
+                            if (total === 0) {
+                              return <span className="font-normal text-slate-400 dark:text-slate-500">0</span>;
+                            }
+                            return (
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-900 dark:text-white">
+                                  {total}
+                                </span>
+                                {deleted > 0 && (
+                                  <span
+                                    className="inline-flex items-center rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 border border-rose-200/60 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
+                                    title={`${active} active, ${deleted} deleted`}
+                                  >
+                                    {deleted} deleted
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                         <td className="px-6 py-4 text-right">
                           <div className="flex items-center justify-end gap-1.5">

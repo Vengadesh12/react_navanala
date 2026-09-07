@@ -1095,7 +1095,7 @@ export const DashboardPage: React.FC = () => {
                 )}
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Workspace administration & live system controls overview
+                
               </p>
             </div>
           </div>

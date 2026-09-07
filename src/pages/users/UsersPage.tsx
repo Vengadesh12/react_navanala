@@ -4,6 +4,7 @@ import {
   Add,
   Edit,
   Delete,
+  DeleteOutline,
   People,
   Shield,
   Refresh,
@@ -142,6 +143,10 @@ export const UsersPage: React.FC = () => {
     if (activeSessions.length === 0) return 0;
     return activeUserIds.size > 0 ? activeUserIds.size : activeSessions.length;
   }, [activeSessions, activeUserIds]);
+
+  const deletedUsersCount = useMemo(() => {
+    return users.filter((u) => !isUserActive(u)).length;
+  }, [users]);
 
   const filteredUsers = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
@@ -336,6 +341,18 @@ export const UsersPage: React.FC = () => {
       String(activeUsersCount),
     ].some((t) => t.toLowerCase().includes(q));
 
+  const matchDeletedUsersCard =
+    !q ||
+    [
+      "deleted users",
+      "deleted user",
+      "deleted",
+      "inactive",
+      "trash",
+      "archived",
+      String(deletedUsersCount),
+    ].some((t) => t.toLowerCase().includes(q));
+
   const matchRolesCard =
     !q ||
     [
@@ -349,6 +366,7 @@ export const UsersPage: React.FC = () => {
   const visibleMetricCount =
     (matchTotalMembers ? 1 : 0) +
     (matchActiveUsersCard ? 1 : 0) +
+    (matchDeletedUsersCard ? 1 : 0) +
     (matchRolesCard ? 1 : 0);
 
   return (
@@ -393,7 +411,9 @@ export const UsersPage: React.FC = () => {
                 ? "sm:grid-cols-1 md:max-w-md"
                 : visibleMetricCount === 2
                 ? "sm:grid-cols-2"
-                : "sm:grid-cols-2 lg:grid-cols-3"
+                : visibleMetricCount === 3
+                ? "sm:grid-cols-2 lg:grid-cols-3"
+                : "sm:grid-cols-2 lg:grid-cols-4"
             }`}
           >
             {matchTotalMembers && (
@@ -403,6 +423,9 @@ export const UsersPage: React.FC = () => {
                 note="Registered directory records"
                 icon={<People sx={{ fontSize: 24 }} />}
                 iconBgColor="bg-indigo-50 text-indigo-600"
+                color="indigo"
+                onClick={() => setStatusFilter("ALL")}
+                className={statusFilter === "ALL" ? "ring-2 ring-indigo-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
               />
             )}
 
@@ -413,6 +436,26 @@ export const UsersPage: React.FC = () => {
                 note="Currently active in workspace"
                 icon={<CheckCircle sx={{ fontSize: 24 }} />}
                 iconBgColor="bg-emerald-50 text-emerald-600"
+                color="emerald"
+                onClick={() => setStatusFilter(statusFilter === "ONLINE" ? "ALL" : "ONLINE")}
+                className={statusFilter === "ONLINE" ? "ring-2 ring-emerald-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+              />
+            )}
+
+            {matchDeletedUsersCard && (
+              <MetricCard
+                label="Deleted Users"
+                value={deletedUsersCount}
+                note={
+                  deletedUsersCount === 1
+                    ? "1 deactivated directory record"
+                    : `${deletedUsersCount} deactivated directory records`
+                }
+                icon={<DeleteOutline sx={{ fontSize: 24 }} />}
+                iconBgColor="bg-rose-50 text-rose-600"
+                color="rose"
+                onClick={() => setStatusFilter(statusFilter === "DELETED" ? "ALL" : "DELETED")}
+                className={statusFilter === "DELETED" ? "ring-2 ring-rose-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
               />
             )}
 
@@ -423,6 +466,7 @@ export const UsersPage: React.FC = () => {
                 note="Configured role options"
                 icon={<Shield sx={{ fontSize: 24 }} />}
                 iconBgColor="bg-purple-50 text-purple-600"
+                color="purple"
               />
             )}
           </div>
@@ -464,7 +508,7 @@ export const UsersPage: React.FC = () => {
               <option value="ALL">All Status</option>
               <option value="ACTIVE">Active Accounts</option>
               <option value="ONLINE">Currently Online ({activeUsersCount})</option>
-              <option value="DELETED">Deleted Only</option>
+              <option value="DELETED">Deleted Only ({deletedUsersCount})</option>
             </select>
 
             <button

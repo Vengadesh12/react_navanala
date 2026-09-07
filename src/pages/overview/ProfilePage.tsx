@@ -463,7 +463,7 @@ export const ProfilePage: React.FC = () => {
                   </div>
 
                   <p className="mt-3 text-[11px] text-slate-400">
-                    JPG, PNG, WEBP or GIF. Max upload size is 5MB. Photo will be displayed on the navbar, dashboard and your account profile.
+                    JPG, PNG, WEBP or GIF. Max upload size is 5MB.
                   </p>
                 </div>
               </div>

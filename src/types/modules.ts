@@ -292,6 +292,8 @@ export interface Department {
   createdAt: string;
   designationCount?: number;
   userCount?: number;
+  activeUserCount?: number;
+  deletedUserCount?: number;
   designations?: Designation[];
 }
 

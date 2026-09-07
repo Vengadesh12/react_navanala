@@ -11,6 +11,7 @@ export interface Designation {
   DepartmentName?: string | null;
   deletedFlag?: number;
   DeletedFlag?: number;
+  userCount?: number;
 }
 
 export interface User {
