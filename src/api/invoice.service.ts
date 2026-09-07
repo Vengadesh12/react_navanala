@@ -32,6 +32,10 @@ export const invoiceService = {
     return apiClient<InvoiceSummaryDto>("/api/invoices/summary");
   },
 
+  getNextInvoiceNumber: async (): Promise<{ nextInvoiceNumber: string }> => {
+    return apiClient<{ nextInvoiceNumber: string }>("/api/invoices/next-number");
+  },
+
   getInvoiceById: async (id: number): Promise<InvoiceDto> => {
     return apiClient<InvoiceDto>(`/api/invoices/${id}`);
   },
@@ -49,6 +53,14 @@ export const invoiceService = {
       method: "PUT",
       includeJson: true,
       body: JSON.stringify(payload),
+    });
+  },
+
+  updateInvoiceStatus: async (id: number, status: string): Promise<{ success: boolean; id: number; status: string }> => {
+    return apiClient<{ success: boolean; id: number; status: string }>(`/api/invoices/${id}/status`, {
+      method: "PATCH",
+      includeJson: true,
+      body: JSON.stringify({ status }),
     });
   },
 

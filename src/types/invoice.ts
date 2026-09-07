@@ -72,6 +72,7 @@ export interface InvoiceSummaryDto {
   totalInvoicedAmount: number;
   totalPaidAmount: number;
   totalPendingAmount: number;
+  totalOverdueAmount: number;
   totalGstCollected: number;
   paidCount: number;
   pendingCount: number;

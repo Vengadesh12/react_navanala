@@ -21,6 +21,7 @@ import {
   HourglassEmptyOutlined,
   CheckCircleOutline,
   StorefrontOutlined,
+  WarningAmberOutlined,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
@@ -49,6 +50,24 @@ const STATUS_TABS = [
 
 const GST_RATES = [0, 5, 12, 18, 28];
 
+export const computeNextInvoiceNumber = (existingInvoices: InvoiceDto[]): string => {
+  const currentYear = new Date().getFullYear();
+  const prefix = `INV-${currentYear}-`;
+  let maxNum = 0;
+  if (existingInvoices && existingInvoices.length > 0) {
+    for (const inv of existingInvoices) {
+      if (inv.invoiceNumber && inv.invoiceNumber.toUpperCase().startsWith(prefix)) {
+        const suffix = inv.invoiceNumber.substring(prefix.length);
+        const parsed = parseInt(suffix, 10);
+        if (!isNaN(parsed) && parsed > maxNum) {
+          maxNum = parsed;
+        }
+      }
+    }
+  }
+  return `${prefix}${String(maxNum + 1).padStart(4, "0")}`;
+};
+
 export const InvoicesPage: React.FC = () => {
   const { user, can } = useAuth();
 
@@ -69,6 +88,7 @@ export const InvoicesPage: React.FC = () => {
     totalInvoicedAmount: 0,
     totalPaidAmount: 0,
     totalPendingAmount: 0,
+    totalOverdueAmount: 0,
     totalGstCollected: 0,
     paidCount: 0,
     pendingCount: 0,
@@ -161,6 +181,7 @@ export const InvoicesPage: React.FC = () => {
   ]);
 
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [fetchingNextNumber, setFetchingNextNumber] = useState<boolean>(false);
 
   // Load Invoices & Summary
   const loadData = useCallback(async () => {
@@ -187,6 +208,57 @@ export const InvoicesPage: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  // Client-side Overdue computations (fallback & instant reactivity)
+  const computedOverdueAmount = useMemo(() => {
+    if (summary.totalOverdueAmount && summary.totalOverdueAmount > 0) {
+      return summary.totalOverdueAmount;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return invoices
+      .filter((inv) => {
+        const st = (inv.status || "").toLowerCase();
+        if (st === "overdue") return true;
+        if (st === "pending" && inv.dueDate) {
+          return new Date(inv.dueDate) < today;
+        }
+        return false;
+      })
+      .reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
+  }, [summary.totalOverdueAmount, invoices]);
+
+  const computedOverdueCount = useMemo(() => {
+    if (summary.overdueCount && summary.overdueCount > 0) {
+      return summary.overdueCount;
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return invoices.filter((inv) => {
+      const st = (inv.status || "").toLowerCase();
+      if (st === "overdue") return true;
+      if (st === "pending" && inv.dueDate) {
+        return new Date(inv.dueDate) < today;
+      }
+      return false;
+    }).length;
+  }, [summary.overdueCount, invoices]);
+
+  // Quick Status Update
+  const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
+
+  const handleQuickStatusChange = async (invoiceId: number, newStatus: string) => {
+    try {
+      setUpdatingStatusId(invoiceId);
+      await invoiceService.updateInvoiceStatus(invoiceId, newStatus);
+      showSuccessAlert("Status Updated", `Invoice status updated to ${newStatus}.`);
+      await loadData();
+    } catch (err: any) {
+      showErrorAlert("Update Failed", err?.message || "Failed to update status.");
+    } finally {
+      setUpdatingStatusId(null);
+    }
+  };
 
   // Real-time Calculations
   const calculatedSubtotal = useMemo(() => {
@@ -262,9 +334,47 @@ export const InvoicesPage: React.FC = () => {
     setItems([{ productName: "", description: "", quantity: 1, unitPrice: 0, taxRate: 18 }]);
   };
 
+  const fetchAndSetNextInvoiceNumber = async (initialNum?: string) => {
+    try {
+      setFetchingNextNumber(true);
+      const res = await invoiceService.getNextInvoiceNumber();
+      if (res?.nextInvoiceNumber) {
+        setInvoiceNumber((prev) => {
+          if (!prev || prev === initialNum) {
+            return res.nextInvoiceNumber;
+          }
+          return prev;
+        });
+      }
+    } catch {
+      // Fallback already assigned
+    } finally {
+      setFetchingNextNumber(false);
+    }
+  };
+
   const openAddModal = () => {
     resetForm();
+    const autoNum = computeNextInvoiceNumber(invoices);
+    setInvoiceNumber(autoNum);
     setIsAddModalOpen(true);
+    fetchAndSetNextInvoiceNumber(autoNum);
+  };
+
+  const handleRegenerateInvoiceNumber = async () => {
+    try {
+      setFetchingNextNumber(true);
+      const res = await invoiceService.getNextInvoiceNumber();
+      if (res?.nextInvoiceNumber) {
+        setInvoiceNumber(res.nextInvoiceNumber);
+        return;
+      }
+    } catch {
+      // Fallback
+    } finally {
+      setFetchingNextNumber(false);
+    }
+    setInvoiceNumber(computeNextInvoiceNumber(invoices));
   };
 
   const openEditModal = (inv: InvoiceDto) => {
@@ -320,8 +430,22 @@ export const InvoicesPage: React.FC = () => {
       return;
     }
 
+    const trimmedInvoiceNumber = invoiceNumber.trim();
+    if (trimmedInvoiceNumber) {
+      const duplicate = invoices.find(
+        (inv) => inv.id !== editId && inv.invoiceNumber?.trim().toLowerCase() === trimmedInvoiceNumber.toLowerCase()
+      );
+      if (duplicate) {
+        showErrorAlert(
+          "Duplicate Invoice Number",
+          `Invoice number "${trimmedInvoiceNumber}" is already in use by ${duplicate.customerName}. Please specify a unique invoice number.`
+        );
+        return;
+      }
+    }
+
     const payload: CreateInvoicePayload = {
-      invoiceNumber: invoiceNumber.trim() || undefined,
+      invoiceNumber: trimmedInvoiceNumber || undefined,
       customerName: customerName.trim(),
       customerEmail: customerEmail.trim() || undefined,
       customerPhone: customerPhone.trim() || undefined,
@@ -430,10 +554,14 @@ export const InvoicesPage: React.FC = () => {
         </div>
 
         {/* KPI Metrics Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 sm:gap-4">
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+          <div
+            onClick={() => setStatusFilter("ALL")}
+            className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs hover:border-blue-400 dark:hover:border-blue-700 transition-all cursor-pointer group"
+            title="Click to view all invoices"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Invoiced</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">Total Invoiced</span>
               <span className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400 flex items-center justify-center">
                 <ReceiptLongOutlined sx={{ fontSize: 18 }} />
               </span>
@@ -442,13 +570,17 @@ export const InvoicesPage: React.FC = () => {
               ₹{(summary.totalInvoicedAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </p>
             <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-              {summary.totalInvoices || 0} Total Generated Invoices
+              {summary.totalInvoices || 0} Total Invoices
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
+          <div
+            onClick={() => setStatusFilter("Paid")}
+            className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs hover:border-emerald-400 dark:hover:border-emerald-700 transition-all cursor-pointer group"
+            title="Click to filter Paid invoices"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Paid Revenue</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Paid Revenue</span>
               <span className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400 flex items-center justify-center">
                 <CheckCircleOutline sx={{ fontSize: 18 }} />
               </span>
@@ -461,9 +593,13 @@ export const InvoicesPage: React.FC = () => {
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
+          <div
+            onClick={() => setStatusFilter("Pending")}
+            className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs hover:border-amber-400 dark:hover:border-amber-700 transition-all cursor-pointer group"
+            title="Click to filter Pending invoices"
+          >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Pending Amount</span>
+              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Pending Amount</span>
               <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400 flex items-center justify-center">
                 <HourglassEmptyOutlined sx={{ fontSize: 18 }} />
               </span>
@@ -472,7 +608,29 @@ export const InvoicesPage: React.FC = () => {
               ₹{(summary.totalPendingAmount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
             </p>
             <p className="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5">
-              {summary.pendingCount || 0} Invoices Awaiting Payment
+              {summary.pendingCount || 0} Awaiting Payment
+            </p>
+          </div>
+
+          <div
+            onClick={() => setStatusFilter("Overdue")}
+            className="rounded-2xl border border-rose-200/90 dark:border-rose-900/60 bg-rose-50/40 dark:bg-rose-950/20 p-4 shadow-xs hover:border-rose-500 dark:hover:border-rose-500 hover:shadow-md transition-all cursor-pointer group ring-1 ring-rose-200/50 dark:ring-rose-900/30"
+            title="Click to filter Overdue invoices"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-rose-600 dark:text-rose-400 group-hover:underline flex items-center gap-1">
+                Overdue Amount
+              </span>
+              <span className="w-8 h-8 rounded-xl bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 flex items-center justify-center shadow-xs">
+                <WarningAmberOutlined sx={{ fontSize: 18 }} />
+              </span>
+            </div>
+            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-2">
+              ₹{computedOverdueAmount.toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+            </p>
+            <p className="text-[11px] text-rose-600/90 dark:text-rose-400/90 mt-0.5 flex items-center justify-between">
+              <span>{computedOverdueCount} Overdue Invoices</span>
+              <span className="text-[10px] font-semibold underline">Filter &rarr;</span>
             </p>
           </div>
 
@@ -635,13 +793,31 @@ export const InvoicesPage: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getStatusBadge(
-                            inv.status
-                          )}`}
-                        >
-                          {inv.status}
-                        </span>
+                        {can("invoices.edit") || can("invoices.manage") ? (
+                          <select
+                            value={inv.status}
+                            disabled={updatingStatusId === inv.id}
+                            onChange={(e) => handleQuickStatusChange(inv.id, e.target.value)}
+                            title="Quick change invoice status"
+                            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold cursor-pointer focus:outline-hidden transition-all shadow-2xs ${getStatusBadge(
+                              inv.status
+                            )} ${updatingStatusId === inv.id ? "opacity-40 animate-pulse" : ""}`}
+                          >
+                            <option value="Draft" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Draft</option>
+                            <option value="Pending" className="bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400">Pending</option>
+                            <option value="Paid" className="bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400">Paid</option>
+                            <option value="Overdue" className="bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 font-bold">Overdue</option>
+                            <option value="Cancelled" className="bg-white dark:bg-slate-900 text-slate-500">Cancelled</option>
+                          </select>
+                        ) : (
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getStatusBadge(
+                              inv.status
+                            )}`}
+                          >
+                            {inv.status}
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
@@ -654,7 +830,7 @@ export const InvoicesPage: React.FC = () => {
                             <VisibilityOutlined sx={{ fontSize: 18 }} />
                           </button>
 
-                          {/* {(can("invoices.edit") || can("invoices.manage")) && (
+                          {(can("invoices.edit") || can("invoices.manage")) && (
                             <button
                               type="button"
                               title="Edit Invoice"
@@ -663,7 +839,7 @@ export const InvoicesPage: React.FC = () => {
                             >
                               <EditOutlined sx={{ fontSize: 18 }} />
                             </button>
-                          )} */}
+                          )}
 
                           <button
                             type="button"
@@ -796,16 +972,21 @@ export const InvoicesPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="mb-1 block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                      Invoice Number
-                    </label>
-                    <input
-                      type="text"
-                      value={invoiceNumber}
-                      onChange={(e) => setInvoiceNumber(e.target.value)}
-                      placeholder="Auto-generated (e.g. INV-2026-0001)"
-                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-600 focus:outline-hidden"
-                    />
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Invoice Number
+                      </label>
+                    </div>
+                    <div className="relative flex items-center">
+                      <input
+                        type="text"
+                        value={invoiceNumber}
+                        onChange={(e) => setInvoiceNumber(e.target.value)}
+                        placeholder="e.g. INV-2026-0001"
+                        className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 pr-16 text-xs font-mono font-medium text-slate-900 dark:text-white placeholder-slate-400 focus:border-indigo-600 focus:outline-hidden"
+                      />
+                      
+                    </div>
                   </div>
                 </div>
               </div>
