@@ -1139,7 +1139,7 @@ export const DashboardPage: React.FC = () => {
               <Celebration sx={{ fontSize: 16 }} className="text-yellow-300 animate-bounce" />
               <span className="hidden sm:inline">Blast Fireworks</span>
               <span className="sm:hidden">Fireworks</span>
-            </button> */}            <button
+            </button> }            <button
               type="button"
               onClick={() => loadDashboard(timeframe, true)}
               disabled={refreshing}
@@ -1592,6 +1592,7 @@ export const DashboardPage: React.FC = () => {
             )}
           </div>
         )}
+        
 
         {/* 2. Middle Row: Dynamic Charts Section */}
         {visibleChartCount > 0 && (

@@ -145,6 +145,23 @@ export const ReportsPage: React.FC = () => {
     fileName: undefined,
   });
   const [submitting, setSubmitting] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragCounterRef = useRef<number>(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Prevent browser from navigating to dropped file when dropped outside the dropzone
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const preventDrag = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener("dragover", preventDrag);
+    window.addEventListener("drop", preventDrag);
+    return () => {
+      window.removeEventListener("dragover", preventDrag);
+      window.removeEventListener("drop", preventDrag);
+    };
+  }, [isModalOpen]);
 
   const fetchCategories = useCallback(async () => {
     try {
@@ -211,6 +228,11 @@ export const ReportsPage: React.FC = () => {
       file: null,
       fileName: undefined,
     });
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     setIsModalOpen(true);
   };
 
@@ -226,6 +248,11 @@ export const ReportsPage: React.FC = () => {
       file: null,
       fileName: report.fileName,
     });
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     setIsModalOpen(true);
   };
 
@@ -235,23 +262,34 @@ export const ReportsPage: React.FC = () => {
       saveAbortControllerRef.current = null;
     }
     setSubmitting(false);
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
     setIsModalOpen(false);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const ALLOWED_EXTENSIONS = ["pdf", "csv", "xlsx", "xls", "json", "doc", "docx", "txt"];
+  const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15 MB
+
+  const processSelectedFile = (file: File) => {
     if (!file) return;
 
-    // Strict 15 MB check: 15 * 1024 * 1024 bytes = 15,728,640 bytes
-    const MAX_SIZE = 15 * 1024 * 1024;
-    if (file.size > MAX_SIZE) {
+    if (file.size > MAX_FILE_SIZE) {
       showErrorToast(`File size (${(file.size / (1024 * 1024)).toFixed(2)} MB) exceeds 15 MB limit. Please select a smaller file.`);
-      e.target.value = "";
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
+    const ext = file.name.split(".").pop()?.toLowerCase() || "";
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      showErrorToast(`Unsupported file type (.${ext}). Allowed formats: PDF, CSV, Excel, Word, JSON, TXT.`);
+      if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
 
     // Auto-detect format based on file extension
-    const ext = file.name.split(".").pop()?.toLowerCase() || "";
     let detectedFormat = formData.format;
     if (ext === "pdf") detectedFormat = "PDF";
     else if (ext === "csv") detectedFormat = "CSV";
@@ -272,6 +310,57 @@ export const ReportsPage: React.FC = () => {
       file,
       fileName: file.name,
     }));
+
+    showSuccessToast(`Document attached: "${file.name}"`);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processSelectedFile(file);
+    }
+    e.target.value = "";
+  };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current += 1;
+    if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = "copy";
+    if (!isDragging) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current -= 1;
+    if (dragCounterRef.current <= 0) {
+      setIsDragging(false);
+      dragCounterRef.current = 0;
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+
+    if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      const droppedFile = e.dataTransfer.files[0];
+      processSelectedFile(droppedFile);
+      e.dataTransfer.clearData();
+    }
   };
 
   const handleRemoveFile = () => {
@@ -280,6 +369,9 @@ export const ReportsPage: React.FC = () => {
       file: null,
       fileName: undefined,
     }));
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -857,65 +949,114 @@ export const ReportsPage: React.FC = () => {
                 />
               </div>
 
-              {/* Choose File Option (< 15 MB) */}
+              {/* Choose / Drag & Drop File Option (< 15 MB) */}
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Attach Report Document <span className="text-slate-400 font-normal">(Max 15 MB)</span>
                 </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileInputChange}
+                  accept=".pdf,.csv,.xlsx,.xls,.json,.doc,.docx,.txt"
+                />
                 {!formData.file && !formData.fileName ? (
-                  <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer bg-slate-50/50 hover:bg-slate-100/60 hover:border-blue-400 transition-all group">
-                    <div className="flex flex-col items-center justify-center pt-2 pb-2">
-                      <CloudUploadOutlined className="text-slate-400 group-hover:text-blue-600 transition-colors mb-1" sx={{ fontSize: 24 }} />
-                      <p className="text-xs font-semibold text-slate-700 group-hover:text-blue-600">
-                        Click to choose file or drag & drop
+                  <div
+                    onDragEnter={handleDragEnter}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        fileInputRef.current?.click();
+                      }
+                    }}
+                    className={`relative flex flex-col items-center justify-center w-full min-h-[112px] border-2 border-dashed rounded-xl cursor-pointer transition-all duration-200 select-none ${
+                      isDragging
+                        ? "border-blue-500 bg-blue-50/90 ring-4 ring-blue-500/20 shadow-inner scale-[1.01]"
+                        : "border-slate-200 bg-slate-50/50 hover:bg-slate-100/60 hover:border-blue-400"
+                    }`}
+                  >
+                    <div className="pointer-events-none flex flex-col items-center justify-center py-3 px-4 text-center">
+                      <div
+                        className={`grid h-10 w-10 place-items-center rounded-xl transition-all duration-200 mb-1.5 ${
+                          isDragging
+                            ? "bg-blue-600 text-white scale-110 shadow-md shadow-blue-500/30 animate-bounce"
+                            : "bg-blue-50 text-blue-600"
+                        }`}
+                      >
+                        <CloudUploadOutlined sx={{ fontSize: 24 }} />
+                      </div>
+                      <p
+                        className={`text-xs font-bold transition-colors ${
+                          isDragging ? "text-blue-600" : "text-slate-700"
+                        }`}
+                      >
+                        {isDragging ? "Drop document here to attach" : "Click to choose file or drag & drop"}
                       </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">
+                      <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
                         PDF, CSV, Excel, Word, JSON, TXT · Maximum 15 MB
                       </p>
                     </div>
-                    <input
-                      type="file"
-                      className="hidden"
-                      onChange={handleFileChange}
-                      accept=".pdf,.csv,.xlsx,.xls,.json,.doc,.docx,.txt"
-                    />
-                  </label>
+                  </div>
                 ) : (
-                  <div className="flex items-center justify-between p-3 rounded-xl border border-blue-200 bg-blue-50/40">
-                    <div className="flex items-center gap-2.5 overflow-hidden">
-                      <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-100 text-blue-600">
-                        <InsertDriveFileOutlined sx={{ fontSize: 18 }} />
+                  <div
+                    onDragEnter={handleDragEnter}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`relative flex items-center justify-between p-3 rounded-xl border transition-all duration-200 ${
+                      isDragging
+                        ? "border-blue-500 bg-blue-100/70 ring-4 ring-blue-500/20 shadow-inner"
+                        : "border-blue-200 bg-blue-50/40"
+                    }`}
+                  >
+                    {isDragging ? (
+                      <div className="pointer-events-none flex items-center justify-center gap-2 w-full py-2 text-blue-600 font-semibold text-xs animate-pulse">
+                        <CloudUploadOutlined sx={{ fontSize: 20 }} />
+                        <span>Drop new file here to replace document</span>
                       </div>
-                      <div className="truncate">
-                        <p className="text-xs font-semibold text-slate-800 truncate">
-                          {formData.file?.name || formData.fileName}
-                        </p>
-                        <p className="text-[10px] text-blue-600 font-mono">
-                          {formData.file
-                            ? `${(formData.file.size / (1024 * 1024)).toFixed(2)} MB / 15 MB limit`
-                            : "Existing document in database"}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <label className="cursor-pointer text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline px-2 py-1">
-                        Change
-                        <input
-                          type="file"
-                          className="hidden"
-                          onChange={handleFileChange}
-                          accept=".pdf,.csv,.xlsx,.xls,.json,.doc,.docx,.txt"
-                        />
-                      </label>
-                      <button
-                        type="button"
-                        onClick={handleRemoveFile}
-                        className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
-                        title="Remove file"
-                      >
-                        <Close sx={{ fontSize: 16 }} />
-                      </button>
-                    </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2.5 overflow-hidden">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-100 text-blue-600">
+                            <InsertDriveFileOutlined sx={{ fontSize: 18 }} />
+                          </div>
+                          <div className="truncate">
+                            <p className="text-xs font-semibold text-slate-800 truncate">
+                              {formData.file?.name || formData.fileName}
+                            </p>
+                            <p className="text-[10px] text-blue-600 font-mono">
+                              {formData.file
+                                ? `${(formData.file.size / (1024 * 1024)).toFixed(2)} MB / 15 MB limit`
+                                : "Existing document in database"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="cursor-pointer text-[11px] font-semibold text-blue-600 hover:text-blue-800 hover:underline px-2 py-1"
+                          >
+                            Change
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRemoveFile}
+                            className="rounded-lg p-1 text-slate-400 hover:bg-rose-50 hover:text-rose-600 cursor-pointer"
+                            title="Remove file"
+                          >
+                            <Close sx={{ fontSize: 16 }} />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

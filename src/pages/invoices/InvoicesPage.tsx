@@ -151,7 +151,8 @@ export const InvoicesPage: React.FC = () => {
   const [discountAmount, setDiscountAmount] = useState<string>("0");
   const [notes, setNotes] = useState<string>("Thank you for doing business with NavaNala Technologies.");
   const [termsAndConditions, setTermsAndConditions] = useState<string>(
-    "1. Payment due within 15 days of invoice issue.\n2. 18% GST applicable as per standard Indian Tax guidelines.\n3. Remit payments via Bank Transfer / NEFT / RTGS or UPI."
+    // "1. Payment due within 15 days of invoice issue.\n2. 18% GST applicable as per standard Indian Tax guidelines.\n3. Remit payments via Bank Transfer / NEFT / RTGS or UPI."
+    ""
   );
 
   // Dynamic Line Items
@@ -255,7 +256,8 @@ export const InvoicesPage: React.FC = () => {
     setDiscountAmount("0");
     setNotes("Thank you for doing business with NavaNala Technologies.");
     setTermsAndConditions(
-      "1. Payment due within 15 days of invoice issue.\n2. 18% GST applicable as per standard Indian Tax guidelines.\n3. Remit payments via Bank Transfer / NEFT / RTGS or UPI."
+      // "1. Payment due within 15 days of invoice issue.\n2. 18% GST applicable as per standard Indian Tax guidelines.\n3. Remit payments via Bank Transfer / NEFT / RTGS or UPI."
+      ""
     );
     setItems([{ productName: "", description: "", quantity: 1, unitPrice: 0, taxRate: 18 }]);
   };
