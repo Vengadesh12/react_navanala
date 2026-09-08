@@ -32,12 +32,14 @@ export interface SidebarProps {
   activeKey?: string;
   menuOpen: boolean;
   onCloseMenu: () => void;
+  onLogout?: () => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
   activeKey,
   menuOpen,
   onCloseMenu,
+  onLogout,
 }) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -98,8 +100,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       true
     );
     if (res.isConfirmed) {
-      await logout();
-      navigate("/login", { replace: true });
+      if (onLogout) {
+        onLogout();
+      } else {
+        await logout();
+        navigate("/login", { replace: true });
+      }
     }
   };
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import {
   Add,
   Edit,
@@ -39,6 +39,7 @@ import type { Role, Designation, User, UserFormData, UserStatusFilter, UserSessi
 
 export const UsersPage: React.FC = () => {
   const { can } = useAuth();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   const canCreateUsers = can("users.create") || can("users.manage");
@@ -467,6 +468,7 @@ export const UsersPage: React.FC = () => {
                 icon={<Shield sx={{ fontSize: 24 }} />}
                 iconBgColor="bg-purple-50 text-purple-600"
                 color="purple"
+                onClick={() => navigate("/roles")}
               />
             )}
           </div>

@@ -43,8 +43,17 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
       return;
     }
 
+    if (Array.isArray(user.permissions)) {
+      const isAllowed = can(permission);
+      if (!isAllowed) {
+        navigate(getFirstAccessiblePath(user), { replace: true });
+      }
+      setChecking(false);
+      return;
+    }
+
     refreshPermissions()
-      .then((perms) => {
+      .then(() => {
         const isAllowed = can(permission);
         if (!isAllowed) {
           navigate(getFirstAccessiblePath(user), { replace: true });
@@ -58,7 +67,7 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
       .finally(() => {
         setChecking(false);
       });
-  }, [navigate, permission]);
+  }, [navigate, permission, user]);
 
   if (checking) {
     return <LoadingSpinner fullScreen message="Verifying workspace credentials..." />;
@@ -81,6 +90,7 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
         activeKey={permission}
         menuOpen={menuOpen}
         onCloseMenu={() => setMenuOpen(false)}
+        onLogout={handleLogout}
       />
 
       {/* Main Content */}

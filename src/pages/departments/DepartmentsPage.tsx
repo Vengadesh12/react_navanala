@@ -330,7 +330,6 @@ export const DepartmentsPage: React.FC = () => {
                 {overview.mappedDesignations}{" "}
                 <span className="text-xs font-normal text-slate-400">/ {overview.totalDesignations}</span>
               </p>
-              <p className="mt-0.5 text-[11px] text-slate-500">Linked to departments in DB</p>
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">

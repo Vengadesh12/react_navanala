@@ -52,10 +52,18 @@ export const setStoredUser = (user: LoggedInUser): void => {
 };
 
 export const clearSession = (): void => {
-  sessionStorage.clear();
+  try {
+    sessionStorage.clear();
+  } catch {
+    // Ignore storage errors
+  }
   try {
     localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN);
     localStorage.removeItem(STORAGE_KEYS.LOGGED_IN_USER);
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
   } catch {
     // Ignore storage errors
   }

@@ -11,13 +11,22 @@ export interface ProtectedRouteProps {
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permission, children }) => {
   const { user, can, refreshPermissions } = useAuth();
-  const [status, setStatus] = useState<"checking" | "allowed" | "denied" | "login">(() =>
-    user ? "checking" : "login"
-  );
+  const [status, setStatus] = useState<"checking" | "allowed" | "denied" | "login">(() => {
+    if (!user) return "login";
+    if (Array.isArray(user.permissions)) {
+      return can(permission) ? "allowed" : "denied";
+    }
+    return "checking";
+  });
 
   useEffect(() => {
     if (!user) {
       setStatus("login");
+      return;
+    }
+
+    if (Array.isArray(user.permissions)) {
+      setStatus(can(permission) ? "allowed" : "denied");
       return;
     }
 

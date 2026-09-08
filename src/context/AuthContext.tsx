@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import { authService } from "../api/auth.service";
 import { menuService } from "../api/menu.service";
 import { canAccess as checkCanAccess, getFirstAccessiblePath } from "../config/workspace.config";
-import { clearSession, getStoredUser, setStoredToken, setStoredUser } from "../utils/storage";
+import { clearSession, getStoredToken, getStoredUser, setStoredToken, setStoredUser } from "../utils/storage";
 import { showErrorAlert } from "../utils/alerts";
 import type { AuthResponseData, LoggedInUser, LoginCredentials, MenuItemDto, GoogleLoginPayload } from "../types";
 
@@ -35,17 +35,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(false);
   const cachedUserId = useRef<number | null>(getStoredUser()?.id || null);
   const syncRequest = useRef<Promise<string[]> | null>(null);
+  const isLoggingOutRef = useRef<boolean>(false);
 
   // Global listener for terminated/force-logged-out sessions
   useEffect(() => {
     const handleForceLogout = (e: Event) => {
       const customEvent = e as CustomEvent<string>;
       const msg = customEvent.detail || "Your session has been terminated by an administrator. Please log in again.";
+      isLoggingOutRef.current = true;
       clearSession();
       cachedUserId.current = null;
       syncRequest.current = null;
       setUser(null);
       setMenus([]);
+      isLoggingOutRef.current = false;
       showErrorAlert("Session Terminated", msg);
     };
 
@@ -60,6 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user?.token) return;
 
     const interval = setInterval(async () => {
+      if (isLoggingOutRef.current || !getStoredToken()) return;
       try {
         await authService.getPermissions();
       } catch {
@@ -132,9 +136,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Dedicated function to explicitly refresh menus on-demand
   const refreshMenus = useCallback(async (): Promise<MenuItemDto[]> => {
-    if (!user) return [];
+    if (!user || isLoggingOutRef.current || !getStoredToken()) return [];
     try {
       const fetchedMenus = await menuService.getUserMenus();
+      if (isLoggingOutRef.current || !getStoredToken()) return [];
       setMenus(fetchedMenus);
       setUser((prev) => {
         if (!prev) return null;
@@ -151,16 +156,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Synchronize permissions and menus only when needed (or when force = true)
   const refreshPermissions = useCallback(
     async (force: boolean = false): Promise<string[]> => {
-      if (!user) return [];
+      if (!user || isLoggingOutRef.current || !getStoredToken()) return [];
 
       // If data is already cached in memory for this user and not forcing, return immediately without network calls
+      // Note: An empty array [] is a valid permissions set for 0-permission users
       if (
         !force &&
         cachedUserId.current === user.id &&
-        user.permissions &&
-        user.permissions.length > 0 &&
-        menus &&
-        menus.length > 0
+        Array.isArray(user.permissions)
       ) {
         return user.permissions;
       }
@@ -175,6 +178,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         menuService.getUserMenus(),
       ])
         .then(([permsResult, menusResult]) => {
+          // If session was cleared/logged out while request was in-flight, discard response
+          if (isLoggingOutRef.current || !getStoredToken() || cachedUserId.current === null) {
+            return [];
+          }
+
           const perms =
             permsResult.status === "fulfilled"
               ? permsResult.value.permissions || []
@@ -185,17 +193,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               ? menusResult.value || []
               : user.menus || [];
 
-          setMenus(userMenus);
+          // Compare if permissions or menus actually changed before updating state
+          const permsChanged =
+            !Array.isArray(user.permissions) ||
+            user.permissions.length !== perms.length ||
+            user.permissions.some((p, i) => p !== perms[i]);
 
-          const updatedUser: LoggedInUser = {
-            ...user,
-            permissions: perms,
-            menus: userMenus,
-          };
+          const menusChanged =
+            !Array.isArray(menus) ||
+            menus.length !== userMenus.length ||
+            menus.some((m, i) => m.id !== userMenus[i].id);
 
           cachedUserId.current = user.id;
-          setUser(updatedUser);
-          setStoredUser(updatedUser);
+
+          if (menusChanged) {
+            setMenus(userMenus);
+          }
+
+          if (permsChanged || menusChanged) {
+            const updatedUser: LoggedInUser = {
+              ...user,
+              permissions: perms,
+              menus: userMenus,
+            };
+            setUser(updatedUser);
+            setStoredUser(updatedUser);
+          }
+
           return perms;
         })
         .catch(() => user.permissions || [])
@@ -211,7 +235,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Fetch only once on app startup if session exists but menus/permissions are missing
   useEffect(() => {
-    if (user?.token && (!user.menus || user.menus.length === 0 || !user.permissions)) {
+    if (user?.token && (!Array.isArray(user.menus) || !Array.isArray(user.permissions))) {
       refreshPermissions(true);
     } else if (user?.id) {
       cachedUserId.current = user.id;
@@ -260,8 +284,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = useCallback(async (): Promise<void> => {
+    isLoggingOutRef.current = true;
     const currentUserId = user?.id;
     const currentUserEmail = user?.email;
+
+    // Immediately & synchronously wipe local session and state so no in-flight requests or route guards can resurrect it
+    clearSession();
+    cachedUserId.current = null;
+    syncRequest.current = null;
+    setUser(null);
+    setMenus([]);
 
     // Notify backend first so database receives authorization token and records session logout cleanly
     try {
@@ -271,12 +303,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err) {
       console.warn("Backend logout notification failed:", err);
     } finally {
-      // Immediately & synchronously wipe local session and state
+      // Ensure local state remains cleared
       clearSession();
       cachedUserId.current = null;
       syncRequest.current = null;
       setUser(null);
       setMenus([]);
+      isLoggingOutRef.current = false;
     }
   }, [user]);
 
