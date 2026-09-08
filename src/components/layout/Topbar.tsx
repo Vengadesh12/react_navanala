@@ -11,6 +11,7 @@ import {
   KeyboardArrowDown,
   AccountCircleOutlined,
   SecurityOutlined,
+  AccessTime,
 } from "@mui/icons-material";
 import { getRoleMeta } from "../../config/workspace.config";
 import { useTheme } from "../../context/ThemeContext";
@@ -44,7 +45,34 @@ export const Topbar: React.FC<TopbarProps> = ({
   const { isDarkMode, toggleDarkMode } = useTheme();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [localSearch, setLocalSearch] = useState("");
+  const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const hours = currentTime.getHours();
+  const minutes = currentTime.getMinutes();
+  const seconds = currentTime.getSeconds();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 === 0 ? 12 : hours % 12;
+  const pad = (num: number) => num.toString().padStart(2, "0");
+  const timeFormatted = `${pad(displayHours)}:${pad(minutes)}:${pad(seconds)}`;
+  const dateFormatted = currentTime.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+  const fullDateTooltip = currentTime.toLocaleDateString(undefined, {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   const isControlled = onSearchChange !== undefined;
   const currentSearch = isControlled ? (searchValue ?? "") : localSearch;
@@ -144,6 +172,32 @@ export const Topbar: React.FC<TopbarProps> = ({
             )}
           </div>
         )}
+      </div>
+
+      {/* Center: Live Current Time with Seconds */}
+      <div className="flex items-center justify-center px-2">
+        <div
+          className="flex items-center gap-2 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-700/60 transition-all duration-200 select-none"
+          title={`Current Local Time: ${fullDateTooltip}`}
+        >
+          <div className="flex items-center gap-1.5 text-indigo-600 dark:text-indigo-400">
+            <AccessTime sx={{ fontSize: 16 }} />
+            <span className="relative flex h-2 w-2" aria-hidden="true">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 font-mono text-xs sm:text-sm font-semibold tracking-wider tabular-nums text-slate-800 dark:text-slate-100">
+            <span className="hidden md:inline-block text-[11px] font-sans font-medium text-slate-500 dark:text-slate-400 border-r border-slate-200 dark:border-slate-800 pr-2 mr-0.5">
+              {dateFormatted}
+            </span>
+            <span>{timeFormatted}</span>
+            <span className="text-[10px] font-bold tracking-wider text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-100 dark:border-indigo-900/50 rounded px-1 py-0.5 uppercase font-sans">
+              {ampm}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Right: Theme Toggle, Notifications & User Profile */}
