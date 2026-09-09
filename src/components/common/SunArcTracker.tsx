@@ -1,9 +1,136 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
-import { WbSunny, DarkMode, AccessTime, AutoAwesome } from "@mui/icons-material";
+import {
+  WbSunny,
+  DarkMode,
+  AccessTime,
+  AutoAwesome,
+  Cloud,
+  Grain,
+  Thunderstorm,
+  Air,
+  WaterDrop,
+  LocationOn,
+  Refresh,
+  Thermostat,
+  WbTwilight,
+  Tune,
+  Close,
+  OpenInNew,
+} from "@mui/icons-material";
+import {
+  fetchNavaWeather,
+  WeatherData,
+  WeatherType,
+  NAVA_LOCATION,
+} from "../../api/weatherService";
 
 interface SunArcTrackerProps {
   className?: string;
 }
+
+const WEATHER_THEMES: Record<
+  WeatherType,
+  {
+    name: string;
+    bg: string;
+    borderHover: string;
+    borderNormal: string;
+    shadow: string;
+    accentText: string;
+    glowColor: string;
+  }
+> = {
+  sunny: {
+    name: "Clear & Sunny",
+    bg: "bg-gradient-to-r from-amber-500/15 via-orange-400/10 to-sky-400/15 dark:from-amber-950/40 dark:via-slate-900/90 dark:to-sky-950/40",
+    borderHover: "border-amber-400 dark:border-amber-500/70 shadow-md shadow-amber-500/15",
+    borderNormal: "border-amber-200/80 dark:border-amber-900/50 hover:border-amber-400/60",
+    shadow: "shadow-amber-500/10",
+    accentText: "text-amber-600 dark:text-amber-400",
+    glowColor: "rgba(245, 158, 11, 0.45)",
+  },
+  sunset: {
+    name: "Golden Sunset",
+    bg: "bg-gradient-to-r from-orange-500/25 via-rose-500/15 to-purple-600/20 dark:from-orange-950/60 dark:via-rose-950/50 dark:to-purple-950/60",
+    borderHover: "border-rose-400 dark:border-rose-500/70 shadow-md shadow-rose-500/15",
+    borderNormal: "border-rose-200/80 dark:border-rose-900/50 hover:border-rose-400/60",
+    shadow: "shadow-rose-500/10",
+    accentText: "text-rose-600 dark:text-rose-400",
+    glowColor: "rgba(244, 63, 94, 0.5)",
+  },
+  sunrise: {
+    name: "Golden Sunrise",
+    bg: "bg-gradient-to-r from-amber-500/20 via-orange-400/15 to-pink-500/20 dark:from-amber-950/50 dark:via-orange-950/40 dark:to-pink-950/50",
+    borderHover: "border-orange-400 dark:border-orange-500/70 shadow-md shadow-orange-500/15",
+    borderNormal: "border-orange-200/80 dark:border-orange-900/50 hover:border-orange-400/60",
+    shadow: "shadow-orange-500/10",
+    accentText: "text-orange-600 dark:text-orange-400",
+    glowColor: "rgba(249, 115, 22, 0.5)",
+  },
+  partly_cloudy_day: {
+    name: "Partly Cloudy",
+    bg: "bg-gradient-to-r from-sky-400/15 via-slate-100/60 to-blue-400/15 dark:from-sky-950/40 dark:via-slate-900/85 dark:to-slate-800/60",
+    borderHover: "border-sky-400 dark:border-sky-500/70 shadow-md shadow-sky-500/15",
+    borderNormal: "border-sky-200/80 dark:border-sky-900/50 hover:border-sky-400/60",
+    shadow: "shadow-sky-500/10",
+    accentText: "text-sky-600 dark:text-sky-400",
+    glowColor: "rgba(56, 189, 248, 0.35)",
+  },
+  partly_cloudy_night: {
+    name: "Scattered Clouds",
+    bg: "bg-gradient-to-r from-slate-900/30 via-indigo-950/30 to-slate-800/30 dark:from-slate-900/90 dark:via-indigo-950/80 dark:to-slate-900/90",
+    borderHover: "border-indigo-400 dark:border-indigo-500/70 shadow-md shadow-indigo-500/15",
+    borderNormal: "border-indigo-200/80 dark:border-indigo-900/50 hover:border-indigo-400/60",
+    shadow: "shadow-indigo-500/10",
+    accentText: "text-indigo-600 dark:text-indigo-400",
+    glowColor: "rgba(129, 140, 248, 0.35)",
+  },
+  cloudy: {
+    name: "Overcast Clouds",
+    bg: "bg-gradient-to-r from-slate-300/35 via-slate-200/40 to-slate-400/30 dark:from-slate-800/80 dark:via-slate-900/90 dark:to-slate-800/80",
+    borderHover: "border-slate-400 dark:border-slate-600 shadow-md shadow-slate-500/15",
+    borderNormal: "border-slate-300/80 dark:border-slate-800 hover:border-slate-400/60",
+    shadow: "shadow-slate-500/10",
+    accentText: "text-slate-600 dark:text-slate-300",
+    glowColor: "rgba(148, 163, 184, 0.3)",
+  },
+  rain: {
+    name: "Rain & Showers",
+    bg: "bg-gradient-to-r from-cyan-600/15 via-blue-500/15 to-slate-600/20 dark:from-cyan-950/50 dark:via-blue-950/60 dark:to-slate-900/90",
+    borderHover: "border-cyan-400 dark:border-cyan-500/70 shadow-md shadow-cyan-500/15",
+    borderNormal: "border-cyan-200/80 dark:border-cyan-900/50 hover:border-cyan-400/60",
+    shadow: "shadow-cyan-500/10",
+    accentText: "text-cyan-600 dark:text-cyan-400",
+    glowColor: "rgba(6, 182, 212, 0.4)",
+  },
+  thunderstorm: {
+    name: "Thunderstorm",
+    bg: "bg-gradient-to-r from-indigo-900/25 via-purple-900/25 to-slate-900/30 dark:from-indigo-950/70 dark:via-purple-950/70 dark:to-slate-950/90",
+    borderHover: "border-purple-400 dark:border-purple-500/70 shadow-md shadow-purple-500/15",
+    borderNormal: "border-purple-200/80 dark:border-purple-900/50 hover:border-purple-400/60",
+    shadow: "shadow-purple-500/10",
+    accentText: "text-purple-600 dark:text-purple-400",
+    glowColor: "rgba(168, 85, 247, 0.45)",
+  },
+  fog: {
+    name: "Misty & Foggy",
+    bg: "bg-gradient-to-r from-slate-200/40 via-teal-100/25 to-slate-300/35 dark:from-slate-800/60 dark:via-slate-900/80 dark:to-teal-950/40",
+    borderHover: "border-teal-400 dark:border-teal-500/70 shadow-md shadow-teal-500/15",
+    borderNormal: "border-teal-200/80 dark:border-teal-900/50 hover:border-teal-400/60",
+    shadow: "shadow-teal-500/10",
+    accentText: "text-teal-600 dark:text-teal-400",
+    glowColor: "rgba(45, 212, 191, 0.35)",
+  },
+  clear_night: {
+    name: "Clear Starlit Sky",
+    bg: "bg-gradient-to-r from-indigo-950/30 via-slate-900/40 to-blue-950/30 dark:from-indigo-950/80 dark:via-slate-900/95 dark:to-blue-950/80",
+    borderHover: "border-indigo-400 dark:border-indigo-500/70 shadow-md shadow-indigo-500/15",
+    borderNormal: "border-indigo-200/80 dark:border-indigo-900/50 hover:border-indigo-400/60",
+    shadow: "shadow-indigo-500/10",
+    accentText: "text-indigo-600 dark:text-indigo-400",
+    glowColor: "rgba(99, 102, 241, 0.45)",
+  },
+};
 
 export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) => {
   // Live real-time clock updating every second
@@ -12,37 +139,97 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
   const [hoverProgress, setHoverProgress] = useState<number | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
 
+  // Weather state for Perundurai New Bus Stand
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [isLoadingWeather, setIsLoadingWeather] = useState<boolean>(true);
+  const [isRefreshingWeather, setIsRefreshingWeather] = useState<boolean>(false);
+  const [weatherModalOpen, setWeatherModalOpen] = useState<boolean>(false);
+  const [previewTheme, setPreviewTheme] = useState<WeatherType | "auto">("auto");
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Fetch live weather on mount and auto-refresh every 10 minutes
+  useEffect(() => {
+    let isMounted = true;
+    const loadWeather = async (force = false) => {
+      try {
+        if (force) setIsRefreshingWeather(true);
+        const data = await fetchNavaWeather(force);
+        if (isMounted) {
+          setWeatherData(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch weather for Perundurai:", err);
+      } finally {
+        if (isMounted) {
+          setIsLoadingWeather(false);
+          setIsRefreshingWeather(false);
+        }
+      }
+    };
+
+    loadWeather();
+    const interval = setInterval(() => loadWeather(true), 10 * 60 * 1000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Close weather details modal on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
+        setWeatherModalOpen(false);
+      }
+    };
+    if (weatherModalOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+    }
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, [weatherModalOpen]);
+
+  // Live timer tick
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
   const currentHours = currentTime.getHours();
   const currentMinutes = currentTime.getMinutes();
   const currentSeconds = currentTime.getSeconds();
-
-  // Total decimal hours for live real-time position (0 to 24)
   const liveTimeDecimal = currentHours + currentMinutes / 60 + currentSeconds / 3600;
 
-  // Day window: 06:00 AM (6.0) to 06:00 PM (18.0) -> Exactly 12 hours
-  // Night window: 06:00 PM (18.0) to 06:00 AM (6.0) -> Exactly 12 hours
-  const isLiveDaytime = liveTimeDecimal >= 6.0 && liveTimeDecimal < 18.0;
+  // Day window based on Perundurai Sunrise / Sunset
+  const sunriseDecimal = weatherData?.sunriseDecimal ?? 6.15; // ~06:09 AM
+  const sunsetDecimal = weatherData?.sunsetDecimal ?? 18.4; // ~06:24 PM
+  const dayLengthHours = sunsetDecimal - sunriseDecimal; // ~12.25 hours
+  const nightLengthHours = 24.0 - dayLengthHours;
+
+  const isLiveDaytime = liveTimeDecimal >= sunriseDecimal && liveTimeDecimal < sunsetDecimal;
+
+  // Active weather condition & styling theme
+  const activeWeatherType: WeatherType = useMemo(() => {
+    if (previewTheme !== "auto") return previewTheme;
+    if (weatherData) return weatherData.weatherType;
+    return isLiveDaytime ? "sunny" : "clear_night";
+  }, [previewTheme, weatherData, isLiveDaytime]);
+
+  const activeTheme = WEATHER_THEMES[activeWeatherType] || WEATHER_THEMES.sunny;
 
   // Compute live celestial trajectory progress t between 0 and 1
   let liveProgress = 0;
   if (isLiveDaytime) {
-    // Daytime (6 AM to 6 PM): 6 AM is 0, 12 PM is 0.5 (center), 6 PM is 1.0
-    liveProgress = Math.min(Math.max((liveTimeDecimal - 6.0) / 12.0, 0), 1);
+    liveProgress = Math.min(Math.max((liveTimeDecimal - sunriseDecimal) / dayLengthHours, 0), 1);
   } else {
-    // Nighttime (6 PM to 6 AM): 6 PM is 0, 12 AM (Midnight) is 0.5 (center), 6 AM is 1.0
     let nightElapsed = 0;
-    if (liveTimeDecimal >= 18.0) {
-      nightElapsed = liveTimeDecimal - 18.0; // 0 to 6 hours until 24:00 (Midnight)
+    if (liveTimeDecimal >= sunsetDecimal) {
+      nightElapsed = liveTimeDecimal - sunsetDecimal;
     } else {
-      nightElapsed = liveTimeDecimal + 6.0; // 6 to 12 hours from 00:00 to 06:00
+      nightElapsed = liveTimeDecimal + (24.0 - sunsetDecimal);
     }
-    liveProgress = Math.min(Math.max(nightElapsed / 12.0, 0), 1);
+    liveProgress = Math.min(Math.max(nightElapsed / nightLengthHours, 0), 1);
   }
 
   // Active celestial coordinates: tracks mouse position on hover, resumes real-time on leave
@@ -54,22 +241,16 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
   const effectiveDecimalHours = useMemo(() => {
     if (isHovering) {
       if (isDaytime) {
-        // Scrubbing across daytime: 6:00 AM to 6:00 PM
-        return 6.0 + hoverProgress * 12.0;
+        return sunriseDecimal + hoverProgress * dayLengthHours;
       } else {
-        // Scrubbing across nighttime: 6:00 PM (18.0) -> 12:00 AM -> 6:00 AM (6.0)
-        const h = 18.0 + hoverProgress * 12.0;
+        const h = sunsetDecimal + hoverProgress * nightLengthHours;
         return h >= 24.0 ? h - 24.0 : h;
       }
     }
     return liveTimeDecimal;
-  }, [isHovering, isDaytime, hoverProgress, liveTimeDecimal]);
+  }, [isHovering, isDaytime, hoverProgress, liveTimeDecimal, sunriseDecimal, sunsetDecimal, dayLengthHours, nightLengthHours]);
 
-  // Expanded Arc path geometry:
-  // ViewBox: 540 x 50
-  // P0 (left): (28, 38)
-  // P1 (zenith peak): (270, -8)
-  // P2 (right): (512, 38)
+  // Arc path geometry
   const p0 = { x: 28, y: 38 };
   const p1 = { x: 270, y: -8 };
   const p2 = { x: 512, y: 38 };
@@ -97,28 +278,28 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
   // Phase Label & Direction Indicator
   const phaseInfo = useMemo(() => {
     if (isDaytime) {
-      if (effectiveDecimalHours < 8.5) {
+      if (effectiveDecimalHours < sunriseDecimal + 2.0) {
         return {
           label: "Morning Sunrise",
-          direction: "West Horizon • Sunrise (6 AM)",
+          direction: `East Horizon • Rise (${weatherData?.sunriseTime || "6:09 AM"})`,
           accentColor: "#f97316",
           glowColor: "rgba(249, 115, 22, 0.5)",
         };
-      } else if (effectiveDecimalHours < 11.0) {
+      } else if (effectiveDecimalHours < 11.5) {
         return {
           label: "Morning Glow",
           direction: "Climbing Toward Zenith",
           accentColor: "#eab308",
           glowColor: "rgba(234, 179, 8, 0.5)",
         };
-      } else if (effectiveDecimalHours <= 13.0) {
+      } else if (effectiveDecimalHours <= 13.5) {
         return {
           label: "Solar Zenith",
           direction: "12:00 PM Center Peak",
           accentColor: "#f59e0b",
           glowColor: "rgba(245, 158, 11, 0.65)",
         };
-      } else if (effectiveDecimalHours < 16.5) {
+      } else if (effectiveDecimalHours < sunsetDecimal - 1.5) {
         return {
           label: "Afternoon Sun",
           direction: "Descending Towards Sunset",
@@ -128,35 +309,34 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
       } else {
         return {
           label: "Golden Sunset",
-          direction: "East Horizon • Sunset (6 PM)",
+          direction: `West Horizon • Set (${weatherData?.sunsetTime || "6:24 PM"})`,
           accentColor: "#f43f5e",
           glowColor: "rgba(244, 63, 94, 0.6)",
         };
       }
     } else {
-      // Night Phase (6 PM to 6 AM)
-      if (effectiveDecimalHours >= 18.0 && effectiveDecimalHours < 20.5) {
+      if (effectiveDecimalHours >= sunsetDecimal && effectiveDecimalHours < sunsetDecimal + 2.5) {
         return {
           label: "Twilight Moonrise",
-          direction: "East Horizon • Moonrise (6 PM)",
+          direction: `East Horizon • Moonrise (${weatherData?.sunsetTime || "6:24 PM"})`,
           accentColor: "#9333ea",
           glowColor: "rgba(147, 51, 234, 0.45)",
         };
-      } else if (effectiveDecimalHours >= 20.5 && effectiveDecimalHours < 23.0) {
+      } else if (effectiveDecimalHours >= sunsetDecimal + 2.5 && effectiveDecimalHours < 23.0) {
         return {
           label: "Starlit Night",
           direction: "Ascending Toward Midnight",
           accentColor: "#6366f1",
           glowColor: "rgba(99, 102, 241, 0.45)",
         };
-      } else if (effectiveDecimalHours >= 23.0 || effectiveDecimalHours < 1.0) {
+      } else if (effectiveDecimalHours >= 23.0 || effectiveDecimalHours < 1.5) {
         return {
           label: "Midnight Moon",
           direction: "12:00 AM Midnight Zenith",
           accentColor: "#8b5cf6",
           glowColor: "rgba(139, 92, 246, 0.6)",
         };
-      } else if (effectiveDecimalHours >= 1.0 && effectiveDecimalHours < 4.5) {
+      } else if (effectiveDecimalHours >= 1.5 && effectiveDecimalHours < sunriseDecimal - 1.5) {
         return {
           label: "Silent Night",
           direction: "Descending Toward Dawn",
@@ -166,13 +346,13 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
       } else {
         return {
           label: "Pre-Dawn Moon",
-          direction: "West Horizon • Moonset (6 AM)",
+          direction: `West Horizon • Moonset (${weatherData?.sunriseTime || "6:09 AM"})`,
           accentColor: "#0284c7",
           glowColor: "rgba(2, 132, 199, 0.45)",
         };
       }
     }
-  }, [isDaytime, effectiveDecimalHours]);
+  }, [isDaytime, effectiveDecimalHours, sunriseDecimal, sunsetDecimal, weatherData]);
 
   // Track mouse movement across the sun arc
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -187,9 +367,32 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
     setHoverProgress(clampedProgress);
   };
 
-  // When mouse leaves the arc card, reset hover and smoothly return to real time
   const handleMouseLeave = () => {
     setHoverProgress(null);
+  };
+
+  // Weather Icon Component Helper
+  const renderWeatherIcon = (type: WeatherType, size = 14) => {
+    switch (type) {
+      case "sunny":
+        return <WbSunny sx={{ fontSize: size }} className="text-amber-500 animate-spin-slow" />;
+      case "sunset":
+      case "sunrise":
+        return <WbTwilight sx={{ fontSize: size }} className="text-rose-500" />;
+      case "rain":
+        return <Grain sx={{ fontSize: size }} className="text-cyan-500" />;
+      case "thunderstorm":
+        return <Thunderstorm sx={{ fontSize: size }} className="text-purple-500" />;
+      case "cloudy":
+      case "partly_cloudy_day":
+        return <Cloud sx={{ fontSize: size }} className="text-sky-500" />;
+      case "fog":
+        return <Air sx={{ fontSize: size }} className="text-teal-500" />;
+      case "clear_night":
+      case "partly_cloudy_night":
+      default:
+        return <DarkMode sx={{ fontSize: size }} className="text-indigo-400" />;
+    }
   };
 
   return (
@@ -200,28 +403,74 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
       className={`relative select-none cursor-pointer overflow-visible ${className}`}
       title={
         isDaytime
-          ? "Daytime Solar Arc (6 AM to 6 PM) • Hover to scrub, move away for live time"
-          : "Nighttime Lunar Arc (6 PM to 6 AM) • Hover to scrub, move away for live time"
+          ? `Nava Technologies Solar Arc (${weatherData?.sunriseTime || "6:09 AM"} to ${weatherData?.sunsetTime || "6:24 PM"}) • Hover to scrub`
+          : `Nava Technologies Lunar Arc (${weatherData?.sunsetTime || "6:24 PM"} to ${weatherData?.sunriseTime || "6:09 AM"}) • Hover to scrub`
       }
     >
-      {/* Outer Card Background & Border (z-0: stays cleanly below sticky navbar on scroll) */}
+      {/* Dynamic Weather Card Background & Border */}
       <div
-        className={`absolute inset-0 rounded-2xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border shadow-xs transition-all duration-300 pointer-events-none z-0 ${
-          isHovering
-            ? isDaytime
-              ? "border-amber-400 dark:border-amber-500/60 shadow-md shadow-amber-500/10"
-              : "border-indigo-400 dark:border-indigo-500/60 shadow-md shadow-indigo-500/10"
-            : isDaytime
-              ? "border-slate-200/80 dark:border-slate-800 hover:border-amber-400/50 dark:hover:border-amber-500/40"
-              : "border-slate-200/80 dark:border-slate-800 hover:border-indigo-400/50 dark:hover:border-indigo-500/40"
+        className={`absolute inset-0 rounded-2xl backdrop-blur-md border shadow-xs transition-all duration-700 pointer-events-none z-0 ${
+          activeTheme.bg
+        } ${
+          isHovering ? activeTheme.borderHover : activeTheme.borderNormal
         }`}
       />
 
+      {/* Atmospheric Weather Background FX Layer (Rain, Clouds, Storm, Mist, Stars) */}
+      <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none z-0">
+        {/* Thunderstorm Ambient Light Flash */}
+        {activeWeatherType === "thunderstorm" && (
+          <div className="absolute inset-0 bg-indigo-400/20 mix-blend-screen animate-storm-flash pointer-events-none" />
+        )}
+
+        {/* Falling Raindrops Particles */}
+        {(activeWeatherType === "rain" || activeWeatherType === "thunderstorm") && (
+          <svg className="absolute inset-0 w-full h-full opacity-60 pointer-events-none">
+            <g stroke="#38bdf8" strokeWidth="1.2" strokeLinecap="round">
+              <line x1="12%" y1="5%" x2="14%" y2="28%" className="animate-rain" style={{ animationDelay: "0s" }} />
+              <line x1="28%" y1="2%" x2="30%" y2="24%" className="animate-rain" style={{ animationDelay: "0.3s" }} />
+              <line x1="45%" y1="8%" x2="47%" y2="30%" className="animate-rain" style={{ animationDelay: "0.6s" }} />
+              <line x1="62%" y1="3%" x2="64%" y2="25%" className="animate-rain" style={{ animationDelay: "0.2s" }} />
+              <line x1="78%" y1="6%" x2="80%" y2="28%" className="animate-rain" style={{ animationDelay: "0.8s" }} />
+              <line x1="91%" y1="2%" x2="93%" y2="23%" className="animate-rain" style={{ animationDelay: "0.4s" }} />
+            </g>
+          </svg>
+        )}
+
+        {/* Soft Drifting Translucent Clouds */}
+        {(activeWeatherType === "cloudy" ||
+          activeWeatherType === "partly_cloudy_day" ||
+          activeWeatherType === "partly_cloudy_night") && (
+          <svg className="absolute inset-0 w-full h-full opacity-25 dark:opacity-20 pointer-events-none animate-cloud-drift">
+            <ellipse cx="20%" cy="40%" rx="65" ry="16" fill="currentColor" className="text-slate-400 dark:text-slate-500 blur-xs" />
+            <ellipse cx="65%" cy="30%" rx="85" ry="20" fill="currentColor" className="text-slate-400 dark:text-slate-500 blur-xs" />
+            <ellipse cx="85%" cy="50%" rx="55" ry="14" fill="currentColor" className="text-slate-400 dark:text-slate-500 blur-xs" />
+          </svg>
+        )}
+
+        {/* Misty / Fog Layer */}
+        {activeWeatherType === "fog" && (
+          <div className="absolute inset-0 bg-gradient-to-t from-teal-500/10 via-slate-300/15 to-transparent blur-md animate-mist-float pointer-events-none" />
+        )}
+
+        {/* Sunny Radiant Glow */}
+        {activeWeatherType === "sunny" && (
+          <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-64 h-24 bg-amber-400/20 dark:bg-amber-500/15 rounded-full blur-2xl pointer-events-none" />
+        )}
+
+        {/* Sunset Radiant Glow */}
+        {(activeWeatherType === "sunset" || activeWeatherType === "sunrise") && (
+          <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-rose-500/20 via-orange-500/10 to-transparent blur-sm pointer-events-none" />
+        )}
+      </div>
+
       {/* Outer Card Foreground Content Container */}
       <div className="relative w-full flex flex-col items-center justify-center px-4 sm:px-5 py-2 overflow-visible">
-        {/* Top Info Bar: Phase Status & Live Digital Clock (z-10) */}
+        {/* Top Info Bar: Location Badge, Weather Details, Phase Status & Clock */}
         <div className="relative z-10 flex items-center justify-between w-full gap-2 px-1 text-[11px] sm:text-xs">
-          <div className="flex items-center gap-2">
+          {/* Left Side: Phase & Location Chip */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Celestial Phase */}
             <div className="flex items-center gap-1.5 font-bold text-slate-800 dark:text-slate-100">
               {isDaytime ? (
                 <WbSunny sx={{ fontSize: 15 }} className="text-amber-500 animate-spin-slow" />
@@ -234,24 +483,55 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
               )}
               <span className="tracking-tight text-slate-800 dark:text-slate-100">{phaseInfo.label}</span>
             </div>
-            <span
-              className={`hidden sm:inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border ${isDaytime
-                  ? "text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200/60 dark:border-amber-900/40"
-                  : "text-indigo-600 dark:text-indigo-300 bg-indigo-50 dark:bg-indigo-950/40 border-indigo-200/60 dark:border-indigo-800/50"
-                }`}
+
+            {/* Perundurai New Bus Stand Weather Badge (Clickable to open weather details modal) */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setWeatherModalOpen((prev) => !prev);
+              }}
+              className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all cursor-pointer backdrop-blur-md shadow-2xs hover:scale-105 active:scale-95 ${
+                activeWeatherType === "sunny"
+                  ? "bg-amber-100/80 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300/80 dark:border-amber-700/60 hover:border-amber-400"
+                  : activeWeatherType === "rain"
+                  ? "bg-cyan-100/80 dark:bg-cyan-950/60 text-cyan-800 dark:text-cyan-300 border-cyan-300/80 dark:border-cyan-700/60 hover:border-cyan-400"
+                  : activeWeatherType === "thunderstorm"
+                  ? "bg-purple-100/80 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 border-purple-300/80 dark:border-purple-700/60 hover:border-purple-400"
+                  : activeWeatherType === "sunset" || activeWeatherType === "sunrise"
+                  ? "bg-rose-100/80 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border-rose-300/80 dark:border-rose-700/60 hover:border-rose-400"
+                  : "bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-300/80 dark:border-slate-700/70 hover:border-slate-400"
+              }`}
+              title="Click for Nava Technologies Live Weather & Background Themes"
             >
-              {phaseInfo.direction}
-            </span>
+              <LocationOn sx={{ fontSize: 11 }} className="text-rose-500" />
+              <span className="font-bold">Nava Technologies</span>
+              <span className="opacity-75 font-normal hidden md:inline">(Perundurai)</span>
+              <span className="opacity-40">•</span>
+              <span className="flex items-center gap-0.5">
+                {renderWeatherIcon(activeWeatherType, 12)}
+                <span className="font-bold">
+                  {weatherData ? `${weatherData.temperature}°C` : "37°C"}
+                </span>
+              </span>
+              <span className="text-[9px] opacity-75 hidden sm:inline">
+                {previewTheme !== "auto"
+                  ? `(${activeTheme.name})`
+                  : weatherData?.conditionText || "Sunny"}
+              </span>
+              <Tune sx={{ fontSize: 11 }} className="opacity-60 ml-0.5" />
+            </button>
           </div>
 
-          {/* Time Badge: Consistent readable theme */}
+          {/* Right Side: Digital Clock Badge */}
           <div
-            className={`flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-lg border transition-all ${isHovering
+            className={`flex items-center gap-1.5 font-mono text-[10px] sm:text-[11px] font-semibold px-2.5 py-0.5 rounded-lg border transition-all ${
+              isHovering
                 ? isDaytime
                   ? "text-amber-700 dark:text-amber-300 bg-amber-100/90 dark:bg-amber-950/70 border-amber-300/80 dark:border-amber-700/60 shadow-xs"
                   : "text-indigo-700 dark:text-indigo-300 bg-indigo-100/90 dark:bg-indigo-950/70 border-indigo-300/80 dark:border-indigo-700/60 shadow-xs"
                 : "text-slate-600 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-800/80 border-slate-200/70 dark:border-slate-700/70 shadow-2xs"
-              }`}
+            }`}
           >
             <AccessTime
               sx={{ fontSize: 13 }}
@@ -261,18 +541,15 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
                     ? "text-amber-600 dark:text-amber-400"
                     : "text-amber-500 dark:text-amber-400"
                   : isHovering
-                    ? "text-indigo-600 dark:text-indigo-400"
-                    : "text-indigo-500 dark:text-indigo-400"
+                  ? "text-indigo-600 dark:text-indigo-400"
+                  : "text-indigo-500 dark:text-indigo-400"
               }
             />
             <span>{displayTimeStr}</span>
-            {isHovering && (
-              ""
-            )}
           </div>
         </div>
 
-        {/* Expansive Celestial Sky Arc & Real-Time / Interactive Sun or Moon (z-40: floats ABOVE navbar and info bar) */}
+        {/* Expansive Celestial Sky Arc & Real-Time / Interactive Sun or Moon (z-40) */}
         <div className="relative z-40 w-full h-[46px] sm:h-[50px] flex items-center justify-center overflow-visible my-0.5 pointer-events-none">
           <svg
             viewBox="0 0 540 50"
@@ -280,22 +557,22 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
             className="w-full h-full overflow-visible"
           >
             <defs>
-              {/* Daylight Arc Trajectory Gradient (6 AM -> 12 PM -> 6 PM) */}
+              {/* Daylight Arc Trajectory Gradient */}
               <linearGradient id="arcSkyGradientDay" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#f97316" stopOpacity="0.35" />
-                <stop offset="25%" stopColor="#fb923c" stopOpacity="0.65" />
-                <stop offset="50%" stopColor="#facc15" stopOpacity="0.9" />
-                <stop offset="75%" stopColor="#fb923c" stopOpacity="0.65" />
-                <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.35" />
+                <stop offset="0%" stopColor="#f97316" stopOpacity="0.45" />
+                <stop offset="25%" stopColor="#fb923c" stopOpacity="0.75" />
+                <stop offset="50%" stopColor="#facc15" stopOpacity="0.95" />
+                <stop offset="75%" stopColor="#fb923c" stopOpacity="0.75" />
+                <stop offset="100%" stopColor="#f43f5e" stopOpacity="0.45" />
               </linearGradient>
 
-              {/* Nighttime Arc Trajectory Gradient (6 PM -> 12 AM -> 6 AM) */}
+              {/* Nighttime Arc Trajectory Gradient */}
               <linearGradient id="arcSkyGradientNight" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#6366f1" stopOpacity="0.4" />
-                <stop offset="25%" stopColor="#8b5cf6" stopOpacity="0.7" />
-                <stop offset="50%" stopColor="#a855f7" stopOpacity="0.9" />
-                <stop offset="75%" stopColor="#6366f1" stopOpacity="0.7" />
-                <stop offset="100%" stopColor="#0284c7" stopOpacity="0.4" />
+                <stop offset="0%" stopColor="#6366f1" stopOpacity="0.45" />
+                <stop offset="25%" stopColor="#8b5cf6" stopOpacity="0.75" />
+                <stop offset="50%" stopColor="#a855f7" stopOpacity="0.95" />
+                <stop offset="75%" stopColor="#6366f1" stopOpacity="0.75" />
+                <stop offset="100%" stopColor="#0284c7" stopOpacity="0.45" />
               </linearGradient>
 
               {/* Sun Core Disc Gradient */}
@@ -349,7 +626,7 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
               strokeWidth="2.5"
               strokeDasharray="5 4"
               strokeLinecap="round"
-              className={isDaytime ? "opacity-85 dark:opacity-75" : "opacity-85 dark:opacity-75"}
+              className={isDaytime ? "opacity-90 dark:opacity-80" : "opacity-90 dark:opacity-80"}
             />
 
             {/* Faint Ground Horizon Line */}
@@ -374,18 +651,18 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
               </g>
             )}
 
-            {/* HORIZON LABELS & TICKS (Clear neutral text matching application theme) */}
-            {/* Left Label: 6 AM in Day, 6 PM in Night */}
+            {/* HORIZON LABELS & TICKS */}
+            {/* Left Label: Perundurai Sunrise / Sunset */}
             <text
               x="28"
               y="47"
               textAnchor="middle"
               className="fill-slate-400 dark:fill-slate-500 font-mono text-[8px] font-bold"
             >
-              {isDaytime ? "6 AM" : "6 PM"}
+              {isDaytime ? weatherData?.sunriseTime || "6:09 AM" : weatherData?.sunsetTime || "6:24 PM"}
             </text>
 
-            {/* Quarter Tick: 9 AM in Day, 9 PM in Night */}
+            {/* Quarter Tick */}
             <line
               x1="149"
               y1="23"
@@ -427,7 +704,7 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
               {isDaytime ? "12 PM" : "12 AM"}
             </text>
 
-            {/* Three-Quarter Tick: 3 PM in Day, 3 AM in Night */}
+            {/* Three-Quarter Tick */}
             <line
               x1="391"
               y1="23"
@@ -446,14 +723,14 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
               {isDaytime ? "3 PM" : "3 AM"}
             </text>
 
-            {/* Right Label: 6 PM in Day, 6 AM in Night */}
+            {/* Right Label: Perundurai Sunset / Sunrise */}
             <text
               x="512"
               y="47"
               textAnchor="middle"
               className="fill-slate-400 dark:fill-slate-500 font-mono text-[8px] font-bold"
             >
-              {isDaytime ? "6 PM" : "6 AM"}
+              {isDaytime ? weatherData?.sunsetTime || "6:24 PM" : weatherData?.sunriseTime || "6:09 AM"}
             </text>
 
             {/* CELESTIAL BODY: SUN (Day) or MOON (Night) */}
@@ -466,7 +743,7 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
               }
             >
               {isDaytime ? (
-                /* SUN ANIMATION (Daytime 6 AM to 6 PM) */
+                /* SUN ANIMATION (Daytime) */
                 <g filter="url(#solarGlow)">
                   {/* Outer Pulsing Solar Flare Halo */}
                   <circle
@@ -500,7 +777,7 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
                     cy="0"
                     r="7.5"
                     fill={
-                      effectiveDecimalHours < 8.5 || effectiveDecimalHours > 16.5
+                      effectiveDecimalHours < sunriseDecimal + 1.5 || effectiveDecimalHours > sunsetDecimal - 1.5
                         ? "url(#sunsetCoreGrad)"
                         : "url(#sunCoreGrad)"
                     }
@@ -519,9 +796,8 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
                   />
                 </g>
               ) : (
-                /* ANIMATED MOON WITH STARDUST (Nighttime 6 PM to 6 AM) */
+                /* ANIMATED MOON WITH STARDUST (Nighttime) */
                 <g filter="url(#lunarGlow)">
-                  {/* Outer Pulsing Moonlight Aura */}
                   <circle
                     cx="0"
                     cy="0"
@@ -530,7 +806,6 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
                     className="animate-pulse"
                   />
 
-                  {/* Rotating Soft Lunar Aura Corona */}
                   <circle
                     cx="0"
                     cy="0"
@@ -539,7 +814,6 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
                     className="animate-[spin_26s_linear_infinite] origin-center opacity-75"
                   />
 
-                  {/* Luminous Moon Image */}
                   <image
                     href="/moon.svg"
                     x="-10"
@@ -549,20 +823,15 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
                     className="drop-shadow-md pointer-events-none"
                   />
 
-                  {/* Twinkling Orbiting Stardust Stars */}
                   <g>
-                    {/* Star 1 (Pulsing Diamond) */}
                     <path
                       d="M -9 -7 L -8 -5 L -6 -6 L -7 -4 L -9 -7 Z"
                       fill="#6366f1"
                       className="animate-ping"
                       style={{ animationDuration: "2.8s" }}
                     />
-                    {/* Star 2 (Sparkle) */}
                     <circle cx="9.5" cy="-6" r="1.2" fill="#818cf8" className="animate-pulse" />
-                    {/* Star 3 (Soft Glow) */}
                     <circle cx="10" cy="8.5" r="1.2" fill="#a5b4fc" />
-                    {/* Star 4 */}
                     <circle cx="-10.5" cy="5.5" r="1" fill="#818cf8" />
                   </g>
                 </g>
@@ -571,13 +840,13 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
           </svg>
         </div>
 
-        {/* Bottom Horizon Subtext: Day vs Night Dynamic Labels (Clean neutral font colors, z-10) */}
+        {/* Bottom Horizon Subtext: Day vs Night Dynamic Labels */}
         <div className="relative z-10 flex items-center justify-between w-full px-2 text-[9px] sm:text-[10px] font-medium text-slate-400 dark:text-slate-500">
           {isDaytime ? (
             <>
               <span className="inline-flex items-center gap-1.5 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                 <span className="text-amber-500 font-bold">🌅</span>
-                <span>West • Morning Rise (6 AM)</span>
+                <span>East • Rise ({weatherData?.sunriseTime || "6:09 AM"})</span>
               </span>
               <span className="hidden sm:inline-flex items-center gap-1 text-amber-600/90 dark:text-amber-400/90 font-semibold">
                 <WbSunny sx={{ fontSize: 13 }} className="text-amber-500" />
@@ -585,7 +854,7 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
               </span>
               <span className="inline-flex items-center gap-1.5 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
                 <span className="text-rose-500 font-bold">🌇</span>
-                <span>East • Sunset (6 PM)</span>
+                <span>West • Set ({weatherData?.sunsetTime || "6:24 PM"})</span>
               </span>
             </>
           ) : (
@@ -596,7 +865,7 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
                   alt="East Moonrise"
                   className="w-3.5 h-3.5 object-contain inline-block drop-shadow-xs"
                 />
-                <span>East • Moonrise (6 PM)</span>
+                <span>East • Rise ({weatherData?.sunsetTime || "6:24 PM"})</span>
               </span>
               <span className="hidden sm:inline-flex items-center gap-1 text-indigo-600/90 dark:text-indigo-400/90 font-semibold">
                 <AutoAwesome sx={{ fontSize: 13 }} className="text-purple-500 dark:text-purple-400" />
@@ -604,13 +873,243 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
               </span>
               <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-medium">
                 <DarkMode sx={{ fontSize: 13 }} className="text-slate-400 dark:text-slate-500 opacity-80" />
-                <span>West • Moonset (6 AM)</span>
+                <span>West • Set ({weatherData?.sunriseTime || "6:09 AM"})</span>
               </span>
             </>
           )}
         </div>
       </div>
+
+      {/* Weather & Location Details Modal / Dropdown */}
+      {weatherModalOpen && (
+        <div
+          ref={modalRef}
+          onClick={(e) => e.stopPropagation()}
+          className="absolute top-full right-0 sm:right-4 mt-2 w-80 sm:w-96 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-4 z-50 animate-fade-in text-slate-800 dark:text-slate-100"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-rose-500/10 dark:bg-rose-500/20 text-rose-500 flex items-center justify-center shrink-0">
+                <LocationOn sx={{ fontSize: 18 }} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-xs sm:text-sm font-bold tracking-tight text-slate-900 dark:text-white truncate">
+                    Nava Technologies
+                  </h4>
+                  <a
+                    href={NAVA_LOCATION.mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 inline-flex items-center p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                    title="Open Nava Technologies on Google Maps"
+                  >
+                    <OpenInNew sx={{ fontSize: 12 }} />
+                  </a>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                  {NAVA_LOCATION.fullName} • {NAVA_LOCATION.landmark}
+                </p>
+                <p className="text-[9px] font-mono text-slate-400 dark:text-slate-500">
+                  {NAVA_LOCATION.latitude}° N, {NAVA_LOCATION.longitude}° E
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={async () => {
+                  setIsRefreshingWeather(true);
+                  const data = await fetchNavaWeather(true);
+                  setWeatherData(data);
+                  setIsRefreshingWeather(false);
+                }}
+                disabled={isRefreshingWeather}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                title="Refresh Live Weather"
+              >
+                <Refresh
+                  sx={{ fontSize: 16 }}
+                  className={isRefreshingWeather ? "animate-spin text-amber-500" : ""}
+                />
+              </button>
+              <button
+                type="button"
+                onClick={() => setWeatherModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <Close sx={{ fontSize: 16 }} />
+              </button>
+            </div>
+          </div>
+
+          {/* Current Weather Stats Grid */}
+          <div className="grid grid-cols-3 gap-2 my-3">
+            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-0.5">
+                <Thermostat sx={{ fontSize: 12 }} className="text-amber-500" /> Temp
+              </span>
+              <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
+                {weatherData ? `${weatherData.temperature}°C` : "37°C"}
+              </span>
+              <span className="text-[9px] text-slate-400">
+                Feels {weatherData ? `${weatherData.feelsLike}°C` : "39°C"}
+              </span>
+            </div>
+
+            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-0.5">
+                <WaterDrop sx={{ fontSize: 12 }} className="text-cyan-500" /> Humidity
+              </span>
+              <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
+                {weatherData ? `${weatherData.humidity}%` : "29%"}
+              </span>
+              <span className="text-[9px] text-slate-400">Relative</span>
+            </div>
+
+            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-0.5">
+                <Air sx={{ fontSize: 12 }} className="text-teal-500" /> Wind
+              </span>
+              <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
+                {weatherData ? `${weatherData.windSpeed} km/h` : "11 km/h"}
+              </span>
+              <span className="text-[9px] text-slate-400">Breeze</span>
+            </div>
+          </div>
+
+          {/* Sunrise / Sunset Timing in Perundurai */}
+          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 text-[10px] text-amber-900 dark:text-amber-200 mb-3">
+            <span className="flex items-center gap-1 font-semibold">
+              🌅 Sunrise: <span className="font-mono font-bold">{weatherData?.sunriseTime || "6:09 AM"}</span>
+            </span>
+            <span className="flex items-center gap-1 font-semibold">
+              🌇 Sunset: <span className="font-mono font-bold">{weatherData?.sunsetTime || "6:24 PM"}</span>
+            </span>
+          </div>
+
+          {/* Interactive Weather Background Theme Switcher */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+                Weather Background Theme
+              </span>
+              <span className="text-[9px] text-slate-400">
+                {previewTheme === "auto" ? "Live Auto Sync" : "Manual Preview"}
+              </span>
+            </div>
+
+            <div className="grid grid-cols-4 gap-1.5 text-[10px]">
+              {/* Auto Option */}
+              <button
+                type="button"
+                onClick={() => setPreviewTheme("auto")}
+                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
+                  previewTheme === "auto"
+                    ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400"
+                }`}
+              >
+                ⚡ Live Auto
+              </button>
+
+              {/* Sunny */}
+              <button
+                type="button"
+                onClick={() => setPreviewTheme("sunny")}
+                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
+                  previewTheme === "sunny"
+                    ? "bg-amber-500 text-white border-amber-500 shadow-xs"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400"
+                }`}
+              >
+                ☀️ Sunny
+              </button>
+
+              {/* Rain */}
+              <button
+                type="button"
+                onClick={() => setPreviewTheme("rain")}
+                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
+                  previewTheme === "rain"
+                    ? "bg-cyan-600 text-white border-cyan-600 shadow-xs"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-cyan-400"
+                }`}
+              >
+                🌧️ Rain
+              </button>
+
+              {/* Thunderstorm */}
+              <button
+                type="button"
+                onClick={() => setPreviewTheme("thunderstorm")}
+                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
+                  previewTheme === "thunderstorm"
+                    ? "bg-purple-600 text-white border-purple-600 shadow-xs"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-purple-400"
+                }`}
+              >
+                ⛈️ Storm
+              </button>
+
+              {/* Sunset */}
+              <button
+                type="button"
+                onClick={() => setPreviewTheme("sunset")}
+                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
+                  previewTheme === "sunset"
+                    ? "bg-rose-600 text-white border-rose-600 shadow-xs"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-rose-400"
+                }`}
+              >
+                🌇 Sunset
+              </button>
+
+              {/* Cloudy */}
+              <button
+                type="button"
+                onClick={() => setPreviewTheme("cloudy")}
+                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
+                  previewTheme === "cloudy"
+                    ? "bg-slate-600 text-white border-slate-600 shadow-xs"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400"
+                }`}
+              >
+                ☁️ Cloudy
+              </button>
+
+              {/* Fog */}
+              <button
+                type="button"
+                onClick={() => setPreviewTheme("fog")}
+                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
+                  previewTheme === "fog"
+                    ? "bg-teal-600 text-white border-teal-600 shadow-xs"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-teal-400"
+                }`}
+              >
+                🌫️ Fog
+              </button>
+
+              {/* Starry Night */}
+              <button
+                type="button"
+                onClick={() => setPreviewTheme("clear_night")}
+                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
+                  previewTheme === "clear_night"
+                    ? "bg-indigo-900 text-white border-indigo-700 shadow-xs"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400"
+                }`}
+              >
+                🌙 Night
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
 export default SunArcTracker;
