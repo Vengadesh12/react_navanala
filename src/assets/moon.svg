@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+  <defs>
+    <!-- Exterior Lunar Glow -->
+    <filter id="moonSoftGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <!-- Core Moon Shading Gradient -->
+    <radialGradient id="lunarCore" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stopColor="#ffffff" />
+      <stop offset="35%" stopColor="#f1f5f9" />
+      <stop offset="65%" stopColor="#c7d2fe" />
+      <stop offset="90%" stopColor="#818cf8" />
+      <stop offset="100%" stopColor="#6366f1" />
+    </radialGradient>
+
+    <!-- Aura Halo Gradient -->
+    <radialGradient id="lunarAura" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stopColor="#c7d2fe" stopOpacity="0.45" />
+      <stop offset="60%" stopColor="#818cf8" stopOpacity="0.2" />
+      <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Ambient Glow Corona -->
+  <circle cx="32" cy="32" r="28" fill="url(#lunarAura)" />
+
+  <!-- Main Crescent Moon Body -->
+  <g filter="url(#moonSoftGlow)">
+    <path
+      d="M 40 10 A 22 22 0 1 0 40 54 A 17.5 17.5 0 0 1 40 10 Z"
+      fill="url(#lunarCore)"
+      stroke="#ffffff"
+      stroke-width="1.2"
+    />
+
+    <!-- Lunar Crater Textures -->
+    <circle cx="23" cy="26" r="3.2" fill="#6366f1" fill-opacity="0.22" />
+    <circle cx="21" cy="25" r="2.2" fill="#4f46e5" fill-opacity="0.18" />
+    
+    <circle cx="26" cy="37" r="2.5" fill="#6366f1" fill-opacity="0.2" />
+    <circle cx="28" cy="45" r="2" fill="#6366f1" fill-opacity="0.25" />
+    <circle cx="18" cy="35" r="1.6" fill="#818cf8" fill-opacity="0.2" />
+
+    <!-- Specular Highlight along Outer Rim -->
+    <path
+      d="M 19 15 A 22 22 0 0 0 14 36"
+      stroke="#ffffff"
+      stroke-width="1"
+      stroke-linecap="round"
+      stroke-opacity="0.65"
+    />
+  </g>
+
+  <!-- Stardust Micro Sparkles -->
+  <circle cx="46" cy="20" r="1.5" fill="#c7d2fe" opacity="0.9" />
+  <circle cx="48" cy="42" r="1.2" fill="#a5b4fc" opacity="0.85" />
+  <circle cx="39" cy="4" r="1" fill="#e0e7ff" opacity="0.75" />
+</svg>

@@ -38,6 +38,8 @@ import {
   CrackerType,
   CRACKER_DEFINITIONS,
 } from "../../components/common/CrackersBlast";
+import { SunArcTracker } from "../../components/common/SunArcTracker";
+import { InfographicRoleChart } from "../../components/dashboard/InfographicRoleChart";
 import type { DashboardSummaryResponse, DashboardChartPoint } from "../../types";
 
 export const DashboardPage: React.FC = () => {
@@ -52,8 +54,6 @@ export const DashboardPage: React.FC = () => {
   const [timeframe, setTimeframe] = useState<"7d" | "30d" | "90d">("7d");
   const [timeframeDropdownOpen, setTimeframeDropdownOpen] = useState<boolean>(false);
   const timeframeDropdownRef = useRef<HTMLDivElement>(null);
-  const [headerTimeframeOpen, setHeaderTimeframeOpen] = useState<boolean>(false);
-  const headerTimeframeRef = useRef<HTMLDivElement>(null);
   const [summary, setSummary] = useState<DashboardSummaryResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
@@ -112,7 +112,7 @@ export const DashboardPage: React.FC = () => {
     loadDashboard(timeframe);
   }, [timeframe, loadDashboard]);
 
-  // Close timeframe dropdowns on click outside
+  // Close timeframe dropdown on click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -121,21 +121,15 @@ export const DashboardPage: React.FC = () => {
       ) {
         setTimeframeDropdownOpen(false);
       }
-      if (
-        headerTimeframeRef.current &&
-        !headerTimeframeRef.current.contains(event.target as Node)
-      ) {
-        setHeaderTimeframeOpen(false);
-      }
     };
 
-    if (timeframeDropdownOpen || headerTimeframeOpen) {
+    if (timeframeDropdownOpen) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [timeframeDropdownOpen, headerTimeframeOpen]);
+  }, [timeframeDropdownOpen]);
 
   // Helper to build dynamic SVG path coordinates for Area Chart
   const renderAreaChart = (points: DashboardChartPoint[]) => {
@@ -1073,9 +1067,9 @@ export const DashboardPage: React.FC = () => {
       />
 
       <div className="w-full min-h-screen bg-slate-50/50 dark:bg-[#0b0f19] px-4 py-6 sm:px-8 space-y-6">
-        {/* Header Title & Date Range / Search */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3.5">
+        {/* Header Title & Expanded Celestial Sun Tracker */}
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center gap-3.5 shrink-0">
             <Link to="/profile" className="shrink-0 group block" title="Go to profile">
               <img
                 src={getProfileImageUrl(user?.profileImage, user?.name || "Administrator")}
@@ -1085,7 +1079,7 @@ export const DashboardPage: React.FC = () => {
             </Link>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">
                   Welcome back, {user?.name || "Administrator"}
                 </h1>
                 {user?.roleName && (
@@ -1094,135 +1088,11 @@ export const DashboardPage: React.FC = () => {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                
-              </p>
             </div>
           </div>
 
-          {/* Inline Search Bar, Date Picker, Live Refresh & Fireworks Blast Trigger */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Quick in-page Search Input */}
-            <div className="relative w-full sm:w-56">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                <Search sx={{ fontSize: 16 }} />
-              </div>
-              <input
-                type="text"
-                placeholder="Search dashboard cards..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 py-2 pl-8 pr-8 text-xs font-medium text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-2xs transition-all"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute inset-y-0 right-0 flex items-center pr-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                  title="Clear search"
-                >
-                  <Close sx={{ fontSize: 15 }} />
-                </button>
-              )}
-            </div>
-
-            {/* Live Fireworks Blast Button */}
-            {/* <button
-              type="button"
-              onClick={() => {
-                setDarkMode(true);
-                setShowCrackerShelf((prev) => !prev);
-              }}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:via-purple-700 hover:to-indigo-700 text-white px-3.5 py-2 text-xs font-bold shadow-md shadow-pink-500/25 active:scale-95 transition-all cursor-pointer animate-pulse-glow"
-              title="Show Diwali crackers and blast your choice"
-            >
-              <Celebration sx={{ fontSize: 16 }} className="text-yellow-300 animate-bounce" />
-              <span className="hidden sm:inline">Blast Fireworks</span>
-              <span className="sm:hidden">Fireworks</span>
-            </button> }            <button
-              type="button"
-              onClick={() => loadDashboard(timeframe, true)}
-              disabled={refreshing}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-60"
-              title="Refresh database metrics"
-            >
-              <Refresh
-                sx={{ fontSize: 16, color: "#64748b" }}
-                className={refreshing ? "animate-spin text-blue-600" : ""}
-              />
-              <span>{refreshing ? "Syncing..." : "Refresh"}</span>
-            </button>
-
-            {/* Header Timeframe Dropdown */}
-            <div className="relative" ref={headerTimeframeRef}>
-              <button
-                type="button"
-                onClick={() => setHeaderTimeframeOpen((prev) => !prev)}
-                className={`inline-flex items-center gap-2 rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-2xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/20 ${headerTimeframeOpen
-                  ? "border-blue-500 bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                  : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
-                  }`}
-                aria-haspopup="listbox"
-                aria-expanded={headerTimeframeOpen}
-              >
-                <CalendarTodayOutlined
-                  sx={{ fontSize: 15, color: headerTimeframeOpen ? "#2563eb" : "#64748b" }}
-                />
-                <span>{summary?.dateRangeDescription || timeframeLabels[timeframe]}</span>
-                <KeyboardArrowDown
-                  sx={{ fontSize: 16 }}
-                  className={`transition-transform duration-200 ${headerTimeframeOpen ? "rotate-180 text-blue-600" : "text-slate-400"
-                    }`}
-                />
-              </button>
-
-              {headerTimeframeOpen && (
-                <div
-                  role="listbox"
-                  className="absolute right-0 top-full mt-2 w-48 rounded-2xl border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800 p-1.5 shadow-xl shadow-slate-900/10 dark:shadow-black/40 z-30 animate-fadeIn"
-                >
-                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                    Select Range
-                  </div>
-                  {(
-                    [
-                      { value: "7d", label: "Last 7 Days", desc: "Past 1 week" },
-                      { value: "30d", label: "Last 30 Days", desc: "Past 1 month" },
-                      { value: "90d", label: "Last 90 Days", desc: "Past 3 months" },
-                    ] as const
-                  ).map((opt) => {
-                    const isSelected = timeframe === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        role="option"
-                        aria-selected={isSelected}
-                        onClick={() => {
-                          setTimeframe(opt.value);
-                          setHeaderTimeframeOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl text-xs font-medium text-left transition-colors cursor-pointer ${isSelected
-                          ? "bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-semibold"
-                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-slate-700/60"
-                          }`}
-                      >
-                        <div>
-                          <span className="block leading-tight">{opt.label}</span>
-                          <span className="block text-[10px] text-slate-400 dark:text-slate-500 font-normal mt-0.5">
-                            {opt.desc}
-                          </span>
-                        </div>
-                        {isSelected && (
-                          <Check sx={{ fontSize: 16 }} className="text-blue-600 dark:text-blue-400 shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Expanded Animated Sun Tracker According to Time */}
+          <SunArcTracker className="w-full md:flex-1 md:max-w-xl lg:max-w-2xl xl:max-w-3xl md:ml-6 relative overflow-visible" />
         </div>
 
         {/* Diwali Crackers Showcase Shelf (Shown below header when Blast Fireworks is clicked) */}
@@ -1780,92 +1650,12 @@ export const DashboardPage: React.FC = () => {
                     </Link>
                   </div>
 
-                  <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-6">
-                    {/* Dynamic Donut Chart SVG */}
-                    <div className="relative grid h-44 w-44 place-items-center shrink-0">
-                      <svg className="h-full w-full -rotate-90" viewBox="0 0 200 200">
-                        {/* Background Track */}
-                        <circle
-                          cx="100"
-                          cy="100"
-                          r="68"
-                          fill="none"
-                          stroke="#f1f5f9"
-                          className="dark:stroke-slate-800"
-                          strokeWidth="28"
-                        />
-
-                        {/* Role Circles */}
-                        {summary?.roleDistribution?.map((roleItem) => (
-                          <circle
-                            key={roleItem.name + roleItem.roleId}
-                            cx="100"
-                            cy="100"
-                            r="68"
-                            fill="none"
-                            stroke={roleItem.color}
-                            strokeWidth="28"
-                            strokeDasharray={roleItem.strokeDash}
-                            strokeDashoffset={roleItem.strokeOffset}
-                            className="transition-all duration-500"
-                          />
-                        ))}
-                      </svg>
-
-                      {/* Center Text inside Donut - Clickable to /roles */}
-                      <Link
-                        to="/roles"
-                        className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer group/donut transition-transform hover:scale-105"
-                        title="View roles matrix"
-                      >
-                        <span className="text-2xl font-extrabold text-slate-900 dark:text-slate-100 leading-none group-hover/donut:text-blue-600 dark:group-hover/donut:text-blue-400 transition-colors">
-                          {summary?.kpis.activeUsers ?? summary?.kpis.totalUsers ?? 0}
-                        </span>
-                        <span className="text-[11px] font-medium text-slate-400 dark:text-slate-500 mt-0.5 group-hover/donut:underline">
-                          Active Users
-                        </span>
-                      </Link>
-                    </div>
-
-                    {/* Roles Breakdown Legend from Database */}
-                    <div className="flex-1 space-y-2.5 w-full">
-                      {summary?.roleDistribution && summary.roleDistribution.length > 0 ? (
-                        summary.roleDistribution.map((item) => (
-                          <Link
-                            key={item.name + item.roleId}
-                            to="/roles"
-                            className="flex items-center justify-between text-xs p-1.5 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800/70 transition-colors cursor-pointer group"
-                            title={`Configure ${item.name} role`}
-                          >
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="h-2.5 w-2.5 rounded-full shrink-0 group-hover:scale-125 transition-transform"
-                                style={{ backgroundColor: item.color }}
-                              />
-                              <span
-                                className="font-medium text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate max-w-[110px]"
-                                title={item.name}
-                              >
-                                {item.name}
-                              </span>
-                            </div>
-                            <span className="font-semibold text-slate-800 dark:text-slate-200 shrink-0 flex items-center gap-1">
-                              <span>
-                                {item.count}{" "}
-                                <span className="font-normal text-slate-400 dark:text-slate-500">
-                                  ({item.percentage})
-                                </span>
-                              </span>
-                              <ArrowForward sx={{ fontSize: 11 }} className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all text-blue-600 dark:text-blue-400" />
-                            </span>
-                          </Link>
-                        ))
-                      ) : (
-                        <div className="text-xs text-slate-400 dark:text-slate-500 py-4 text-center">
-                          No roles configured in database.
-                        </div>
-                      )}
-                    </div>
+                  {/* Infographic Variable-Radius Pie / Donut Chart */}
+                  <div className="mt-2">
+                    <InfographicRoleChart
+                      data={summary?.roleDistribution || []}
+                      totalUsers={summary?.kpis.activeUsers ?? summary?.kpis.totalUsers ?? 0}
+                    />
                   </div>
                 </div>
 

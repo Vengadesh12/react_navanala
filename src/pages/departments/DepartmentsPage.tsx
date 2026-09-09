@@ -265,38 +265,27 @@ export const DepartmentsPage: React.FC = () => {
     >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 animate-fade-in pb-12">
         {/* Page Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-950/60 dark:text-teal-400">
-              </div>
-            
-            </div>
-           
-          </div>
+        <div className="flex items-center justify-end gap-2.5">
+          <button
+            type="button"
+            onClick={fetchOverview}
+            className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Refresh departments"
+          >
+            <Refresh sx={{ fontSize: 16 }} />
+            <span>Refresh</span>
+          </button>
 
-          <div className="flex items-center gap-2.5">
+          {canCreate && (
             <button
               type="button"
-              onClick={fetchOverview}
-              className="flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-xs hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Refresh departments"
+              onClick={handleCreateDepartment}
+              className="flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-teal-600/30 hover:bg-teal-700 transition-all cursor-pointer"
             >
-              <Refresh sx={{ fontSize: 16 }} />
-              <span>Refresh</span>
+              <Add sx={{ fontSize: 18 }} />
+              <span>Add Department</span>
             </button>
-
-            {canCreate && (
-              <button
-                type="button"
-                onClick={handleCreateDepartment}
-                className="flex items-center gap-1.5 rounded-xl bg-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-md shadow-teal-600/30 hover:bg-teal-700 transition-all cursor-pointer"
-              >
-                <Add sx={{ fontSize: 18 }} />
-                <span>Add Department</span>
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Top Metrics Cards */}

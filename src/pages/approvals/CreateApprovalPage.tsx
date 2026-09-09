@@ -90,6 +90,15 @@ export const CreateApprovalPage: React.FC = () => {
   // Managers default to 'all' team requests; Regular employees are locked to 'my' requests
   const [scopeFilter, setScopeFilter] = useState<"all" | "my">(isManagerOrAdmin ? "all" : "my");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+
+  // Debounce search query to prevent excessive API requests while typing
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
   // Pagination & Sorting
   const [page, setPage] = useState<number>(1);
@@ -98,7 +107,7 @@ export const CreateApprovalPage: React.FC = () => {
   // Reset page when filters change
   useEffect(() => {
     setPage(1);
-  }, [statusFilter, categoryFilter, priorityFilter, scopeFilter, searchQuery]);
+  }, [statusFilter, categoryFilter, priorityFilter, scopeFilter, debouncedSearch]);
 
   const { sortKey, sortDirection, handleSort, sortedData: sortedItems } = useTableSort<ApprovalItem>({
     data: items,
@@ -178,7 +187,7 @@ export const CreateApprovalPage: React.FC = () => {
           category: categoryFilter,
           priority: priorityFilter,
           scope: effectiveScope,
-          search: searchQuery,
+          search: debouncedSearch,
           pageSize: 100,
         });
 
@@ -202,7 +211,7 @@ export const CreateApprovalPage: React.FC = () => {
         setRefreshing(false);
       }
     },
-    [statusFilter, categoryFilter, priorityFilter, scopeFilter, searchQuery, isManagerOrAdmin, user?.id]
+    [statusFilter, categoryFilter, priorityFilter, scopeFilter, debouncedSearch, isManagerOrAdmin, user?.id]
   );
 
   useEffect(() => {
@@ -409,9 +418,30 @@ export const CreateApprovalPage: React.FC = () => {
       label="Create Approval"
       icon="✓"
       showHero={false}
-      showSearchBar={false}
+      showSearchBar={true}
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder="Search requests by item, employee, reason..."
     >
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+        {/* Active Search Indicator Banner */}
+        {searchQuery.trim() && (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-blue-100 dark:border-blue-900/60 bg-blue-50/60 dark:bg-blue-950/40 px-4 py-3 text-xs">
+            <div className="flex items-center gap-2 text-blue-900 dark:text-blue-200">
+              <Search sx={{ fontSize: 18, color: "#3b82f6" }} />
+              <span>
+                Showing results matching &quot;<strong>{searchQuery.trim()}</strong>&quot; ({items.length} {items.length === 1 ? "request" : "requests"} found)
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="text-xs font-semibold text-blue-700 dark:text-blue-300 hover:underline cursor-pointer"
+            >
+              Clear search
+            </button>
+          </div>
+        )}
         {/* Page Top Header with Title & Action */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
