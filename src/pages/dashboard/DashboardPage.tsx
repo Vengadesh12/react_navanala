@@ -1067,8 +1067,8 @@ export const DashboardPage: React.FC = () => {
       />
 
       <div className="w-full min-h-screen bg-slate-50/50 dark:bg-[#0b0f19] px-4 py-6 sm:px-8 space-y-6">
-        {/* Header Title & Expanded Celestial Sun Tracker */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        {/* Header Title, Expanded Celestial Sun Tracker & Header Actions */}
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex items-center gap-3.5 shrink-0">
             <Link to="/profile" className="shrink-0 group block" title="Go to profile">
               <img
@@ -1091,8 +1091,44 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Expanded Animated Sun Tracker According to Time */}
-          <SunArcTracker className="w-full md:flex-1 md:max-w-xl lg:max-w-2xl xl:max-w-3xl md:ml-6 relative overflow-visible" />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto xl:flex-1 justify-end">
+            {/* Expanded Animated Sun Tracker According to Time */}
+            <SunArcTracker className="w-full sm:flex-1 max-w-xl lg:max-w-2xl xl:max-w-3xl relative overflow-visible" />
+
+            {/* Header Action Buttons: Blast Fireworks & Live Refresh */}
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              {/* <button
+                type="button"
+                onClick={() => {
+                  setDarkMode(true);
+                  setShowCrackerShelf((prev) => !prev);
+                }}
+                className={`inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-pink-500 via-purple-600 to-indigo-600 hover:from-pink-600 hover:via-purple-700 hover:to-indigo-700 text-white px-3.5 py-2 text-xs font-bold shadow-md shadow-pink-500/25 active:scale-95 transition-all cursor-pointer animate-pulse-glow ${
+                  showCrackerShelf
+                    ? "ring-2 ring-amber-400 ring-offset-2 dark:ring-offset-slate-950 shadow-amber-500/30"
+                    : ""
+                }`}
+                title="Show Diwali crackers showcase and blast fireworks"
+              >
+                <Celebration sx={{ fontSize: 16 }} className="text-yellow-300 animate-bounce" />
+                <span className="whitespace-nowrap">Blast Fireworks</span>
+              </button> */}
+
+              <button
+                type="button"
+                onClick={() => loadDashboard(timeframe, true)}
+                disabled={refreshing}
+                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-60 shrink-0"
+                title="Refresh database metrics"
+              >
+                <Refresh
+                  sx={{ fontSize: 16, color: "#64748b" }}
+                  className={refreshing ? "animate-spin text-blue-600" : ""}
+                />
+                <span className="hidden sm:inline">{refreshing ? "Syncing..." : "Refresh"}</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         {/* Diwali Crackers Showcase Shelf (Shown below header when Blast Fireworks is clicked) */}
@@ -1125,7 +1161,7 @@ export const DashboardPage: React.FC = () => {
                       crackersBlastRef.current?.blastAll();
                     }, 120);
                   }}
-                  className="hidden sm:inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-pink-600 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer"
                 >
                   <AutoAwesome sx={{ fontSize: 14 }} />
                   <span>Blast All Combo</span>
