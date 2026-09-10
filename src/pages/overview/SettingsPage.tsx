@@ -518,7 +518,8 @@ export const SettingsPage: React.FC = () => {
                           type="text"
                           value={formValues.app_name || ""}
                           onChange={(e) => handleChange("app_name", e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+                          readOnly
+                          className="w-full readonly rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-600 dark:text-slate-400 cursor-not-allowed focus:outline-hidden"
                         />
                       </div>
 

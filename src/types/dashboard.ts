@@ -55,11 +55,19 @@ export interface DashboardChartPoint {
   total: number;
 }
 
+export interface DashboardTimelineItem {
+  id: number;
+  createdAt: string;
+}
+
 export interface DashboardSummaryResponse {
   kpis: DashboardKpiMetrics;
   roleDistribution: DashboardRoleDistributionItem[];
   recentUsers: DashboardRecentUserItem[];
   recentActivities: DashboardActivityItem[];
   chartData: DashboardChartPoint[];
+  userTimeline?: DashboardTimelineItem[];
+  roleTimeline?: DashboardTimelineItem[];
   dateRangeDescription: string;
 }
+

@@ -2,6 +2,8 @@ export interface Role {
   id: number | string;
   name: string;
   description?: string;
+  createdAt?: string;
+  CreatedAt?: string;
 }
 
 export interface RoleFormData {

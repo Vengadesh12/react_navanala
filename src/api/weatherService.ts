@@ -206,7 +206,7 @@ export async function fetchNavaWeather(forceRefresh = false): Promise<WeatherDat
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,is_day,precipitation,weather_code,wind_speed_10m&daily=sunrise,sunset&timezone=${encodeURIComponent(
     timezone
   )}`;
-
+  console.log("weather url",url);
   try {
     const res = await fetch(url);
     if (!res.ok) {

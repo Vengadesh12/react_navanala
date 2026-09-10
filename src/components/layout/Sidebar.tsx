@@ -20,6 +20,7 @@ import {
   ShoppingCartOutlined,
   KeyOutlined,
   BuildCircleOutlined,
+  AdminPanelSettings,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog } from "../../utils/alerts";
@@ -167,29 +168,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="flex flex-1 flex-col min-h-0">
           {/* Brand Header */}
           <div className="mb-6 flex shrink-0 items-center justify-between px-1.5 pt-1">
-            <Link to="/dashboard" className="flex items-center gap-3 group min-w-0 flex-1">
+            <Link
+              to={can("dashboard.view") ? "/dashboard" : "/roles"}
+              className="flex items-center gap-3 group min-w-0 flex-1"
+            >
               <div
-                className="h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-white brand-logo-white p-1 shadow-md shadow-blue-500/20 ring-1 ring-white/10 flex items-center justify-center group-hover:scale-105 transition-transform"
-                style={{ backgroundColor: "#ffffff" }}
+                className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-blue-600 via-indigo-600 to-indigo-700 p-2 shadow-md shadow-blue-500/25 ring-1 ring-white/20 flex items-center justify-center group-hover:scale-105 group-hover:shadow-blue-500/40 transition-all text-white"
               >
-                <img src="/navanala-icon.png" alt="NavaNala Technologies" className="h-full w-full object-contain" />
+                <AdminPanelSettings sx={{ fontSize: 22 }} />
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-[15px] font-bold tracking-tight text-white group-hover:text-blue-400 transition-colors leading-tight">
-                  NavaNala
+                <span className="text-[15px] font-bold tracking-tight text-white group-hover:text-blue-400 transition-colors leading-tight truncate">
+                  Role Management
                 </span>
-                <span className="text-[11px] font-medium tracking-[0.16em] text-blue-400 group-hover:text-blue-300 transition-colors leading-none mt-0.5">
-                  TECHNOLOGIES
+                <span className="text-[10px] font-semibold tracking-[0.16em] text-blue-400 group-hover:text-blue-300 transition-colors leading-none mt-1 uppercase">
+                  System
                 </span>
-                {/* NavaNala Brand Accent Colors Strip */}
-                <div className="flex items-center gap-1 mt-1.5">
-                  <span className="h-[3px] w-3 rounded-full bg-[#E53935] shadow-xs shadow-red-500/30" />
-                  <span className="h-[3px] w-3 rounded-full bg-[#2563EB] shadow-xs shadow-blue-500/30" />
-                  <span className="h-[3px] w-3 rounded-full bg-[#94A3B8] shadow-xs shadow-slate-400/30" />
-                  <span className="h-[3px] w-3 rounded-full bg-[#FFFFFF] shadow-xs shadow-white/30" />
-                  <span className="h-[3px] w-3 rounded-full bg-[#16A34A] shadow-xs shadow-emerald-500/30" />
-                  <span className="h-[3px] w-3 rounded-full bg-[#F59E0B] shadow-xs shadow-amber-500/30" />
-                </div>
               </div>
             </Link>
             <button

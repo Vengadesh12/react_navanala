@@ -16,6 +16,8 @@ import {
   Tune,
   Close,
   OpenInNew,
+  ContentCopy,
+  Check,
 } from "@mui/icons-material";
 import {
   fetchNavaWeather,
@@ -24,8 +26,15 @@ import {
   NAVA_LOCATION,
 } from "../../api/weatherService";
 
-interface SunArcTrackerProps {
+export interface SunArcHoverTime {
+  decimalHours: number;
+  displayTime: string;
+  date: Date;
+}
+
+export interface SunArcTrackerProps {
   className?: string;
+  onHoverTimeChange?: (hoverData: SunArcHoverTime | null) => void;
 }
 
 const WEATHER_THEMES: Record<
@@ -132,7 +141,73 @@ const WEATHER_THEMES: Record<
   },
 };
 
-export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) => {
+interface ThemeOption {
+  id: WeatherType | "auto";
+  label: string;
+  icon: React.ReactNode;
+  activeClass: string;
+}
+
+const THEME_OPTIONS: ThemeOption[] = [
+  {
+    id: "auto",
+    label: "Auto",
+    icon: <AutoAwesome sx={{ fontSize: 13 }} />,
+    activeClass:
+      "bg-gradient-to-r from-indigo-600 to-violet-600 text-white border-indigo-500 shadow-sm ring-1.5 ring-indigo-400/60 font-bold",
+  },
+  {
+    id: "sunny",
+    label: "Sunny",
+    icon: <WbSunny sx={{ fontSize: 13 }} />,
+    activeClass:
+      "bg-gradient-to-r from-amber-500 to-orange-500 text-white border-amber-400 shadow-sm ring-1.5 ring-amber-400/60 font-bold",
+  },
+  {
+    id: "rain",
+    label: "Rain",
+    icon: <Grain sx={{ fontSize: 13 }} />,
+    activeClass:
+      "bg-gradient-to-r from-cyan-600 to-blue-600 text-white border-cyan-400 shadow-sm ring-1.5 ring-cyan-400/60 font-bold",
+  },
+  {
+    id: "thunderstorm",
+    label: "Storm",
+    icon: <Thunderstorm sx={{ fontSize: 13 }} />,
+    activeClass:
+      "bg-gradient-to-r from-purple-600 to-indigo-700 text-white border-purple-400 shadow-sm ring-1.5 ring-purple-400/60 font-bold",
+  },
+  {
+    id: "sunset",
+    label: "Sunset",
+    icon: <WbTwilight sx={{ fontSize: 13 }} />,
+    activeClass:
+      "bg-gradient-to-r from-rose-500 to-amber-600 text-white border-rose-400 shadow-sm ring-1.5 ring-rose-400/60 font-bold",
+  },
+  {
+    id: "cloudy",
+    label: "Cloudy",
+    icon: <Cloud sx={{ fontSize: 13 }} />,
+    activeClass:
+      "bg-gradient-to-r from-slate-600 to-slate-700 text-white border-slate-400 shadow-sm ring-1.5 ring-slate-400/60 font-bold",
+  },
+  {
+    id: "fog",
+    label: "Fog",
+    icon: <Air sx={{ fontSize: 13 }} />,
+    activeClass:
+      "bg-gradient-to-r from-teal-600 to-emerald-600 text-white border-teal-400 shadow-sm ring-1.5 ring-teal-400/60 font-bold",
+  },
+  {
+    id: "clear_night",
+    label: "Night",
+    icon: <DarkMode sx={{ fontSize: 13 }} />,
+    activeClass:
+      "bg-gradient-to-r from-indigo-900 to-slate-900 text-white border-indigo-600 shadow-sm ring-1.5 ring-indigo-400/60 font-bold",
+  },
+];
+
+export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "", onHoverTimeChange }) => {
   // Live real-time clock updating every second
   const [currentTime, setCurrentTime] = useState<Date>(() => new Date());
   // Interactive hover tracking progress (0 to 1), or null when not hovering
@@ -145,7 +220,18 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
   const [isRefreshingWeather, setIsRefreshingWeather] = useState<boolean>(false);
   const [weatherModalOpen, setWeatherModalOpen] = useState<boolean>(false);
   const [previewTheme, setPreviewTheme] = useState<WeatherType | "auto">("auto");
+  const [copiedCoords, setCopiedCoords] = useState<boolean>(false);
   const modalRef = useRef<HTMLDivElement>(null);
+
+  // Copy GPS Coordinates helper
+  const handleCopyCoords = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(`${NAVA_LOCATION.latitude}, ${NAVA_LOCATION.longitude}`);
+      setCopiedCoords(true);
+      setTimeout(() => setCopiedCoords(false), 2000);
+    }
+  };
 
   // Fetch live weather on mount and auto-refresh every 10 minutes
   useEffect(() => {
@@ -175,17 +261,26 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
     };
   }, []);
 
-  // Close weather details modal on outside click
+  // Close weather details modal on outside click or Escape key
   useEffect(() => {
     const handleOutsideClick = (e: MouseEvent) => {
       if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
         setWeatherModalOpen(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setWeatherModalOpen(false);
+      }
+    };
     if (weatherModalOpen) {
       document.addEventListener("mousedown", handleOutsideClick);
+      document.addEventListener("keydown", handleKeyDown);
     }
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [weatherModalOpen]);
 
   // Live timer tick
@@ -274,6 +369,25 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
     const formattedSeconds = currentSeconds.toString().padStart(2, "0");
     return `${displayHours12}:${formattedMinutes}:${formattedSeconds} ${ampm}`;
   }, [isHovering, effectiveDecimalHours, currentHours, currentMinutes, currentSeconds]);
+
+  // Notify parent component of hovered time across the celestial arc
+  useEffect(() => {
+    if (!onHoverTimeChange) return;
+    if (hoverProgress !== null) {
+      const h = Math.floor(effectiveDecimalHours);
+      const m = Math.floor((effectiveDecimalHours - h) * 60);
+      const s = Math.floor((((effectiveDecimalHours - h) * 60) - m) * 60);
+      const d = new Date(currentTime);
+      d.setHours(h, m, s, 0);
+      onHoverTimeChange({
+        decimalHours: effectiveDecimalHours,
+        displayTime: displayTimeStr,
+        date: d,
+      });
+    } else {
+      onHoverTimeChange(null);
+    }
+  }, [hoverProgress, effectiveDecimalHours, displayTimeStr, currentTime, onHoverTimeChange]);
 
   // Phase Label & Direction Indicator
   const phaseInfo = useMemo(() => {
@@ -885,38 +999,65 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
         <div
           ref={modalRef}
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-full right-0 sm:right-4 mt-2 w-80 sm:w-96 rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 shadow-2xl p-4 z-50 animate-fade-in text-slate-800 dark:text-slate-100"
+          className="absolute top-full right-0 sm:right-2 mt-2.5 w-[calc(100vw-2rem)] sm:w-[410px] max-w-[420px] rounded-2xl bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-slate-900/20 dark:shadow-slate-950/60 p-4 sm:p-5 z-50 animate-fade-in text-slate-800 dark:text-slate-100 space-y-3.5 max-h-[85vh] overflow-y-auto"
         >
           {/* Header */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-200/80 dark:border-slate-800">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-rose-500/10 dark:bg-rose-500/20 text-rose-500 flex items-center justify-center shrink-0">
-                <LocationOn sx={{ fontSize: 18 }} />
+          <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-slate-800">
+            {/* Left Location & Title Details */}
+            <div className="flex items-start gap-2.5 min-w-0 flex-1">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-rose-500/15 via-rose-500/10 to-orange-500/15 dark:from-rose-500/25 dark:to-orange-500/25 text-rose-500 border border-rose-500/20 flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                <LocationOn sx={{ fontSize: 20 }} />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <h4 className="text-xs sm:text-sm font-bold tracking-tight text-slate-900 dark:text-white truncate">
+                  <h4 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white truncate">
                     Nava Technologies
                   </h4>
                   <a
                     href={NAVA_LOCATION.mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 inline-flex items-center p-0.5 rounded hover:bg-slate-100 dark:hover:bg-slate-800"
+                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 inline-flex items-center p-0.5 rounded hover:bg-indigo-50 dark:hover:bg-indigo-950/50 transition-colors shrink-0"
                     title="Open Nava Technologies on Google Maps"
                   >
-                    <OpenInNew sx={{ fontSize: 12 }} />
+                    <OpenInNew sx={{ fontSize: 13 }} />
                   </a>
                 </div>
+                <p className="text-[11px] font-medium text-slate-600 dark:text-slate-300 truncate mt-0.5">
+                  {NAVA_LOCATION.fullName}
+                </p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                  {NAVA_LOCATION.fullName} • {NAVA_LOCATION.landmark}
+                  {NAVA_LOCATION.landmark}
                 </p>
-                <p className="text-[9px] font-mono text-slate-400 dark:text-slate-500">
-                  {NAVA_LOCATION.latitude}° N, {NAVA_LOCATION.longitude}° E
-                </p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <button
+                    type="button"
+                    onClick={handleCopyCoords}
+                    className="inline-flex items-center gap-1 text-[9px] font-mono text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-slate-100/90 dark:bg-slate-800/80 hover:bg-slate-200/80 dark:hover:bg-slate-700/80 px-2 py-0.5 rounded-md border border-slate-200/70 dark:border-slate-700/60 transition-colors cursor-pointer"
+                    title="Click to copy GPS coordinates"
+                  >
+                    {copiedCoords ? (
+                      <>
+                        <Check sx={{ fontSize: 11 }} className="text-emerald-500" />
+                        <span className="text-emerald-600 dark:text-emerald-400 font-sans font-semibold">
+                          Copied!
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <ContentCopy sx={{ fontSize: 10 }} />
+                        <span>
+                          {NAVA_LOCATION.latitude}° N, {NAVA_LOCATION.longitude}° E
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
+
+            {/* Right Action Buttons */}
+            <div className="flex items-center gap-1 shrink-0 pt-0.5">
               <button
                 type="button"
                 onClick={async () => {
@@ -926,184 +1067,183 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "" }) 
                   setIsRefreshingWeather(false);
                 }}
                 disabled={isRefreshingWeather}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-transparent hover:border-indigo-200 dark:hover:border-indigo-800/60 transition-all cursor-pointer"
                 title="Refresh Live Weather"
               >
                 <Refresh
-                  sx={{ fontSize: 16 }}
-                  className={isRefreshingWeather ? "animate-spin text-amber-500" : ""}
+                  sx={{ fontSize: 17 }}
+                  className={isRefreshingWeather ? "animate-spin text-indigo-600 dark:text-indigo-400" : ""}
                 />
               </button>
               <button
                 type="button"
                 onClick={() => setWeatherModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border border-transparent hover:border-slate-200 dark:hover:border-slate-700 transition-all cursor-pointer"
+                title="Close"
               >
-                <Close sx={{ fontSize: 16 }} />
+                <Close sx={{ fontSize: 17 }} />
               </button>
+            </div>
+          </div>
+
+          {/* Current Weather Highlight Card */}
+          <div className="relative overflow-hidden rounded-xl p-3 bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-slate-50/50 dark:from-amber-950/30 dark:via-slate-800/60 dark:to-slate-900/60 border border-amber-200/60 dark:border-amber-900/30 flex items-center justify-between gap-3 shadow-2xs">
+            <div>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white">
+                  {weatherData ? `${weatherData.temperature}°` : "38°"}
+                  <span className="text-lg font-bold text-slate-500 dark:text-slate-400">C</span>
+                </span>
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                  • Feels {weatherData ? `${weatherData.feelsLike}°C` : "39°C"}
+                </span>
+              </div>
+              <p className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-0.5">
+                {weatherData?.conditionText || "Sunny & Clear"}
+              </p>
+              <div className="flex items-center gap-1.5 mt-1">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                </span>
+                <span className="text-[10px] font-medium text-emerald-600 dark:text-emerald-400">
+                  Live Perundurai Weather
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/15 dark:bg-amber-500/25 border border-amber-500/30 flex items-center justify-center shadow-md shadow-amber-500/10">
+                {renderWeatherIcon(activeWeatherType, 26)}
+              </div>
             </div>
           </div>
 
           {/* Current Weather Stats Grid */}
-          <div className="grid grid-cols-3 gap-2 my-3">
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-0.5">
-                <Thermostat sx={{ fontSize: 12 }} className="text-amber-500" /> Temp
+          <div className="grid grid-cols-3 gap-2">
+            <div className="p-2.5 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 flex flex-col items-center justify-center text-center shadow-2xs hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors">
+              <div className="w-6 h-6 rounded-lg bg-amber-500/15 text-amber-500 flex items-center justify-center mb-1">
+                <Thermostat sx={{ fontSize: 15 }} />
+              </div>
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                Temp
               </span>
-              <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
-                {weatherData ? `${weatherData.temperature}°C` : "37°C"}
+              <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">
+                {weatherData ? `${weatherData.temperature}°C` : "38°C"}
               </span>
-              <span className="text-[9px] text-slate-400">
+              <span className="text-[9px] font-medium text-slate-400 mt-0.5">
                 Feels {weatherData ? `${weatherData.feelsLike}°C` : "39°C"}
               </span>
             </div>
 
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-0.5">
-                <WaterDrop sx={{ fontSize: 12 }} className="text-cyan-500" /> Humidity
+            <div className="p-2.5 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 flex flex-col items-center justify-center text-center shadow-2xs hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors">
+              <div className="w-6 h-6 rounded-lg bg-cyan-500/15 text-cyan-500 flex items-center justify-center mb-1">
+                <WaterDrop sx={{ fontSize: 15 }} />
+              </div>
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                Humidity
               </span>
-              <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
-                {weatherData ? `${weatherData.humidity}%` : "29%"}
+              <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">
+                {weatherData ? `${weatherData.humidity}%` : "27%"}
               </span>
-              <span className="text-[9px] text-slate-400">Relative</span>
+              <span className="text-[9px] font-medium text-slate-400 mt-0.5">Relative</span>
             </div>
 
-            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/50 flex flex-col items-center justify-center text-center">
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium flex items-center gap-0.5">
-                <Air sx={{ fontSize: 12 }} className="text-teal-500" /> Wind
+            <div className="p-2.5 rounded-xl bg-slate-50/90 dark:bg-slate-800/60 border border-slate-200/70 dark:border-slate-700/60 flex flex-col items-center justify-center text-center shadow-2xs hover:bg-slate-100/80 dark:hover:bg-slate-800/80 transition-colors">
+              <div className="w-6 h-6 rounded-lg bg-teal-500/15 text-teal-500 flex items-center justify-center mb-1">
+                <Air sx={{ fontSize: 15 }} />
+              </div>
+              <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                Wind
               </span>
-              <span className="text-sm font-extrabold text-slate-800 dark:text-slate-100 mt-0.5">
+              <span className="text-sm font-extrabold text-slate-900 dark:text-slate-100 mt-0.5">
                 {weatherData ? `${weatherData.windSpeed} km/h` : "11 km/h"}
               </span>
-              <span className="text-[9px] text-slate-400">Breeze</span>
+              <span className="text-[9px] font-medium text-slate-400 mt-0.5">Breeze</span>
             </div>
           </div>
 
-          {/* Sunrise / Sunset Timing in Perundurai */}
-          <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-amber-500/10 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/40 text-[10px] text-amber-900 dark:text-amber-200 mb-3">
-            <span className="flex items-center gap-1 font-semibold">
-              🌅 Sunrise: <span className="font-mono font-bold">{weatherData?.sunriseTime || "6:09 AM"}</span>
-            </span>
-            <span className="flex items-center gap-1 font-semibold">
-              🌇 Sunset: <span className="font-mono font-bold">{weatherData?.sunsetTime || "6:24 PM"}</span>
-            </span>
+          {/* Sunrise / Sunset Celestial Timing Bar */}
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-rose-500/10 dark:from-amber-950/30 dark:via-orange-950/20 dark:to-rose-950/30 border border-amber-200/70 dark:border-amber-900/40 text-xs">
+            {/* Sunrise */}
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-lg bg-amber-500/20 dark:bg-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <WbTwilight sx={{ fontSize: 16 }} className="rotate-180" />
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-wider text-amber-700/90 dark:text-amber-400/90">
+                  Sunrise
+                </p>
+                <p className="font-mono font-bold text-xs text-slate-800 dark:text-slate-100">
+                  {weatherData?.sunriseTime || "6:09 AM"}
+                </p>
+              </div>
+            </div>
+
+            {/* Sun Trajectory Gradient Line */}
+            <div className="flex-1 mx-3 flex items-center justify-center">
+              <div className="w-full h-px bg-gradient-to-r from-amber-400/60 via-orange-400/60 to-rose-400/60 relative">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-amber-500 shadow-xs shadow-amber-500" />
+              </div>
+            </div>
+
+            {/* Sunset */}
+            <div className="flex items-center gap-2">
+              <div className="text-right">
+                <p className="text-[9px] font-bold uppercase tracking-wider text-rose-700/90 dark:text-rose-400/90">
+                  Sunset
+                </p>
+                <p className="font-mono font-bold text-xs text-slate-800 dark:text-slate-100">
+                  {weatherData?.sunsetTime || "6:24 PM"}
+                </p>
+              </div>
+              <div className="w-7 h-7 rounded-lg bg-rose-500/20 dark:bg-rose-500/30 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
+                <WbTwilight sx={{ fontSize: 16 }} />
+              </div>
+            </div>
           </div>
 
           {/* Interactive Weather Background Theme Switcher */}
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] font-bold text-slate-700 dark:text-slate-300">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                 Weather Background Theme
               </span>
-              <span className="text-[9px] text-slate-400">
-                {previewTheme === "auto" ? "Live Auto Sync" : "Manual Preview"}
-              </span>
+              {previewTheme === "auto" ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Live Auto Sync
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPreviewTheme("auto")}
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                >
+                  Reset to Auto ↺
+                </button>
+              )}
             </div>
 
-            <div className="grid grid-cols-4 gap-1.5 text-[10px]">
-              {/* Auto Option */}
-              <button
-                type="button"
-                onClick={() => setPreviewTheme("auto")}
-                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
-                  previewTheme === "auto"
-                    ? "bg-indigo-600 text-white border-indigo-600 shadow-xs"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400"
-                }`}
-              >
-                ⚡ Live Auto
-              </button>
-
-              {/* Sunny */}
-              <button
-                type="button"
-                onClick={() => setPreviewTheme("sunny")}
-                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
-                  previewTheme === "sunny"
-                    ? "bg-amber-500 text-white border-amber-500 shadow-xs"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-amber-400"
-                }`}
-              >
-                ☀️ Sunny
-              </button>
-
-              {/* Rain */}
-              <button
-                type="button"
-                onClick={() => setPreviewTheme("rain")}
-                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
-                  previewTheme === "rain"
-                    ? "bg-cyan-600 text-white border-cyan-600 shadow-xs"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-cyan-400"
-                }`}
-              >
-                🌧️ Rain
-              </button>
-
-              {/* Thunderstorm */}
-              <button
-                type="button"
-                onClick={() => setPreviewTheme("thunderstorm")}
-                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
-                  previewTheme === "thunderstorm"
-                    ? "bg-purple-600 text-white border-purple-600 shadow-xs"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-purple-400"
-                }`}
-              >
-                ⛈️ Storm
-              </button>
-
-              {/* Sunset */}
-              <button
-                type="button"
-                onClick={() => setPreviewTheme("sunset")}
-                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
-                  previewTheme === "sunset"
-                    ? "bg-rose-600 text-white border-rose-600 shadow-xs"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-rose-400"
-                }`}
-              >
-                🌇 Sunset
-              </button>
-
-              {/* Cloudy */}
-              <button
-                type="button"
-                onClick={() => setPreviewTheme("cloudy")}
-                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
-                  previewTheme === "cloudy"
-                    ? "bg-slate-600 text-white border-slate-600 shadow-xs"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400"
-                }`}
-              >
-                ☁️ Cloudy
-              </button>
-
-              {/* Fog */}
-              <button
-                type="button"
-                onClick={() => setPreviewTheme("fog")}
-                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
-                  previewTheme === "fog"
-                    ? "bg-teal-600 text-white border-teal-600 shadow-xs"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-teal-400"
-                }`}
-              >
-                🌫️ Fog
-              </button>
-
-              {/* Starry Night */}
-              <button
-                type="button"
-                onClick={() => setPreviewTheme("clear_night")}
-                className={`px-1.5 py-1 rounded-lg border font-semibold text-center transition-all ${
-                  previewTheme === "clear_night"
-                    ? "bg-indigo-900 text-white border-indigo-700 shadow-xs"
-                    : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-indigo-400"
-                }`}
-              >
-                🌙 Night
-              </button>
+            <div className="grid grid-cols-4 gap-1.5 text-[11px]">
+              {THEME_OPTIONS.map((item) => {
+                const isSelected = previewTheme === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setPreviewTheme(item.id)}
+                    className={`px-2 py-1.5 rounded-xl border font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                      isSelected
+                        ? item.activeClass
+                        : "bg-slate-50/90 dark:bg-slate-800/70 text-slate-700 dark:text-slate-300 border-slate-200/80 dark:border-slate-700/80 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-600 shadow-2xs active:scale-95"
+                    }`}
+                  >
+                    <span className="shrink-0">{item.icon}</span>
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>

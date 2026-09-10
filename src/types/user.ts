@@ -42,6 +42,8 @@ export interface User {
   deletedflag?: number | string;
   isFirstLogin?: boolean;
   IsFirstLogin?: boolean;
+  createdAt?: string;
+  CreatedAt?: string;
 }
 
 export interface UserFormData {

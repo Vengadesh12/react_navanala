@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   MoreVert,
@@ -38,7 +38,9 @@ import {
   CrackerType,
   CRACKER_DEFINITIONS,
 } from "../../components/common/CrackersBlast";
-import { SunArcTracker } from "../../components/common/SunArcTracker";
+import { SunArcTracker, SunArcHoverTime } from "../../components/common/SunArcTracker";
+import { userService } from "../../api/user.service";
+import { roleService } from "../../api/role.service";
 import { InfographicRoleChart } from "../../components/dashboard/InfographicRoleChart";
 import type { DashboardSummaryResponse, DashboardChartPoint } from "../../types";
 
@@ -65,6 +67,9 @@ export const DashboardPage: React.FC = () => {
   } | null>(null);
   const [selectedSeries, setSelectedSeries] = useState<"all" | "active" | "new" | "audit">("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [sunHoverTime, setSunHoverTime] = useState<SunArcHoverTime | null>(null);
+  const [allUsersList, setAllUsersList] = useState<Array<{ id: number; createdAt?: string }>>([]);
+  const [allRolesList, setAllRolesList] = useState<Array<{ id: number | string; createdAt?: string }>>([]);
 
   // Automatically trigger fireworks blast on login redirect
   useEffect(() => {
@@ -96,6 +101,20 @@ export const DashboardPage: React.FC = () => {
     try {
       const data = await dashboardService.getSummary(tf);
       setSummary(data);
+      if (data.userTimeline && data.userTimeline.length > 0) {
+        setAllUsersList(data.userTimeline);
+      } else {
+        userService.getUsers().then((users) => {
+          setAllUsersList(users.map((u) => ({ id: u.id, createdAt: u.createdAt || (u as any).CreatedAt })));
+        }).catch(() => { });
+      }
+      if (data.roleTimeline && data.roleTimeline.length > 0) {
+        setAllRolesList(data.roleTimeline);
+      } else {
+        roleService.getRoles().then((roles) => {
+          setAllRolesList(roles.map((r) => ({ id: r.id, createdAt: r.createdAt || (r as any).CreatedAt })));
+        }).catch(() => { });
+      }
       if (data.chartData && data.chartData.length > 0) {
         setActiveChartPoint(data.chartData.length - 1);
       }
@@ -107,6 +126,60 @@ export const DashboardPage: React.FC = () => {
       setRefreshing(false);
     }
   }, []);
+
+  // Dynamic User & Role Counts based on SunArc hovered time
+  const { displayedTotalUsers, displayedTotalRoles } = useMemo(() => {
+    const defaultUsers = summary?.kpis.totalUsers ?? 0;
+    const defaultRoles = summary?.kpis.totalRoles ?? 0;
+
+    if (!sunHoverTime) {
+      return {
+        displayedTotalUsers: defaultUsers,
+        displayedTotalRoles: defaultRoles,
+      };
+    }
+
+    const targetTimeMs = sunHoverTime.date.getTime();
+
+    const usersSource =
+      summary?.userTimeline && summary.userTimeline.length > 0
+        ? summary.userTimeline
+        : allUsersList;
+
+    const rolesSource =
+      summary?.roleTimeline && summary.roleTimeline.length > 0
+        ? summary.roleTimeline
+        : allRolesList;
+
+    if (usersSource.length === 0 && rolesSource.length === 0) {
+      return {
+        displayedTotalUsers: defaultUsers,
+        displayedTotalRoles: defaultRoles,
+      };
+    }
+
+    const isPresent = (createdAtStr?: string) => {
+      if (!createdAtStr) return true;
+      const createdDate = new Date(createdAtStr);
+      if (isNaN(createdDate.getTime())) return true;
+      return createdDate.getTime() <= targetTimeMs;
+    };
+
+    const usersCount =
+      usersSource.length > 0
+        ? usersSource.filter((u) => isPresent(u.createdAt)).length
+        : defaultUsers;
+
+    const rolesCount =
+      rolesSource.length > 0
+        ? rolesSource.filter((r) => isPresent(r.createdAt)).length
+        : defaultRoles;
+
+    return {
+      displayedTotalUsers: usersCount,
+      displayedTotalRoles: rolesCount,
+    };
+  }, [sunHoverTime, summary, allUsersList, allRolesList]);
 
   useEffect(() => {
     loadDashboard(timeframe);
@@ -1093,7 +1166,10 @@ export const DashboardPage: React.FC = () => {
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto xl:flex-1 justify-end">
             {/* Expanded Animated Sun Tracker According to Time */}
-            <SunArcTracker className="w-full sm:flex-1 max-w-xl lg:max-w-2xl xl:max-w-3xl relative overflow-visible" />
+            <SunArcTracker
+              className="w-full sm:flex-1 max-w-xl lg:max-w-2xl xl:max-w-3xl relative overflow-visible"
+              onHoverTimeChange={setSunHoverTime}
+            />
 
             {/* Header Action Buttons: Blast Fireworks & Live Refresh */}
             <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
@@ -1328,8 +1404,8 @@ export const DashboardPage: React.FC = () => {
                       Total Users
                     </span>
                     <div className="flex items-baseline gap-2 pt-1">
-                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">
-                        {loading && !summary ? "..." : summary?.kpis.totalUsers ?? 0}
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 transition-all duration-150">
+                        {loading && !summary ? "..." : displayedTotalUsers}
                       </span>
                       <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-md">
                         <North sx={{ fontSize: 12, strokeWidth: 2.5 }} />
@@ -1375,8 +1451,8 @@ export const DashboardPage: React.FC = () => {
                       Total Roles
                     </span>
                     <div className="flex items-baseline gap-2 pt-1">
-                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100">
-                        {loading && !summary ? "..." : summary?.kpis.totalRoles ?? 0}
+                      <span className="text-3xl font-extrabold text-slate-900 dark:text-slate-100 transition-all duration-150">
+                        {loading && !summary ? "..." : displayedTotalRoles}
                       </span>
                       <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex items-center bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded-md">
                         <North sx={{ fontSize: 12, strokeWidth: 2.5 }} />
@@ -1498,7 +1574,7 @@ export const DashboardPage: React.FC = () => {
             )}
           </div>
         )}
-        
+
 
         {/* 2. Middle Row: Dynamic Charts Section */}
         {visibleChartCount > 0 && (
