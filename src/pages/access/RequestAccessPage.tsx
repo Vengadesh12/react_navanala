@@ -419,11 +419,10 @@ export const RequestAccessPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setActiveTab("queue")}
-              className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-                activeTab === "queue"
+              className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${activeTab === "queue"
                   ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25"
                   : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-              }`}
+                }`}
             >
               <AdminPanelSettings sx={{ fontSize: 16 }} />
               <span>Incoming Access Requests (Admin Queue)</span>
@@ -438,11 +437,10 @@ export const RequestAccessPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab("catalog")}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "catalog"
+            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${activeTab === "catalog"
                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-            }`}
+              }`}
           >
             <LockOpen sx={{ fontSize: 16 }} />
             <span>Explore & Request Permissions</span>
@@ -451,11 +449,10 @@ export const RequestAccessPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab("history")}
-            className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${
-              activeTab === "history"
+            className={`relative inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all cursor-pointer ${activeTab === "history"
                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-500/25"
                 : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60"
-            }`}
+              }`}
           >
             <FactCheck sx={{ fontSize: 16 }} />
             <span>My Request History</span>
@@ -492,33 +489,30 @@ export const RequestAccessPage: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setCatalogStatusFilter("all")}
-                    className={`rounded-lg px-2.5 py-1 font-semibold transition-all ${
-                      catalogStatusFilter === "all"
+                    className={`rounded-lg px-2.5 py-1 font-semibold transition-all ${catalogStatusFilter === "all"
                         ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs"
                         : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                      }`}
                   >
                     All
                   </button>
                   <button
                     type="button"
                     onClick={() => setCatalogStatusFilter("locked")}
-                    className={`rounded-lg px-2.5 py-1 font-semibold transition-all ${
-                      catalogStatusFilter === "locked"
+                    className={`rounded-lg px-2.5 py-1 font-semibold transition-all ${catalogStatusFilter === "locked"
                         ? "bg-white dark:bg-slate-700 text-indigo-600 dark:text-indigo-400 shadow-xs"
                         : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                      }`}
                   >
                     Need Access ({permissions.filter((p) => !p.isGranted).length})
                   </button>
                   <button
                     type="button"
                     onClick={() => setCatalogStatusFilter("granted")}
-                    className={`rounded-lg px-2.5 py-1 font-semibold transition-all ${
-                      catalogStatusFilter === "granted"
+                    className={`rounded-lg px-2.5 py-1 font-semibold transition-all ${catalogStatusFilter === "granted"
                         ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-xs"
                         : "text-slate-500 hover:text-slate-900 dark:hover:text-white"
-                    }`}
+                      }`}
                   >
                     Active / Granted ({permissions.filter((p) => p.isGranted).length})
                   </button>
@@ -535,13 +529,12 @@ export const RequestAccessPage: React.FC = () => {
               {filteredPermissions.map((perm) => (
                 <div
                   key={perm.id}
-                  className={`flex flex-col justify-between rounded-2xl border p-4 transition-all duration-200 ${
-                    perm.isGranted
+                  className={`flex flex-col justify-between rounded-2xl border p-4 transition-all duration-200 ${perm.isGranted
                       ? "border-emerald-200/80 dark:border-emerald-950/80 bg-gradient-to-b from-emerald-500/5 to-transparent dark:bg-slate-900/80"
                       : perm.hasPendingRequest
-                      ? "border-amber-200/80 dark:border-amber-950/80 bg-gradient-to-b from-amber-500/5 to-transparent dark:bg-slate-900/80"
-                      : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md"
-                  }`}
+                        ? "border-amber-200/80 dark:border-amber-950/80 bg-gradient-to-b from-amber-500/5 to-transparent dark:bg-slate-900/80"
+                        : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md"
+                    }`}
                 >
                   <div>
                     <div className="flex items-start justify-between gap-2">
@@ -941,11 +934,10 @@ export const RequestAccessPage: React.FC = () => {
                         key={p}
                         type="button"
                         onClick={() => setRequestPriority(p)}
-                        className={`rounded-xl border py-2 text-xs font-bold transition-all cursor-pointer ${
-                          requestPriority === p
+                        className={`rounded-xl border py-2 text-xs font-bold transition-all cursor-pointer ${requestPriority === p
                             ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 ring-2 ring-indigo-500/20"
                             : "border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800"
-                        }`}
+                          }`}
                       >
                         {p}
                       </button>
@@ -1003,11 +995,10 @@ export const RequestAccessPage: React.FC = () => {
               <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-2.5">
                   <div
-                    className={`h-9 w-9 rounded-xl flex items-center justify-center ${
-                      reviewAction === "Approve"
+                    className={`h-9 w-9 rounded-xl flex items-center justify-center ${reviewAction === "Approve"
                         ? "bg-emerald-500/10 text-emerald-600"
                         : "bg-rose-500/10 text-rose-600"
-                    }`}
+                      }`}
                   >
                     {reviewAction === "Approve" ? <Check sx={{ fontSize: 20 }} /> : <Close sx={{ fontSize: 20 }} />}
                   </div>
@@ -1081,11 +1072,10 @@ export const RequestAccessPage: React.FC = () => {
                   type="button"
                   onClick={handleSubmitReview}
                   disabled={submittingReview}
-                  className={`inline-flex items-center gap-1.5 rounded-xl text-white px-4 py-2 text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer ${
-                    reviewAction === "Approve"
+                  className={`inline-flex items-center gap-1.5 rounded-xl text-white px-4 py-2 text-xs font-bold shadow-md active:scale-95 transition-all cursor-pointer ${reviewAction === "Approve"
                       ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-500/25"
                       : "bg-rose-600 hover:bg-rose-700 shadow-rose-500/25"
-                  }`}
+                    }`}
                 >
                   {reviewAction === "Approve" ? (
                     <>

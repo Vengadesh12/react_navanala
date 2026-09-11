@@ -1151,23 +1151,16 @@ export const DashboardPage: React.FC = () => {
               />
             </Link>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                  Welcome back, {user?.name || "Administrator"}
-                </h1>
-                {user?.roleName && (
-                  <span className="hidden sm:inline-block rounded-full bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-pink-500/10 dark:from-indigo-950/80 dark:to-purple-950/80 px-2.5 py-0.5 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800">
-                    {user.roleName}
-                  </span>
-                )}
-              </div>
+              <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                Welcome back, {user?.name || "Administrator"}
+              </h1>
             </div>
           </div>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full xl:w-auto xl:flex-1 justify-end">
             {/* Expanded Animated Sun Tracker According to Time */}
             <SunArcTracker
-              className="w-full sm:flex-1 max-w-xl lg:max-w-2xl xl:max-w-3xl relative overflow-visible"
+              className="w-full sm:flex-1 max-w-xl lg:max-w-2xl xl:max-w-3xl relative z-10 overflow-visible"
               onHoverTimeChange={setSunHoverTime}
             />
 

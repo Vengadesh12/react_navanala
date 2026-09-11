@@ -99,6 +99,43 @@ export const Topbar: React.FC<TopbarProps> = ({
   );
   const userName = user?.name || "Vengadesh M";
   const userEmail = user?.email || "admin@example.com";
+  const roleNameDisplay = user?.roleName || roleMeta.name || "Super Admin";
+
+  const getRoleBadgeClasses = (roleName?: string) => {
+    const lower = (roleName || "").toLowerCase();
+    if (lower.includes("super admin") || lower.includes("admin")) {
+      return {
+        bg: "bg-gradient-to-r from-indigo-50/90 via-purple-50/70 to-pink-50/60 dark:from-indigo-950/60 dark:via-purple-950/40 dark:to-slate-900/80",
+        border: "border-indigo-200/70 dark:border-indigo-800/60 hover:border-indigo-300 dark:hover:border-indigo-600/60",
+        text: "text-indigo-900 dark:text-indigo-200",
+        icon: "text-indigo-600 dark:text-indigo-400",
+      };
+    }
+    if (lower.includes("manager") || lower.includes("lead") || lower.includes("supervisor")) {
+      return {
+        bg: "bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-green-50/60 dark:from-emerald-950/60 dark:via-teal-950/40 dark:to-slate-900/80",
+        border: "border-emerald-200/70 dark:border-emerald-800/60 hover:border-emerald-300 dark:hover:border-emerald-600/60",
+        text: "text-emerald-900 dark:text-emerald-200",
+        icon: "text-emerald-600 dark:text-emerald-400",
+      };
+    }
+    if (lower.includes("employee") || lower.includes("member") || lower.includes("staff") || lower.includes("user")) {
+      return {
+        bg: "bg-gradient-to-r from-sky-50/90 via-blue-50/70 to-cyan-50/60 dark:from-sky-950/60 dark:via-blue-950/40 dark:to-slate-900/80",
+        border: "border-sky-200/70 dark:border-sky-800/60 hover:border-sky-300 dark:hover:border-sky-600/60",
+        text: "text-sky-900 dark:text-sky-200",
+        icon: "text-sky-600 dark:text-sky-400",
+      };
+    }
+    return {
+      bg: "bg-gradient-to-r from-purple-50/90 via-indigo-50/70 to-violet-50/60 dark:from-purple-950/60 dark:via-indigo-950/40 dark:to-slate-900/80",
+      border: "border-purple-200/70 dark:border-purple-800/60 hover:border-purple-300 dark:hover:border-purple-600/60",
+      text: "text-purple-900 dark:text-purple-200",
+      icon: "text-purple-600 dark:text-purple-400",
+    };
+  };
+
+  const roleStyles = getRoleBadgeClasses(roleNameDisplay);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -136,8 +173,8 @@ export const Topbar: React.FC<TopbarProps> = ({
 
   return (
     <header className="sticky top-0 z-30 flex h-18 items-center justify-between border-b border-slate-100 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 px-6 backdrop-blur-md transition-colors duration-200">
-      {/* Left: Hamburger & Search Input */}
-      <div className="flex items-center gap-4 flex-1 max-w-md">
+      {/* Left: Hamburger, Search Input & Role Badge */}
+      <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
         <button
           className="rounded-xl p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 lg:hidden cursor-pointer transition-colors border border-slate-200/80 dark:border-slate-800 shadow-2xs"
           type="button"
@@ -149,7 +186,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 
         {/* Search Bar */}
         {showSearchBar && (
-          <div className="relative w-full max-w-xs">
+          <div className="relative w-full max-w-xs shrink-0">
             <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
               <Search sx={{ fontSize: 18 }} />
             </div>
@@ -172,10 +209,25 @@ export const Topbar: React.FC<TopbarProps> = ({
             )}
           </div>
         )}
+
+        {/* Role Name Badge between Search Input and Time */}
+        {roleNameDisplay && (
+          <div
+            className={`hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border ${roleStyles.border} ${roleStyles.bg} shadow-2xs transition-all select-none shrink-0`}
+            title={`Current Role: ${roleNameDisplay}`}
+          >
+            <div className={`flex items-center ${roleStyles.icon}`}>
+              <SecurityOutlined sx={{ fontSize: 16 }} />
+            </div>
+            <span className={`text-xs font-bold tracking-wide capitalize ${roleStyles.text}`}>
+              {roleNameDisplay}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Center: Live Current Time with Seconds */}
-      <div className="flex items-center justify-center px-2">
+      <div className="flex items-center justify-center shrink-0 px-2">
         <div
           className="flex items-center gap-2 sm:gap-2.5 px-2.5 sm:px-3.5 py-1.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/80 shadow-2xs hover:border-indigo-300 dark:hover:border-indigo-700/60 transition-all duration-200 select-none"
           title={`Current Local Time: ${fullDateTooltip}`}
@@ -201,7 +253,7 @@ export const Topbar: React.FC<TopbarProps> = ({
       </div>
 
       {/* Right: Theme Toggle, Notifications & User Profile */}
-      <div className="flex items-center gap-3 sm:gap-4">
+      <div className="flex items-center justify-end gap-3 sm:gap-4 flex-1 min-w-0">
         {/* Modern Sleek Dual-Track Capsule Theme Switch */}
         <button
           type="button"
@@ -210,41 +262,37 @@ export const Topbar: React.FC<TopbarProps> = ({
           aria-checked={isDarkMode}
           aria-label={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
           title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-          className={`group relative inline-flex h-9 w-[68px] shrink-0 cursor-pointer items-center rounded-full p-1 transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 select-none hover:scale-[1.03] active:scale-95 ${
-            isDarkMode
+          className={`group relative inline-flex h-9 w-[68px] shrink-0 cursor-pointer items-center rounded-full p-1 transition-all duration-300 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 select-none hover:scale-[1.03] active:scale-95 ${isDarkMode
               ? "bg-slate-800/90 border border-slate-700/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)] hover:border-indigo-500/50"
               : "bg-slate-200/90 border border-slate-300/80 shadow-[inset_0_2px_4px_rgba(0,0,0,0.08)] hover:border-amber-400/50"
-          }`}
+            }`}
         >
           {/* Sun Track Icon (Left) */}
           <span
-            className={`flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ${
-              !isDarkMode
+            className={`flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ${!isDarkMode
                 ? "opacity-0 scale-75 pointer-events-none"
                 : "opacity-60 text-slate-400 group-hover:text-amber-400 group-hover:opacity-100"
-            }`}
+              }`}
           >
             <LightModeOutlined sx={{ fontSize: 16 }} />
           </span>
 
           {/* Moon Track Icon (Right) */}
           <span
-            className={`flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ${
-              isDarkMode
+            className={`flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ${isDarkMode
                 ? "opacity-0 scale-75 pointer-events-none"
                 : "opacity-60 text-slate-400 group-hover:text-indigo-400 group-hover:opacity-100"
-            }`}
+              }`}
           >
             <DarkModeOutlined sx={{ fontSize: 16 }} />
           </span>
 
           {/* Sliding Thumb Knob */}
           <span
-            className={`absolute top-1 left-1 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform shadow-md ${
-              isDarkMode
+            className={`absolute top-1 left-1 flex h-7 w-7 items-center justify-center rounded-full transition-all duration-300 ease-[cubic-bezier(0.34,1.56,0.64,1)] transform shadow-md ${isDarkMode
                 ? "translate-x-[32px] bg-slate-900 text-indigo-400 border border-indigo-500/40 shadow-[0_2px_8px_rgba(99,102,241,0.4)]"
                 : "translate-x-0 bg-white text-amber-500 border border-amber-200/80 shadow-[0_2px_8px_rgba(245,158,11,0.35)]"
-            }`}
+              }`}
           >
             {isDarkMode ? (
               <DarkModeOutlined
@@ -304,9 +352,8 @@ export const Topbar: React.FC<TopbarProps> = ({
 
             <KeyboardArrowDown
               sx={{ fontSize: 18 }}
-              className={`text-slate-400 transition-transform duration-200 ${
-                dropdownOpen ? "rotate-180 text-blue-600 dark:text-blue-400" : "group-hover:text-slate-600 dark:group-hover:text-slate-200"
-              }`}
+              className={`text-slate-400 transition-transform duration-200 ${dropdownOpen ? "rotate-180 text-blue-600 dark:text-blue-400" : "group-hover:text-slate-600 dark:group-hover:text-slate-200"
+                }`}
             />
           </button>
 

@@ -514,7 +514,7 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "", on
       ref={cardRef}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
-      className={`relative select-none cursor-pointer overflow-visible ${className}`}
+      className={`relative z-10 select-none cursor-pointer overflow-visible ${className}`}
       title={
         isDaytime
           ? `Nava Technologies Solar Arc (${weatherData?.sunriseTime || "6:09 AM"} to ${weatherData?.sunsetTime || "6:24 PM"}) • Hover to scrub`
@@ -663,8 +663,8 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "", on
           </div>
         </div>
 
-        {/* Expansive Celestial Sky Arc & Real-Time / Interactive Sun or Moon (z-40) */}
-        <div className="relative z-40 w-full h-[46px] sm:h-[50px] flex items-center justify-center overflow-visible my-0.5 pointer-events-none">
+        {/* Expansive Celestial Sky Arc & Real-Time / Interactive Sun or Moon (z-10) */}
+        <div className="relative z-10 w-full h-[46px] sm:h-[50px] flex items-center justify-center overflow-visible my-0.5 pointer-events-none">
           <svg
             viewBox="0 0 540 50"
             preserveAspectRatio="none"
@@ -999,7 +999,7 @@ export const SunArcTracker: React.FC<SunArcTrackerProps> = ({ className = "", on
         <div
           ref={modalRef}
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-full right-0 sm:right-2 mt-2.5 w-[calc(100vw-2rem)] sm:w-[410px] max-w-[420px] rounded-2xl bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-slate-900/20 dark:shadow-slate-950/60 p-4 sm:p-5 z-50 animate-fade-in text-slate-800 dark:text-slate-100 space-y-3.5 max-h-[85vh] overflow-y-auto"
+          className="absolute top-full right-0 sm:right-2 mt-2.5 w-[calc(100vw-2rem)] sm:w-[410px] max-w-[420px] rounded-2xl bg-white/98 dark:bg-slate-900/98 backdrop-blur-2xl border border-slate-200/90 dark:border-slate-800 shadow-2xl shadow-slate-900/20 dark:shadow-slate-950/60 p-4 sm:p-5 z-20 animate-fade-in text-slate-800 dark:text-slate-100 space-y-3.5 max-h-[85vh] overflow-y-auto"
         >
           {/* Header */}
           <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-200/70 dark:border-slate-800">

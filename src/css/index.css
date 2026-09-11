@@ -78,9 +78,11 @@
     transform: translateY(-16px) translateX(-6px);
     opacity: 0;
   }
+
   35% {
     opacity: 0.75;
   }
+
   100% {
     transform: translateY(54px) translateX(18px);
     opacity: 0;
@@ -91,31 +93,42 @@
   0% {
     transform: translateX(-8%);
   }
+
   50% {
     transform: translateX(8%);
   }
+
   100% {
     transform: translateX(-8%);
   }
 }
 
 @keyframes stormFlash {
-  0%, 90%, 100% {
+
+  0%,
+  90%,
+  100% {
     opacity: 0;
   }
-  92%, 96% {
+
+  92%,
+  96% {
     opacity: 0.38;
   }
+
   94% {
     opacity: 0.08;
   }
 }
 
 @keyframes mistFloat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateX(-8px) scale(0.98);
     opacity: 0.4;
   }
+
   50% {
     transform: translateX(8px) scale(1.02);
     opacity: 0.7;
