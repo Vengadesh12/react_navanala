@@ -114,6 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { label: "Roles", path: "/roles", permissionKey: "roles.view", icon: <GridView sx={{ fontSize: 18 }} /> },
     { label: "Departments", path: "/departments", permissionKey: "departments.view", icon: <CorporateFare sx={{ fontSize: 18 }} /> },
     { label: "Permissions", path: "/permissions", permissionKey: "permissions.manage", icon: <Security sx={{ fontSize: 18 }} /> },
+    { label: "User Permissions", path: "/user-permissions", permissionKey: "permissions.manage", icon: <AdminPanelSettings sx={{ fontSize: 18 }} /> },
     { label: "Users", path: "/users", permissionKey: "users.view", icon: <PersonOutline sx={{ fontSize: 18 }} /> },
     { label: "Create Approval", path: "/create-approval", permissionKey: "approvals.view", icon: <FactCheckOutlined sx={{ fontSize: 18 }} /> },
     { label: "Purchases", path: "/purchases", permissionKey: "purchases.view", icon: <ShoppingCartOutlined sx={{ fontSize: 18 }} /> },

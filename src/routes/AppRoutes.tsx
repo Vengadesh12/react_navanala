@@ -7,6 +7,7 @@ import { UsersPage } from "../pages/users/UsersPage";
 import { RolesPage } from "../pages/roles/RolesPage";
 import { DepartmentsPage } from "../pages/departments/DepartmentsPage";
 import { PermissionsPage } from "../pages/permissions/PermissionsPage";
+import { UserPermissionsPage } from "../pages/permissions/UserPermissionsPage";
 import { ReportsPage } from "../pages/overview/ReportsPage";
 import { ProjectsPage } from "../pages/overview/ProjectsPage";
 import { CalendarPage } from "../pages/overview/CalendarPage";
@@ -71,6 +72,14 @@ export const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute permission="permissions.manage">
             <PermissionsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/user-permissions"
+        element={
+          <ProtectedRoute permission="permissions.manage">
+            <UserPermissionsPage />
           </ProtectedRoute>
         }
       />

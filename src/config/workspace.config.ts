@@ -7,6 +7,7 @@ export const workspaceMenus: NavMenuItem[] = [
   { key: "roles.view", label: "Roles", icon: "♙", to: "/roles", group: "Core Access", desc: "Configure workspace roles" },
   { key: "departments.view", label: "Departments", icon: "🏢", to: "/departments", group: "Core Access", desc: "Department hierarchy & designation mapping" },
   { key: "permissions.manage", label: "Permission Matrix", icon: "⚿", to: "/permissions", group: "Core Access", desc: "Role permission assignments" },
+  { key: "user_permissions.view", label: "User Permissions", icon: "🛡️", to: "/user-permissions", group: "Core Access", desc: "User direct permission access control & assignment" },
   { key: "approvals.view", label: "Create Approval", icon: "✓", to: "/create-approval", group: "Core Access", desc: "Raise resource requests and manager approval workflows" },
   { key: "purchases.view", label: "Purchases", icon: "🛒", to: "/purchases", group: "Core Access", desc: "Manage approved product vendor quotations & procurement" },
   { key: "invoices.view", label: "Invoice", icon: "🧾", to: "/invoices", group: "Core Access", desc: "Generate & manage customer invoices with GST and PDF download" },

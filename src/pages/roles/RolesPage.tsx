@@ -557,9 +557,7 @@ export const RolesPage: React.FC = () => {
                             System Role
                           </span>
                         ) : (
-                          <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${meta.color}`}>
-                            Role #{role.id}
-                          </span>
+                          ""
                         )}
                       </div>
                     </div>
