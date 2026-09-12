@@ -20,7 +20,9 @@ import {
   TableRowsOutlined,
   Refresh,
   Key,
+  ArrowForward,
 } from "@mui/icons-material";
+import { MetricCard } from "../../components/common/MetricCard";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { SearchInput } from "../../components/common/SearchInput";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
@@ -293,84 +295,49 @@ export const DepartmentsPage: React.FC = () => {
 
         {/* Top Metrics Cards */}
         {overview && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Total Departments
-                </span>
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400">
-                  <CorporateFare sx={{ fontSize: 16 }} />
-                </div>
-              </div>
-              <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                {overview.totalDepartments}
-              </p>
-              <p className="mt-0.5 text-[11px] text-slate-500">Active organizational units</p>
-            </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              label="Total Departments"
+              value={overview.totalDepartments}
+              note="Active organizational units"
+              icon={<CorporateFare sx={{ fontSize: 24 }} />}
+              color="teal"
+            />
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Mapped Designations
-                </span>
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-950 dark:text-blue-400">
-                  <AccountTreeOutlined sx={{ fontSize: 16 }} />
-                </div>
-              </div>
-              <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                {overview.mappedDesignations}{" "}
-                <span className="text-xs font-normal text-slate-400">/ {overview.totalDesignations}</span>
-              </p>
-            </div>
+            <MetricCard
+              label="Mapped Designations"
+              value={overview.mappedDesignations}
+              sublabel={`/ ${overview.totalDesignations}`}
+              note="Assigned job roles"
+              icon={<AccountTreeOutlined sx={{ fontSize: 24 }} />}
+              color="blue"
+            />
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                  Coverage Rate
-                </span>
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400">
-                  <CheckCircle sx={{ fontSize: 16 }} />
-                </div>
-              </div>
-              <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                {overview.totalDesignations > 0
+            <MetricCard
+              label="Coverage Rate"
+              value={
+                overview.totalDesignations > 0
                   ? `${Math.round((overview.mappedDesignations / overview.totalDesignations) * 100)}%`
-                  : "100%"}
-              </p>
-              <p className="mt-0.5 text-[11px] text-slate-500">Designations assigned</p>
-            </div>
+                  : "100%"
+              }
+              note="Designations assigned"
+              icon={<CheckCircle sx={{ fontSize: 24 }} />}
+              color="emerald"
+            />
 
-            <div
-              onClick={() => overview.unassignedDesignations > 0 && handleOpenAssignModal()}
-              className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-slate-900 ${
-                overview.unassignedDesignations > 0
-                  ? "cursor-pointer hover:border-amber-400 hover:shadow-md transition-all group"
-                  : ""
-              }`}
-              title={overview.unassignedDesignations > 0 ? "Click to assign unassigned roles to a department" : undefined}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 group-hover:text-amber-600 transition-colors">
-                  Unassigned Roles
-                </span>
-                <div
-                  className={`flex h-7 w-7 items-center justify-center rounded-lg transition-transform ${
-                    overview.unassignedDesignations > 0
-                      ? "bg-amber-50 text-amber-600 group-hover:scale-110 dark:bg-amber-950 dark:text-amber-400"
-                      : "bg-slate-50 text-slate-400 dark:bg-slate-800"
-                  }`}
-                >
-                  <WarningAmber sx={{ fontSize: 16 }} />
-                </div>
-              </div>
-              <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                {overview.unassignedDesignations}
-              </p>
-              <p className="mt-0.5 text-[11px] text-slate-500">
-                {overview.unassignedDesignations === 0 ? "All roles mapped" : "Click to assign →"}
-              </p>
-            </div>
+            <MetricCard
+              label="Unassigned Roles"
+              value={overview.unassignedDesignations}
+              note={
+                overview.unassignedDesignations === 0
+                  ? "All roles mapped"
+                  : "Click to assign roles →"
+              }
+              icon={<WarningAmber sx={{ fontSize: 24 }} />}
+              color="amber"
+              onClick={overview.unassignedDesignations > 0 ? () => handleOpenAssignModal() : undefined}
+              className={overview.unassignedDesignations > 0 ? "group ring-1 ring-amber-400/30 hover:border-amber-400" : ""}
+            />
           </div>
         )}
 
@@ -533,7 +500,9 @@ export const DepartmentsPage: React.FC = () => {
               return (
                 <div
                   key={dept.id}
-                  className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs transition-all dark:border-slate-800 dark:bg-slate-900"
+                  className={`overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs transition-all duration-200 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900 dark:hover:border-slate-700 ${
+                    isExpanded ? "ring-1 ring-teal-500/20" : ""
+                  }`}
                 >
                   {/* Department Node Header */}
                   <div
@@ -558,8 +527,8 @@ export const DepartmentsPage: React.FC = () => {
                         )}
                       </button>
 
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-teal-500/10 text-teal-600 dark:bg-teal-500/20 dark:text-teal-400">
-                        <CorporateFare sx={{ fontSize: 20 }} />
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-200/80 bg-gradient-to-br from-teal-50 to-teal-100/50 text-teal-600 shadow-2xs dark:border-teal-800/60 dark:bg-teal-950/50 dark:text-teal-400">
+                        <CorporateFare sx={{ fontSize: 22 }} />
                       </div>
 
                       <div className="min-w-0">
@@ -719,115 +688,161 @@ export const DepartmentsPage: React.FC = () => {
           /* ======================================================== */
           /* 2. CARDS GRID VIEW                                        */
           /* ======================================================== */
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredDepartments.map((dept) => {
               const designations = dept.designations || [];
+              const { total, active, deleted } = getDeptCounts(dept);
 
               return (
                 <div
                   key={dept.id}
-                  className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-teal-300 hover:shadow-md transition-all dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-800"
+                  className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-teal-300 hover:shadow-xl dark:border-slate-800 dark:bg-slate-900 dark:hover:border-teal-700 hover:bg-gradient-to-b hover:from-white hover:to-teal-50/20 dark:hover:from-slate-900 dark:hover:to-teal-950/20"
                 >
                   <div>
-                    <div className="flex items-start justify-between">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-950 dark:text-teal-400">
-                        <CorporateFare sx={{ fontSize: 22 }} />
+                    {/* Top Bar / Header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="grid h-12 w-12 place-items-center rounded-2xl border border-teal-200/80 bg-gradient-to-br from-teal-500/10 via-teal-50 to-teal-100/50 text-teal-600 shadow-xs transition-transform duration-200 group-hover:scale-105 dark:border-teal-800/60 dark:from-teal-950/40 dark:via-teal-900/30 dark:to-teal-900/10 dark:text-teal-400">
+                        <CorporateFare sx={{ fontSize: 24 }} />
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-200/70 bg-teal-50/80 px-2.5 py-0.5 text-[11px] font-bold text-teal-700 shadow-2xs dark:border-teal-900/60 dark:bg-teal-950/60 dark:text-teal-300">
+                          <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse" />
+                          {designations.length} {designations.length === 1 ? "Role" : "Roles"}
+                        </span>
                       </div>
                     </div>
 
-                    <h3 className="mt-3 text-base font-bold text-slate-900 dark:text-white">
-                      {dept.name}
-                    </h3>
-                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[32px]">
-                      {dept.description || "No description provided."}
-                    </p>
+                    {/* Department Title & Description */}
+                    <div className="mt-4">
+                      <h3 className="text-lg font-bold text-slate-900 capitalize transition-colors group-hover:text-teal-600 dark:text-white dark:group-hover:text-teal-400">
+                        {dept.name}
+                      </h3>
+                      <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400 min-h-[36px]">
+                        {dept.description || "No specific description provided for this department."}
+                      </p>
+                    </div>
 
-                    {/* Designation Chips */}
-                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                          Designations ({designations.length})
+                    {/* Quick Stats Badges */}
+                    <div className="mt-4 flex flex-wrap items-center gap-2">
+                      <div
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-800/70 dark:text-slate-300 transition-colors"
+                        title={`${total} member(s) in this department`}
+                      >
+                        <People sx={{ fontSize: 14 }} className="text-slate-500 dark:text-slate-400" />
+                        <span>{total} {total === 1 ? "Member" : "Members"}</span>
+                      </div>
+
+                      {deleted > 0 && (
+                        <span
+                          className="inline-flex items-center rounded-lg border border-rose-200/80 bg-rose-50/80 px-2 py-1 text-[11px] font-semibold text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-300"
+                          title={`${active} active, ${deleted} deactivated`}
+                        >
+                          {deleted} deactivated
+                        </span>
+                      )}
+
+                      <div className="inline-flex items-center gap-1.5 rounded-lg border border-teal-200/70 bg-teal-50/60 px-2.5 py-1 text-xs font-semibold text-teal-700 dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-300">
+                        <AccountTree sx={{ fontSize: 14 }} />
+                        <span>{designations.length} {designations.length === 1 ? "Designation" : "Designations"}</span>
+                      </div>
+                    </div>
+
+                    {/* Designation Chips Section */}
+                    <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800/80">
+                      <div className="mb-2 flex items-center justify-between">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          Mapped Designations
                         </span>
                         {canEdit && (
                           <button
                             type="button"
                             onClick={() => handleMapDesignations(dept)}
-                            className="text-[11px] font-semibold text-teal-600 hover:text-teal-700 dark:text-teal-400 cursor-pointer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 cursor-pointer transition-colors"
                           >
-                            + Map
+                            <LinkOutlined sx={{ fontSize: 13 }} />
+                            <span>+ Map</span>
                           </button>
                         )}
                       </div>
 
-                      <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                      <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto pr-1">
                         {designations.length === 0 ? (
-                          <span className="text-xs text-slate-400 italic">No designations assigned</span>
+                          <span className="text-xs text-slate-400 dark:text-slate-500 italic py-1">
+                            No designations assigned yet
+                          </span>
                         ) : (
-                          designations.map((des) => (
-                            <span
-                              key={des.id ?? des.Id}
-                              className="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                            >
-                              {des.name}
-                            </span>
-                          ))
+                          designations.map((des) => {
+                            const desId = Number(des.id ?? des.Id ?? 0);
+                            const count = desMemberCounts[desId] ?? des.userCount ?? 0;
+                            return (
+                              <span
+                                key={des.id ?? des.Id}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200/70 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:border-teal-200 hover:bg-teal-50/50 hover:text-teal-800 transition-colors dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-300 dark:hover:border-teal-800 dark:hover:bg-teal-950/30 dark:hover:text-teal-200"
+                              >
+                                <BadgeOutlined sx={{ fontSize: 12 }} className="text-teal-600 dark:text-teal-400" />
+                                <span>{des.name}</span>
+                                {count > 0 && (
+                                  <span className="rounded-full bg-slate-200/80 px-1.5 py-0.2 text-[9px] font-bold text-slate-600 dark:bg-slate-700 dark:text-slate-300">
+                                    {count}
+                                  </span>
+                                )}
+                              </span>
+                            );
+                          })
                         )}
                       </div>
                     </div>
                   </div>
 
                   {/* Card Footer Actions */}
-                  <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+                  <div className="mt-6 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
                     <div>
-                      {(() => {
-                        const { total, active, deleted } = getDeptCounts(dept);
-                        return (
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                              {total} {total === 1 ? "Member" : "Members"}
-                            </span>
-                            {deleted > 0 && (
-                              <span
-                                className="inline-flex items-center rounded-md bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 border border-rose-200/60 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800"
-                                title={`${active} active, ${deleted} deleted`}
-                              >
-                                {deleted} deleted
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      {can("permissions.manage") && (
+                      {can("permissions.manage") ? (
                         <button
                           type="button"
                           onClick={() => navigate(`/permissions?scope=department&deptId=${dept.id}`)}
-                          className="rounded-lg p-1.5 text-teal-600 hover:bg-teal-50 hover:text-teal-700 dark:text-teal-400 dark:hover:bg-teal-950/40 cursor-pointer"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-teal-600 hover:text-teal-700 dark:text-teal-400 dark:hover:text-teal-300 transition-colors cursor-pointer"
                           title="Configure department permissions"
                         >
-                          <Key sx={{ fontSize: 16 }} />
+                          <Key sx={{ fontSize: 14 }} />
+                          <span>Permissions</span>
+                          <ArrowForward sx={{ fontSize: 13 }} />
+                        </button>
+                      ) : (
+                        <span className="text-xs font-medium text-slate-400">Department Unit</span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={() => handleMapDesignations(dept)}
+                          className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                          title="Map designations"
+                        >
+                          <LinkOutlined sx={{ fontSize: 17 }} />
                         </button>
                       )}
                       {canEdit && (
                         <button
                           type="button"
                           onClick={() => handleEditDepartment(dept)}
-                          className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 cursor-pointer"
+                          className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors cursor-pointer"
                           title="Edit department"
                         >
-                          <EditOutlined sx={{ fontSize: 16 }} />
+                          <EditOutlined sx={{ fontSize: 17 }} />
                         </button>
                       )}
                       {canDelete && (
                         <button
                           type="button"
                           onClick={() => handleDeleteDepartment(dept)}
-                          className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/30 cursor-pointer"
+                          className="rounded-lg p-1.5 text-rose-500 hover:bg-rose-50 hover:text-rose-700 dark:text-rose-400 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                           title="Delete department"
                         >
-                          <DeleteOutline sx={{ fontSize: 16 }} />
+                          <DeleteOutline sx={{ fontSize: 17 }} />
                         </button>
                       )}
                     </div>

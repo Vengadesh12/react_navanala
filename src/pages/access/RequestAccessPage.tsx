@@ -23,6 +23,7 @@ import {
   FactCheck,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
+import { MetricCard } from "../../components/common/MetricCard";
 import { useAuth } from "../../hooks/useAuth";
 import { accessRequestService } from "../../api/accessRequest.service";
 import { showSuccessAlert, showErrorAlert, showConfirmDialog } from "../../utils/alerts";
@@ -374,68 +375,57 @@ export const RequestAccessPage: React.FC = () => {
         </div>
 
         {/* Metric KPI Stats Cards */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total System Capabilities</span>
-              <div className="rounded-lg bg-indigo-500/10 p-1.5 text-indigo-600 dark:text-indigo-400">
-                <Shield sx={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-              {permissions.length}
-            </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-              {permissions.filter((p) => p.isGranted).length} active for you
-            </p>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Total Capabilities"
+            value={permissions.length}
+            sublabel={`${permissions.filter((p) => p.isGranted).length} active`}
+            note="System security capabilities"
+            icon={<Shield sx={{ fontSize: 24 }} />}
+            color="indigo"
+            onClick={() => {
+              setActiveTab("catalog");
+              setCatalogStatusFilter("all");
+            }}
+            className={activeTab === "catalog" && catalogStatusFilter === "all" ? "ring-2 ring-indigo-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+          />
 
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                {isSuperAdmin ? "Pending Admin Review" : "My Pending Requests"}
-              </span>
-              <div className="rounded-lg bg-amber-500/10 p-1.5 text-amber-600 dark:text-amber-400">
-                <HourglassEmpty sx={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-amber-600 dark:text-amber-400">
-              {summary?.pendingRequests ?? 0}
-            </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-              Awaiting decision
-            </p>
-          </div>
+          <MetricCard
+            label={isSuperAdmin ? "Pending Admin Review" : "My Pending Requests"}
+            value={summary?.pendingRequests ?? 0}
+            note="Awaiting decision"
+            icon={<HourglassEmpty sx={{ fontSize: 24 }} />}
+            color="amber"
+            onClick={() => {
+              setActiveTab(isSuperAdmin ? "queue" : "history");
+              if (isSuperAdmin) setQueueStatus("Pending");
+            }}
+            className={(isSuperAdmin ? activeTab === "queue" : activeTab === "history") ? "ring-2 ring-amber-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+          />
 
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Approved Access</span>
-              <div className="rounded-lg bg-emerald-500/10 p-1.5 text-emerald-600 dark:text-emerald-400">
-                <CheckCircle sx={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
-              {summary?.approvedRequests ?? 0}
-            </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-              Granted & active
-            </p>
-          </div>
+          <MetricCard
+            label="Approved Access"
+            value={summary?.approvedRequests ?? 0}
+            note="Granted & active access"
+            icon={<CheckCircle sx={{ fontSize: 24 }} />}
+            color="emerald"
+            onClick={() => {
+              setActiveTab(isSuperAdmin ? "queue" : "history");
+              if (isSuperAdmin) setQueueStatus("Approved");
+            }}
+          />
 
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Rejected Requests</span>
-              <div className="rounded-lg bg-rose-500/10 p-1.5 text-rose-600 dark:text-rose-400">
-                <CancelOutlined sx={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-bold tracking-tight text-rose-600 dark:text-rose-400">
-              {summary?.rejectedRequests ?? 0}
-            </p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
-              Declined requests
-            </p>
-          </div>
+          <MetricCard
+            label="Rejected Requests"
+            value={summary?.rejectedRequests ?? 0}
+            note="Declined access petitions"
+            icon={<CancelOutlined sx={{ fontSize: 24 }} />}
+            color="rose"
+            onClick={() => {
+              setActiveTab(isSuperAdmin ? "queue" : "history");
+              if (isSuperAdmin) setQueueStatus("Rejected");
+            }}
+          />
         </div>
 
         {/* Tab Navigation */}
@@ -576,58 +566,62 @@ export const RequestAccessPage: React.FC = () => {
               {filteredPermissions.map((perm) => (
                 <div
                   key={perm.id}
-                  className={`flex flex-col justify-between rounded-2xl border p-4 transition-all duration-200 ${perm.isGranted
-                      ? "border-emerald-200/80 dark:border-emerald-950/80 bg-gradient-to-b from-emerald-500/5 to-transparent dark:bg-slate-900/80"
+                  className={`group relative flex flex-col justify-between rounded-2xl border p-5 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${
+                    perm.isGranted
+                      ? "border-emerald-200/90 dark:border-emerald-900/60 bg-gradient-to-b from-emerald-50/40 via-white to-white dark:from-emerald-950/30 dark:via-slate-900 dark:to-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700"
                       : perm.hasPendingRequest
-                        ? "border-amber-200/80 dark:border-amber-950/80 bg-gradient-to-b from-amber-500/5 to-transparent dark:bg-slate-900/80"
-                        : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-md"
-                    }`}
+                        ? "border-amber-200/90 dark:border-amber-900/60 bg-gradient-to-b from-amber-50/40 via-white to-white dark:from-amber-950/30 dark:via-slate-900 dark:to-slate-900 hover:border-amber-300 dark:hover:border-amber-700"
+                        : "border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-gradient-to-b hover:from-white hover:to-indigo-50/20 dark:hover:from-slate-900 dark:hover:to-indigo-950/20"
+                  }`}
                 >
                   <div>
+                    {/* Top Header */}
                     <div className="flex items-start justify-between gap-2">
-                      <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-400">
+                      <span className="inline-flex items-center gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 px-2.5 py-1 text-[11px] font-bold text-slate-700 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700/60">
                         {perm.module}
                       </span>
+
                       {perm.isGranted ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                          <CheckCircle sx={{ fontSize: 12 }} />
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 shadow-2xs">
+                          <CheckCircle sx={{ fontSize: 13 }} />
                           <span>Active Access</span>
                         </span>
                       ) : perm.hasPendingRequest ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                          <HourglassEmpty sx={{ fontSize: 12 }} />
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 dark:bg-amber-950/60 px-2.5 py-0.5 text-[11px] font-bold text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 shadow-2xs">
+                          <HourglassEmpty sx={{ fontSize: 13 }} className="animate-spin" />
                           <span>Pending Review</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-semibold text-slate-500">
-                          <Lock sx={{ fontSize: 12 }} />
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[11px] font-semibold text-slate-600 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700">
+                          <Lock sx={{ fontSize: 13 }} />
                           <span>Locked</span>
                         </span>
                       )}
                     </div>
 
-                    <h3 className="mt-2 text-sm font-bold text-slate-900 dark:text-slate-100">
+                    {/* Title & Key */}
+                    <h3 className="mt-3 text-base font-bold text-slate-900 dark:text-slate-100 transition-colors group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
                       {perm.name}
                     </h3>
-                    <code className="text-[11px] font-mono text-indigo-600 dark:text-indigo-400">
+                    <code className="inline-block mt-1 font-mono text-[11px] text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/50 px-2 py-0.5 rounded-md border border-indigo-200/60 dark:border-indigo-900/50">
                       {perm.permissionKey}
                     </code>
-                    <p className="mt-1.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
+                    <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[36px]">
                       {perm.description || "System permission governing capability access."}
                     </p>
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                     {perm.isGranted ? (
-                      <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                        <Check sx={{ fontSize: 14 }} />
-                        Granted to your role/user
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                        <Check sx={{ fontSize: 15 }} />
+                        Granted to your account
                       </span>
                     ) : perm.hasPendingRequest ? (
                       <button
                         type="button"
                         onClick={() => setActiveTab("history")}
-                        className="text-[11px] font-semibold text-amber-600 dark:text-amber-400 hover:underline cursor-pointer"
+                        className="text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:underline cursor-pointer"
                       >
                         View Pending Request →
                       </button>
@@ -635,9 +629,9 @@ export const RequestAccessPage: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleOpenRequestModal(perm)}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-3 py-1.5 text-xs font-bold shadow-xs hover:shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-3.5 py-1.5 text-xs font-bold shadow-md shadow-indigo-500/20 active:scale-95 transition-all cursor-pointer"
                       >
-                        <KeyOutlined sx={{ fontSize: 14 }} />
+                        <KeyOutlined sx={{ fontSize: 15 }} />
                         <span>Request Access</span>
                       </button>
                     )}
@@ -727,7 +721,7 @@ export const RequestAccessPage: React.FC = () => {
                 return (
                   <div
                     key={req.id}
-                    className="flex flex-col gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs transition-all lg:flex-row lg:items-center lg:justify-between"
+                    className="group relative flex flex-col gap-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 lg:flex-row lg:items-center lg:justify-between"
                   >
                     {/* Left: Employee Info & Requested Permission */}
                     <div className="flex items-start gap-3.5 min-w-0 flex-1">
@@ -876,7 +870,7 @@ export const RequestAccessPage: React.FC = () => {
                 return (
                   <div
                     key={req.id}
-                    className="flex flex-col gap-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs lg:flex-row lg:items-center lg:justify-between"
+                    className="group relative flex flex-col gap-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all duration-200 lg:flex-row lg:items-center lg:justify-between"
                   >
                     <div className="space-y-1.5 min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">

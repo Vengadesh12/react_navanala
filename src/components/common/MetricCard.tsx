@@ -7,7 +7,7 @@ export interface MetricCardProps {
   sublabel?: string;
   icon: React.ReactNode;
   iconBgColor?: string;
-  color?: "indigo" | "emerald" | "amber" | "blue" | "purple" | "rose";
+  color?: "indigo" | "emerald" | "amber" | "blue" | "purple" | "rose" | "teal";
   className?: string;
   onClick?: () => void;
 }
@@ -25,6 +25,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   // Infer color from iconBgColor if color prop not explicitly set
   const themeColor = color || (
+    iconBgColor?.includes("teal") ? "teal" :
     iconBgColor?.includes("emerald") ? "emerald" :
     iconBgColor?.includes("indigo") ? "indigo" :
     iconBgColor?.includes("purple") ? "purple" :
@@ -34,6 +35,12 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   );
 
   const themeStyles = {
+    teal: {
+      card: "border-teal-200/70 dark:border-teal-900/60 bg-gradient-to-br from-teal-500/10 via-white to-white dark:from-teal-500/15 dark:via-slate-900 dark:to-slate-900 hover:border-teal-300 dark:hover:border-teal-700",
+      label: "text-teal-700 dark:text-teal-400",
+      note: "text-teal-600 dark:text-teal-400",
+      badge: "bg-teal-500 text-white shadow-md shadow-teal-500/25",
+    },
     indigo: {
       card: "border-indigo-200/70 dark:border-indigo-900/60 bg-gradient-to-br from-indigo-500/10 via-white to-white dark:from-indigo-500/15 dark:via-slate-900 dark:to-slate-900 hover:border-indigo-300 dark:hover:border-indigo-700",
       label: "text-indigo-700 dark:text-indigo-400",

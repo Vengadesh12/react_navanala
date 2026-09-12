@@ -22,9 +22,12 @@ import {
   TrendingDownOutlined,
   WorkspacePremiumOutlined,
   PlaylistAddCheckOutlined,
+  GridViewOutlined,
+  TableRowsOutlined,
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
+import { MetricCard } from "../../components/common/MetricCard";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { Pagination } from "../../components/common/Pagination";
 import { SortableHeader } from "../../components/common/SortableHeader";
@@ -113,6 +116,7 @@ export const PurchasesPage: React.FC = () => {
   const [search, setSearch] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
 
   // Pagination & Sorting
   const [page, setPage] = useState<number>(1);
@@ -160,6 +164,9 @@ export const PurchasesPage: React.FC = () => {
 
   const [selectedPurchase, setSelectedPurchase] = useState<PurchaseDto | null>(null);
   const [compareApprovalId, setCompareApprovalId] = useState<number | null>(null);
+  const [compareQuotesList, setCompareQuotesList] = useState<PurchaseDto[]>([]);
+  const [compareProductOverride, setCompareProductOverride] = useState<ApprovedProductDto | null>(null);
+  const [compareLoading, setCompareLoading] = useState<boolean>(false);
 
   // Add form state
   const [selectedApprovalId, setSelectedApprovalId] = useState<number | "">("");
@@ -233,21 +240,20 @@ export const PurchasesPage: React.FC = () => {
     return purchases.filter((p) => p.approvalRequestId === Number(selectedApprovalId));
   }, [selectedApprovalId, purchases]);
 
-  // Quotes for the Compare Modal
-  const compareQuotes = useMemo(() => {
-    if (!compareApprovalId) return [];
-    return purchases.filter((p) => p.approvalRequestId === compareApprovalId);
-  }, [compareApprovalId, purchases]);
-
   const compareProduct = useMemo(() => {
+    if (compareProductOverride) return compareProductOverride;
     if (!compareApprovalId) return null;
-    const foundApproved = approvedProducts.find((p) => p.id === compareApprovalId);
+    const foundApproved = approvedProducts.find((p) => Number(p.id) === Number(compareApprovalId));
     if (foundApproved) return foundApproved;
 
-    const firstQuote = purchases.find((p) => p.approvalRequestId === compareApprovalId);
+    const firstQuote = purchases.find(
+      (p) =>
+        (Number(p.approvalRequestId) > 0 && Number(p.approvalRequestId) === Number(compareApprovalId)) ||
+        Number(p.id) === Number(compareApprovalId)
+    );
     if (firstQuote) {
       return {
-        id: firstQuote.approvalRequestId,
+        id: firstQuote.approvalRequestId || firstQuote.id,
         itemName: firstQuote.itemName,
         category: firstQuote.category,
         quantity: firstQuote.quantity,
@@ -258,15 +264,32 @@ export const PurchasesPage: React.FC = () => {
         departmentName: firstQuote.departmentName,
         description: "",
         hasExistingQuotation: true,
-        quotationCount: compareQuotes.length,
+        quotationCount: 1,
       } as ApprovedProductDto;
     }
     return null;
-  }, [compareApprovalId, approvedProducts, purchases, compareQuotes.length]);
+  }, [compareProductOverride, compareApprovalId, approvedProducts, purchases]);
+
+  // Quotes for the Compare Modal: prioritize compareQuotesList, with fallback to purchases
+  const compareQuotes = useMemo(() => {
+    if (compareQuotesList.length > 0) return compareQuotesList;
+    if (!compareApprovalId && !compareProduct?.itemName) return [];
+
+    const targetName = compareProduct?.itemName?.trim().toLowerCase();
+    return purchases.filter((p) => {
+      const idMatch =
+        compareApprovalId &&
+        Number(p.approvalRequestId) > 0 &&
+        Number(p.approvalRequestId) === Number(compareApprovalId);
+      const nameMatch =
+        Boolean(targetName && p.itemName && p.itemName.trim().toLowerCase() === targetName);
+      return Boolean(idMatch || nameMatch);
+    });
+  }, [compareQuotesList, compareApprovalId, compareProduct, purchases]);
 
   const minCompareAmount = useMemo(() => {
     if (compareQuotes.length === 0) return 0;
-    return Math.min(...compareQuotes.map((q) => q.quotationAmount));
+    return Math.min(...compareQuotes.map((q) => Number(q.quotationAmount) || 0));
   }, [compareQuotes]);
 
   // Reset Add Form
@@ -323,9 +346,103 @@ export const PurchasesPage: React.FC = () => {
   };
 
   // Open Compare Modal
-  const handleOpenCompareModal = (approvalId: number) => {
-    setCompareApprovalId(approvalId);
+  const handleOpenCompareModal = async (
+    targetId: number,
+    targetContext?: ApprovedProductDto | PurchaseDto
+  ) => {
+    setCompareApprovalId(targetId);
     setIsCompareModalOpen(true);
+    setCompareLoading(true);
+
+    // 1. Resolve product metadata
+    let product: ApprovedProductDto | null = null;
+    if (targetContext && "hasExistingQuotation" in targetContext) {
+      product = targetContext as ApprovedProductDto;
+    } else if (targetContext) {
+      const p = targetContext as PurchaseDto;
+      product = {
+        id: p.approvalRequestId || p.id,
+        itemName: p.itemName,
+        category: p.category,
+        quantity: p.quantity,
+        estimatedAmount: p.estimatedAmount,
+        priority: "Standard",
+        employeeName: p.employeeName,
+        employeeEmail: p.employeeEmail,
+        departmentName: p.departmentName,
+        description: "",
+        hasExistingQuotation: true,
+        quotationCount: 1,
+      };
+    }
+
+    if (!product) {
+      const foundApproved = approvedProducts.find(
+        (a) => Number(a.id) === Number(targetId)
+      );
+      if (foundApproved) {
+        product = foundApproved;
+      } else {
+        const foundPurchase = purchases.find(
+          (p) =>
+            (Number(p.approvalRequestId) > 0 && Number(p.approvalRequestId) === Number(targetId)) ||
+            Number(p.id) === Number(targetId)
+        );
+        if (foundPurchase) {
+          product = {
+            id: foundPurchase.approvalRequestId || foundPurchase.id,
+            itemName: foundPurchase.itemName,
+            category: foundPurchase.category,
+            quantity: foundPurchase.quantity,
+            estimatedAmount: foundPurchase.estimatedAmount,
+            priority: "Standard",
+            employeeName: foundPurchase.employeeName,
+            employeeEmail: foundPurchase.employeeEmail,
+            departmentName: foundPurchase.departmentName,
+            description: "",
+            hasExistingQuotation: true,
+            quotationCount: 1,
+          };
+        }
+      }
+    }
+
+    setCompareProductOverride(product);
+
+    const targetName = product?.itemName?.trim().toLowerCase();
+    const filterQuotes = (list: PurchaseDto[]) => {
+      return list.filter((p) => {
+        const idMatch =
+          Number(p.approvalRequestId) > 0 &&
+          (Number(p.approvalRequestId) === Number(targetId) ||
+            (product?.id && Number(p.approvalRequestId) === Number(product.id)));
+        const nameMatch =
+          Boolean(targetName && p.itemName && p.itemName.trim().toLowerCase() === targetName);
+        return Boolean(idMatch || nameMatch);
+      });
+    };
+
+    // Immediate filter from currently loaded purchases
+    const immediate = filterQuotes(purchases);
+    setCompareQuotesList(immediate);
+
+    // Fetch full active purchases (unfiltered) to guarantee all quotes for this product are loaded
+    try {
+      const res = await purchaseService.getPurchases({
+        status: "ALL",
+        category: "ALL",
+        pageSize: 200,
+      });
+      const allPurchases = res.data || [];
+      const freshMatches = filterQuotes(allPurchases);
+      if (freshMatches.length > 0) {
+        setCompareQuotesList(freshMatches);
+      }
+    } catch (err) {
+      console.warn("Failed to fetch all purchases for comparison:", err);
+    } finally {
+      setCompareLoading(false);
+    }
   };
 
   // Handle Create Submit
@@ -440,6 +557,9 @@ export const PurchasesPage: React.FC = () => {
         status: "PO Issued",
       });
       showSuccessAlert("PO Issued", `Purchase Order successfully issued to ${purchase.vendorName}.`);
+      setCompareQuotesList((prev) =>
+        prev.map((q) => (q.id === purchase.id ? { ...q, status: "PO Issued" } : q))
+      );
       await loadData();
     } catch (err: any) {
       showErrorAlert("PO Issue Failed", err?.message || "Failed to issue PO.");
@@ -458,6 +578,7 @@ export const PurchasesPage: React.FC = () => {
     try {
       await purchaseService.deletePurchase(purchase.id);
       showSuccessAlert("Deleted", `Purchase quotation #${purchase.id} was deleted successfully.`);
+      setCompareQuotesList((prev) => prev.filter((q) => q.id !== purchase.id));
       await loadData();
     } catch (err: any) {
       showErrorAlert("Delete Failed", err?.message || "Failed to delete purchase record.");
@@ -546,62 +667,51 @@ export const PurchasesPage: React.FC = () => {
         </div>
 
         {/* KPI Metrics Summary Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 sm:gap-4">
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Vendor Quotes</span>
-              <span className="w-7 h-7 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <StorefrontOutlined sx={{ fontSize: 16 }} />
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{summary.totalPurchases}</p>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">Total recorded vendor bids</p>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Total Vendor Quotes"
+            value={summary.totalPurchases}
+            note="Total recorded vendor bids"
+            icon={<StorefrontOutlined sx={{ fontSize: 24 }} />}
+            color="indigo"
+            onClick={() => setStatusFilter("ALL")}
+            className={statusFilter === "ALL" ? "ring-2 ring-indigo-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+          />
 
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Total Quotation Value</span>
-              {/* <span className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <AttachMoney sx={{ fontSize: 16 }} />
-              </span> */}
-            </div>
-            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-2">
-              ₹{summary.totalQuotationValue.toLocaleString()}
-            </p>
-            <p className="text-[11px] text-emerald-600/80 dark:text-emerald-400/80 mt-0.5">Cumulative quote value</p>
-          </div>
+          <MetricCard
+            label="Total Quotation Value"
+            value={`₹${summary.totalQuotationValue.toLocaleString()}`}
+            note="Cumulative recorded bids"
+            icon={<ReceiptLongOutlined sx={{ fontSize: 24 }} />}
+            color="emerald"
+          />
 
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">In Procurement</span>
-              <span className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                <LocalShippingOutlined sx={{ fontSize: 16 }} />
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-2">
-              {summary.poIssuedCount + summary.inProcurementCount}
-            </p>
-            <p className="text-[11px] text-amber-600/80 dark:text-amber-400/80 mt-0.5">PO issued & active orders</p>
-          </div>
+          <MetricCard
+            label="In Procurement"
+            value={summary.poIssuedCount + summary.inProcurementCount}
+            sublabel="active orders"
+            note="PO issued & in delivery"
+            icon={<LocalShippingOutlined sx={{ fontSize: 24 }} />}
+            color="amber"
+            onClick={() => setStatusFilter(statusFilter === "In Procurement" ? "ALL" : "In Procurement")}
+            className={statusFilter === "In Procurement" ? "ring-2 ring-amber-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+          />
 
-          <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Pending Quotation</span>
-              <span className="w-7 h-7 rounded-lg bg-rose-500/10 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                <FactCheckOutlined sx={{ fontSize: 16 }} />
-              </span>
-            </div>
-            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400 mt-2">
-              {summary.approvedItemsPendingQuotation}
-            </p>
-            <p className="text-[11px] text-rose-600/80 dark:text-rose-400/80 mt-0.5">Approved items awaiting quotes</p>
-          </div>
+          <MetricCard
+            label="Pending Quotation"
+            value={summary.approvedItemsPendingQuotation}
+            note="Approved items awaiting bids"
+            icon={<FactCheckOutlined sx={{ fontSize: 24 }} />}
+            color="rose"
+            onClick={approvedProducts.length > 0 ? () => handleOpenAddModal(approvedProducts[0].id) : undefined}
+            className={approvedProducts.length > 0 ? "group hover:border-rose-400 cursor-pointer" : ""}
+          />
         </div>
 
         {/* Approved Products Quick-Action Ribbon with Multi-Vendor Support */}
         {approvedProducts.length > 0 && (
           <div className="rounded-2xl border border-indigo-200/70 dark:border-indigo-900/50 bg-gradient-to-r from-indigo-50/70 via-white to-indigo-50/40 dark:from-slate-900 dark:via-slate-900 dark:to-indigo-950/30 p-4 shadow-xs">
-            <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
                 <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-900 dark:text-indigo-300">
@@ -613,51 +723,53 @@ export const PurchasesPage: React.FC = () => {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {approvedProducts.slice(0, 6).map((item) => {
                 const count = item.quotationCount || 0;
                 return (
                   <div
                     key={item.id}
-                    className="rounded-xl p-3 border text-left transition-all bg-white dark:bg-slate-800/90 border-indigo-200/80 dark:border-indigo-800/60 hover:shadow-md hover:border-indigo-400 cursor-pointer flex flex-col justify-between"
+                    className="group relative rounded-2xl p-4 border text-left transition-all duration-200 bg-white dark:bg-slate-900/90 border-slate-200/80 dark:border-slate-800 hover:border-indigo-400/80 dark:hover:border-indigo-600 hover:-translate-y-0.5 hover:shadow-md cursor-pointer flex flex-col justify-between"
                     onClick={() => handleOpenAddModal(item.id)}
                   >
                     <div>
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{item.itemName}</p>
-                          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white truncate group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                            {item.itemName}
+                          </p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                             {item.employeeName} • {item.departmentName || "General"}
                           </p>
                         </div>
                         {count > 0 ? (
-                          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800 shadow-2xs">
                             <CheckCircleOutline sx={{ fontSize: 12 }} />
                             {count} {count === 1 ? "Vendor" : "Vendors"}
                           </span>
                         ) : (
-                          <span className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          <span className="shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800 shadow-2xs">
                             0 Quotes
                           </span>
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between text-[11px] mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/60 text-slate-500 dark:text-slate-400">
-                        <span>Qty: {item.quantity}</span>
-                        <span>Est: ₹{item.estimatedAmount ? item.estimatedAmount.toLocaleString() : "N/A"}</span>
+                      <div className="flex items-center justify-between text-[11px] mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 text-slate-500 dark:text-slate-400">
+                        <span>Qty: <strong className="text-slate-700 dark:text-slate-200">{item.quantity}</strong></span>
+                        <span>Est: <strong className="text-slate-700 dark:text-slate-200">₹{item.estimatedAmount ? item.estimatedAmount.toLocaleString() : "N/A"}</strong></span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/40">
+                    <div className="flex items-center gap-1.5 mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800/80">
                       <button
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenAddModal(item.id);
                         }}
-                        className="flex-1 inline-flex items-center justify-center gap-1 py-1 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-semibold transition-colors"
+                        className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-semibold shadow-xs transition-colors cursor-pointer"
                       >
-                        <AddCircleOutline sx={{ fontSize: 12 }} />
+                        <AddCircleOutline sx={{ fontSize: 14 }} />
                         <span>{count > 0 ? "+ Add Another Vendor" : "+ Add Vendor Quote"}</span>
                       </button>
 
@@ -666,12 +778,12 @@ export const PurchasesPage: React.FC = () => {
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleOpenCompareModal(item.id);
+                            handleOpenCompareModal(item.id, item);
                           }}
-                          className="inline-flex items-center justify-center gap-1 py-1 px-2.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[10px] font-bold transition-colors"
+                          className="inline-flex items-center justify-center gap-1 py-1.5 px-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 text-[11px] font-bold transition-colors cursor-pointer"
                           title="Compare all vendor quotes for this product"
                         >
-                          <CompareArrows sx={{ fontSize: 13 }} />
+                          <CompareArrows sx={{ fontSize: 14 }} />
                           <span>Compare ({count})</span>
                         </button>
                       )}
@@ -730,6 +842,36 @@ export const PurchasesPage: React.FC = () => {
                   </option>
                 ))}
               </select>
+
+              {/* View Switcher: Cards vs Table */}
+              <div className="flex items-center rounded-xl bg-slate-100 p-1 dark:bg-slate-800 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setViewMode("cards")}
+                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
+                    viewMode === "cards"
+                      ? "bg-white text-indigo-700 shadow-xs dark:bg-slate-900 dark:text-indigo-400"
+                      : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  }`}
+                  title="Cards View"
+                >
+                  <GridViewOutlined sx={{ fontSize: 15 }} />
+                  <span className="hidden sm:inline">Cards</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode("table")}
+                  className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-all cursor-pointer ${
+                    viewMode === "table"
+                      ? "bg-white text-indigo-700 shadow-xs dark:bg-slate-900 dark:text-indigo-400"
+                      : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                  }`}
+                  title="Table View"
+                >
+                  <TableRowsOutlined sx={{ fontSize: 15 }} />
+                  <span className="hidden sm:inline">Table</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -759,6 +901,222 @@ export const PurchasesPage: React.FC = () => {
                 <AddCircleOutline sx={{ fontSize: 16 }} />
                 <span>Add First Quotation</span>
               </button>
+            </div>
+          ) : viewMode === "cards" ? (
+            <div className="p-4 sm:p-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {paginatedPurchases.map((purchase) => {
+                  const estAmount = purchase.estimatedAmount || 0;
+                  const diff = estAmount > 0 ? purchase.quotationAmount - estAmount : 0;
+                  const isSaving = diff < 0;
+
+                  // Multi-vendor calculations for this product
+                  const siblingQuotes = purchases.filter(
+                    (p) =>
+                      (Number(p.approvalRequestId) > 0 && Number(p.approvalRequestId) === Number(purchase.approvalRequestId)) ||
+                      (purchase.itemName && p.itemName && p.itemName.trim().toLowerCase() === purchase.itemName.trim().toLowerCase())
+                  );
+                  const hasMultipleVendors = siblingQuotes.length > 1;
+                  const isLowestQuote =
+                    hasMultipleVendors &&
+                    purchase.quotationAmount === Math.min(...siblingQuotes.map((q) => q.quotationAmount));
+
+                  return (
+                    <div
+                      key={purchase.id}
+                      className={`group relative rounded-2xl p-4 sm:p-5 border flex flex-col justify-between transition-all duration-200 bg-white dark:bg-slate-900/90 hover:shadow-lg hover:-translate-y-1 cursor-pointer ${
+                        isLowestQuote
+                          ? "border-emerald-300 dark:border-emerald-700/80 ring-1 ring-emerald-500/20 bg-gradient-to-b from-emerald-500/[0.03] to-transparent"
+                          : "border-slate-200/80 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-800"
+                      }`}
+                      onClick={() => handleOpenDetailModal(purchase)}
+                    >
+                      <div>
+                        {/* Card Top: Category + Badges */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 border border-slate-200/60 dark:border-slate-700 truncate max-w-[150px]">
+                            {purchase.category || "General"}
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {isLowestQuote && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500 text-white shadow-2xs">
+                                <WorkspacePremiumOutlined sx={{ fontSize: 11 }} />
+                                Best Price
+                              </span>
+                            )}
+                            <span
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusBadge(
+                                purchase.status
+                              )}`}
+                            >
+                              {purchase.status === "Completed" && <CheckCircle sx={{ fontSize: 11 }} />}
+                              <span>{purchase.status}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Item Info Header */}
+                        <div className="flex items-start gap-2.5 mb-3.5">
+                          <span className="w-9 h-9 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
+                            <ReceiptLongOutlined sx={{ fontSize: 19 }} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
+                              {purchase.itemName}
+                            </h4>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                              By <strong className="font-semibold text-slate-700 dark:text-slate-300">{purchase.employeeName}</strong> • {purchase.departmentName || "General Dept"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Financial Details Box */}
+                        <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 mb-3 space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                              Quotation Amount
+                            </span>
+                            {purchase.quotationNumber && (
+                              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400">
+                                #{purchase.quotationNumber}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-xl font-extrabold text-slate-900 dark:text-white">
+                              ₹{purchase.quotationAmount.toLocaleString()}
+                            </span>
+                            <span className="text-xs text-slate-500 dark:text-slate-400">
+                              Qty: <strong className="text-slate-800 dark:text-slate-200">{purchase.quantity}</strong>
+                            </span>
+                          </div>
+
+                          {/* Savings vs Budget */}
+                          {estAmount > 0 && (
+                            <div className="pt-1.5 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between text-[11px]">
+                              <span className="text-slate-400">Est. ₹{estAmount.toLocaleString()}</span>
+                              <span
+                                className={`font-semibold flex items-center gap-1 ${
+                                  isSaving
+                                    ? "text-emerald-600 dark:text-emerald-400"
+                                    : diff === 0
+                                    ? "text-slate-500"
+                                    : "text-amber-600 dark:text-amber-400"
+                                }`}
+                              >
+                                {isSaving ? (
+                                  <>
+                                    <TrendingDownOutlined sx={{ fontSize: 13 }} />
+                                    <span>Save ₹{Math.abs(diff).toLocaleString()}</span>
+                                  </>
+                                ) : diff === 0 ? (
+                                  <span>Matches Budget</span>
+                                ) : (
+                                  <span>+₹{diff.toLocaleString()} over</span>
+                                )}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Logistics & Vendor details */}
+                        <div className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 mb-3">
+                          <div className="flex items-center justify-between text-[11px] py-1 border-b border-slate-100 dark:border-slate-800">
+                            <span className="text-slate-400 flex items-center gap-1">
+                              <StorefrontOutlined sx={{ fontSize: 13 }} />
+                              <span>Vendor:</span>
+                            </span>
+                            <span className="font-bold text-slate-900 dark:text-white truncate max-w-[150px]">
+                              {purchase.vendorName}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] py-1 border-b border-slate-100 dark:border-slate-800">
+                            <span className="text-slate-400 flex items-center gap-1">
+                              <LocalShippingOutlined sx={{ fontSize: 13 }} />
+                              <span>Timeline:</span>
+                            </span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300">
+                              {purchase.deliveryTimeline || "3-5 Days"}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center justify-between text-[11px] py-1">
+                            <span className="text-slate-400">Payment:</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300">
+                              {purchase.paymentTerms || "Net 30 Days"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Multi-Vendor Compare prompt if multiple bids */}
+                        {hasMultipleVendors && (
+                          <div className="mb-3 p-2 rounded-xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900/40 flex items-center justify-between text-[11px]">
+                            <span className="text-indigo-700 dark:text-indigo-300 font-semibold flex items-center gap-1">
+                              <StorefrontOutlined sx={{ fontSize: 13 }} />
+                              {siblingQuotes.length} Vendor Quotes
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenCompareModal(purchase.approvalRequestId || purchase.id, purchase);
+                              }}
+                              className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 underline cursor-pointer"
+                            >
+                              Compare ({siblingQuotes.length})
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Card Actions Footer */}
+                      <div
+                        className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {purchase.status !== "PO Issued" && purchase.status !== "Completed" && (
+                          <button
+                            type="button"
+                            onClick={() => handleQuickIssuePo(purchase)}
+                            className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 px-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
+                          >
+                            <CheckCircle sx={{ fontSize: 13 }} />
+                            <span>Award PO</span>
+                          </button>
+                        )}
+
+                        <div className="flex items-center gap-1 ml-auto">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenDetailModal(purchase)}
+                            title="View Quotation Details"
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          >
+                            <VisibilityOutlined sx={{ fontSize: 15 }} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditModal(purchase)}
+                            title="Edit Quotation / Status"
+                            className="p-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          >
+                            <EditOutlined sx={{ fontSize: 15 }} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDelete(purchase)}
+                            title="Delete Quotation"
+                            className="p-1.5 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                          >
+                            <DeleteOutline sx={{ fontSize: 15 }} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -793,7 +1151,11 @@ export const PurchasesPage: React.FC = () => {
                     const isSaving = diff < 0;
 
                     // Multi-vendor calculations for this product
-                    const siblingQuotes = purchases.filter((p) => p.approvalRequestId === purchase.approvalRequestId);
+                    const siblingQuotes = purchases.filter(
+                      (p) =>
+                        (Number(p.approvalRequestId) > 0 && Number(p.approvalRequestId) === Number(purchase.approvalRequestId)) ||
+                        (purchase.itemName && p.itemName && p.itemName.trim().toLowerCase() === purchase.itemName.trim().toLowerCase())
+                    );
                     const hasMultipleVendors = siblingQuotes.length > 1;
                     const isLowestQuote =
                       hasMultipleVendors &&
@@ -837,7 +1199,7 @@ export const PurchasesPage: React.FC = () => {
                                   </span>
                                   <button
                                     type="button"
-                                    onClick={() => handleOpenCompareModal(purchase.approvalRequestId)}
+                                    onClick={() => handleOpenCompareModal(purchase.approvalRequestId || purchase.id, purchase)}
                                     className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 underline cursor-pointer"
                                   >
                                     Compare All
@@ -1403,7 +1765,11 @@ export const PurchasesPage: React.FC = () => {
 
             {/* Comparison Cards Grid */}
             <div className="p-6 overflow-y-auto space-y-4">
-              {compareQuotes.length === 0 ? (
+              {compareLoading && compareQuotes.length === 0 ? (
+                <div className="py-12">
+                  <LoadingSpinner message="Loading all vendor quotations for comparison..." />
+                </div>
+              ) : compareQuotes.length === 0 ? (
                 <div className="text-center py-12">
                   <StorefrontOutlined sx={{ fontSize: 36 }} className="text-slate-400 mb-2" />
                   <p className="text-sm font-bold text-slate-700 dark:text-slate-300">No quotations recorded yet</p>
@@ -1838,11 +2204,22 @@ export const PurchasesPage: React.FC = () => {
               )}
 
               {/* Multi-vendor check in Detail modal */}
-              {purchases.filter((p) => p.approvalRequestId === selectedPurchase.approvalRequestId).length > 1 && (
+              {purchases.filter(
+                (p) =>
+                  (Number(p.approvalRequestId) > 0 && Number(p.approvalRequestId) === Number(selectedPurchase.approvalRequestId)) ||
+                  (selectedPurchase.itemName && p.itemName && p.itemName.trim().toLowerCase() === selectedPurchase.itemName.trim().toLowerCase())
+              ).length > 1 && (
                 <div className="p-3 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-200/80 dark:border-indigo-900/40 flex items-center justify-between">
                   <div>
                     <p className="font-bold text-indigo-900 dark:text-indigo-300 text-xs">
-                      {purchases.filter((p) => p.approvalRequestId === selectedPurchase.approvalRequestId).length} Vendors Quoted for this Product
+                      {
+                        purchases.filter(
+                          (p) =>
+                            (Number(p.approvalRequestId) > 0 && Number(p.approvalRequestId) === Number(selectedPurchase.approvalRequestId)) ||
+                            (selectedPurchase.itemName && p.itemName && p.itemName.trim().toLowerCase() === selectedPurchase.itemName.trim().toLowerCase())
+                        ).length
+                      }{" "}
+                      Vendors Quoted for this Product
                     </p>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400">
                       Compare pricing, delivery, and terms across all vendors.
@@ -1852,9 +2229,9 @@ export const PurchasesPage: React.FC = () => {
                     type="button"
                     onClick={() => {
                       setIsDetailModalOpen(false);
-                      handleOpenCompareModal(selectedPurchase.approvalRequestId);
+                      handleOpenCompareModal(selectedPurchase.approvalRequestId || selectedPurchase.id, selectedPurchase);
                     }}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs cursor-pointer"
                   >
                     <CompareArrows sx={{ fontSize: 15 }} />
                     <span>Compare</span>

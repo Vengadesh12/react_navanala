@@ -23,6 +23,7 @@ import {
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { MetricCard } from "../../components/common/MetricCard";
 import { permissionService } from "../../api/permission.service";
 import { useAuth } from "../../hooks/useAuth";
 import { getRoleMeta } from "../../config/workspace.config";
@@ -414,50 +415,44 @@ export const UserPermissionsPage: React.FC = () => {
         </div>
 
         {/* Top Summary Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Total Users</span>
-              <div className="h-8 w-8 rounded-lg bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <Person sx={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{stats.totalUsers}</p>
-            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Active member accounts</p>
-          </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Total Users"
+            value={stats.totalUsers}
+            note="Active member accounts"
+            icon={<Person sx={{ fontSize: 24 }} />}
+            color="blue"
+            onClick={() => setUserFilterMode("all")}
+            className={userFilterMode === "all" ? "ring-2 ring-blue-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+          />
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Users with Overrides</span>
-              <div className="h-8 w-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                <Shield sx={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.usersWithDirect}</p>
-            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Custom user-level access</p>
-          </div>
+          <MetricCard
+            label="Users with Overrides"
+            value={stats.usersWithDirect}
+            note="Custom user-level access"
+            icon={<Shield sx={{ fontSize: 24 }} />}
+            color="emerald"
+            onClick={() => setUserFilterMode(userFilterMode === "direct-only" ? "all" : "direct-only")}
+            className={userFilterMode === "direct-only" ? "ring-2 ring-emerald-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+          />
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Direct Grants</span>
-              <div className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                <VpnKey sx={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">{stats.totalDirectGrants}</p>
-            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Active individual overrides</p>
-          </div>
+          <MetricCard
+            label="Direct Grants"
+            value={stats.totalDirectGrants}
+            note="Active individual overrides"
+            icon={<VpnKey sx={{ fontSize: 24 }} />}
+            color="indigo"
+            onClick={() => setPermTab(permTab === "direct" ? "all" : "direct")}
+            className={permTab === "direct" ? "ring-2 ring-indigo-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+          />
 
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">System Capabilities</span>
-              <div className="h-8 w-8 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                <DoneAll sx={{ fontSize: 18 }} />
-              </div>
-            </div>
-            <p className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{stats.totalSystemCapabilities}</p>
-            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">Available workspace features</p>
-          </div>
+          <MetricCard
+            label="System Capabilities"
+            value={stats.totalSystemCapabilities}
+            note="Available workspace features"
+            icon={<DoneAll sx={{ fontSize: 24 }} />}
+            color="purple"
+          />
         </div>
 
         {/* Master-Detail Layout */}
