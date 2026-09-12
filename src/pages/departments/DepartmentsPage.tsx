@@ -262,6 +262,9 @@ export const DepartmentsPage: React.FC = () => {
       label="Departments"
       icon="🏢"
       showHero={false}
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder="Search departments or designations..."
     >
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 space-y-6 animate-fade-in pb-12">
         {/* Page Header */}

@@ -60,6 +60,7 @@ export const UserPermissionsPage: React.FC = () => {
   const [selectedPermKeyToAdd, setSelectedPermKeyToAdd] = useState<string>("");
   const [addReason, setAddReason] = useState<string>("");
   const [modalSearch, setModalSearch] = useState<string>("");
+  const [modalCategory, setModalCategory] = useState<string>("all");
 
   // Load User Directory Overview
   const fetchUsersOverview = useCallback(async (selectId?: number) => {
@@ -139,6 +140,15 @@ export const UserPermissionsPage: React.FC = () => {
     });
   }, [usersOverview, userSearch, userFilterMode]);
 
+  // Auto-select first matching user if current selected user is filtered out by search
+  useEffect(() => {
+    if (userSearch.trim() && filteredUsers.length > 0) {
+      if (!selectedUserId || !filteredUsers.some((u) => u.userId === selectedUserId)) {
+        setSelectedUserId(filteredUsers[0].userId);
+      }
+    }
+  }, [userSearch, filteredUsers, selectedUserId]);
+
   // Categories extracted from active user's permissions
   const availableCategories = useMemo(() => {
     if (!userProfile?.permissions) return [];
@@ -158,7 +168,14 @@ export const UserPermissionsPage: React.FC = () => {
     return userProfile.permissions.filter((p) => {
       // Tab filter
       if (permTab === "direct" && !p.isDirect) return false;
-      if (permTab === "role" && (!p.isFromRole || p.isDirect)) return false;
+      if (permTab === "role") {
+        const isSuperAdmin = userProfile.roleId === 2 || userProfile.roleName.toLowerCase().includes("super admin");
+        if (isSuperAdmin) {
+          if (p.isDirect) return false;
+        } else if (!p.isFromRole || p.isDirect) {
+          return false;
+        }
+      }
       if (permTab === "department" && (!p.isFromDepartment || p.isDirect)) return false;
 
       // Category filter
@@ -168,11 +185,11 @@ export const UserPermissionsPage: React.FC = () => {
 
       // Search filter
       if (permSearch.trim()) {
-        const query = permSearch.toLowerCase();
-        const matchesKey = p.permissionKey.toLowerCase().includes(query);
-        const matchesName = p.name.toLowerCase().includes(query);
-        const matchesDesc = p.description.toLowerCase().includes(query);
-        const matchesCat = p.category.toLowerCase().includes(query);
+        const query = permSearch.trim().toLowerCase();
+        const matchesKey = (p.permissionKey || "").toLowerCase().includes(query);
+        const matchesName = (p.name || "").toLowerCase().includes(query);
+        const matchesDesc = (p.description || "").toLowerCase().includes(query);
+        const matchesCat = (p.category || "").toLowerCase().includes(query);
         return matchesKey || matchesName || matchesDesc || matchesCat;
       }
 
@@ -180,44 +197,96 @@ export const UserPermissionsPage: React.FC = () => {
     });
   }, [userProfile, permTab, categoryFilter, permSearch]);
 
-  // Available missing permissions for the Add modal (filtering out permissions user already has active/allowed)
-  const availablePermissionsForModal = useMemo(() => {
-    // Keys the user already has access to (via Direct, Role, or Department)
-    const alreadyGrantedKeys = new Set(
-      userProfile?.permissions
+  // Permissions that the selected user DOES NOT currently have (!p.isAllowed)
+  const missingPermissionsForModal = useMemo(() => {
+    if (!userProfile?.permissions) return [];
+
+    // Keys the user already has active access to (via Direct, Role, or Department)
+    const userAllowedKeys = new Set(
+      userProfile.permissions
         .filter((p) => p.isAllowed)
-        .map((p) => p.permissionKey.toLowerCase()) || []
+        .map((p) => p.permissionKey.toLowerCase())
     );
 
-    const sourceList = allSystemPermissions.length > 0
-      ? allSystemPermissions
-      : (userProfile?.permissions.map((p) => ({
-          name: p.name,
-          description: p.description,
-          permissionKey: p.permissionKey,
-          category: p.category,
-        })) || []);
+    const list: Array<{
+      permissionKey: string;
+      name: string;
+      description: string;
+      category: string;
+    }> = [];
 
-    return sourceList.filter((p) => {
-      // Exclude permissions the user already has active access to
-      if (alreadyGrantedKeys.has(p.permissionKey.toLowerCase())) return false;
-      if (modalSearch.trim()) {
-        const q = modalSearch.toLowerCase();
-        return (
-          p.permissionKey.toLowerCase().includes(q) ||
-          p.name.toLowerCase().includes(q) ||
-          p.description.toLowerCase().includes(q)
-        );
+    const seen = new Set<string>();
+
+    // 1. From userProfile.permissions
+    userProfile.permissions.forEach((p) => {
+      const keyLower = p.permissionKey.toLowerCase();
+      if (!userAllowedKeys.has(keyLower) && !seen.has(keyLower)) {
+        seen.add(keyLower);
+        list.push({
+          permissionKey: p.permissionKey,
+          name: p.name || p.permissionKey,
+          description: p.description || "",
+          category: p.category || (p.permissionKey.includes(".") ? p.permissionKey.split(".")[0] : "general"),
+        });
       }
+    });
+
+    // 2. Fallback / merge any from allSystemPermissions that user doesn't have
+    allSystemPermissions.forEach((p) => {
+      const keyLower = p.permissionKey.toLowerCase();
+      if (!userAllowedKeys.has(keyLower) && !seen.has(keyLower)) {
+        seen.add(keyLower);
+        list.push({
+          permissionKey: p.permissionKey,
+          name: p.name || p.permissionKey,
+          description: p.description || "",
+          category: p.category || (p.permissionKey.includes(".") ? p.permissionKey.split(".")[0] : "general"),
+        });
+      }
+    });
+
+    return list;
+  }, [allSystemPermissions, userProfile]);
+
+  // Categories for modal (only unassigned permissions)
+  const availableModalCategories = useMemo(() => {
+    const set = new Set<string>();
+    missingPermissionsForModal.forEach((p) => {
+      if (p.category) {
+        set.add(p.category);
+      }
+    });
+    return Array.from(set).sort();
+  }, [missingPermissionsForModal]);
+
+  // Filtered unassigned permissions inside Add Modal by search & category
+  const filteredModalPermissions = useMemo(() => {
+    return missingPermissionsForModal.filter((p) => {
+      // Category filter
+      if (modalCategory !== "all" && (p.category || "").toLowerCase() !== modalCategory.toLowerCase()) {
+        return false;
+      }
+
+      // Search filter
+      if (modalSearch.trim()) {
+        const q = modalSearch.trim().toLowerCase();
+        const matchesKey = (p.permissionKey || "").toLowerCase().includes(q);
+        const matchesName = (p.name || "").toLowerCase().includes(q);
+        const matchesDesc = (p.description || "").toLowerCase().includes(q);
+        const matchesCat = (p.category || "").toLowerCase().includes(q);
+        return matchesKey || matchesName || matchesDesc || matchesCat;
+      }
+
       return true;
     });
-  }, [allSystemPermissions, userProfile, modalSearch]);
+  }, [missingPermissionsForModal, modalSearch, modalCategory]);
 
   // Open Add Modal and reset selection state
   const handleOpenAddModal = () => {
     setSelectedPermKeyToAdd("");
     setAddReason("");
     setModalSearch("");
+    setModalCategory("all");
     setIsAddModalOpen(true);
   };
 
@@ -284,12 +353,25 @@ export const UserPermissionsPage: React.FC = () => {
   const selectedUserOverview = usersOverview.find((u) => u.userId === selectedUserId);
   const selectedRoleMeta = getRoleMeta(selectedUserOverview?.roleId ?? undefined, selectedUserOverview?.roleName);
 
+  const isSelectedSuperAdmin = userProfile?.roleId === 2 || userProfile?.roleName?.toLowerCase().includes("super admin");
+  const userDirectCount = userProfile?.directCount ?? userProfile?.permissions?.filter(p => p.isDirect).length ?? 0;
+  const userRoleCount = (userProfile?.roleCount !== undefined && userProfile.roleCount > 0)
+    ? userProfile.roleCount
+    : (isSelectedSuperAdmin
+        ? (userProfile?.permissions?.length ?? 39)
+        : (userProfile?.permissions?.filter(p => p.isFromRole && !p.isDirect).length ?? 0));
+  const userDeptCount = userProfile?.departmentCount ?? userProfile?.permissions?.filter(p => p.isFromDepartment && !p.isDirect).length ?? 0;
+  const userTotalCount = userProfile?.totalCount ?? userProfile?.permissions?.filter(p => p.isAllowed).length ?? 0;
+
   return (
     <WorkspaceLayout
       permission="permissions.manage"
       label="User Permissions"
       icon="🛡️"
       showHero={false}
+      searchValue={userSearch}
+      onSearchChange={setUserSearch}
+      searchPlaceholder="Search users by name, role, department..."
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-fade-in">
         {/* Page Top Header */}
@@ -563,28 +645,28 @@ export const UserPermissionsPage: React.FC = () => {
                         <div>
                           <p className="text-[10px] text-slate-300">Direct</p>
                           <p className="text-base font-bold text-emerald-400">
-                            {userProfile.directCount}
+                            {userDirectCount}
                           </p>
                         </div>
                         <div className="h-6 w-px bg-white/20" />
                         <div>
                           <p className="text-[10px] text-slate-300">Role</p>
                           <p className="text-base font-bold text-purple-300">
-                            {userProfile.roleCount ?? 0}
+                            {userRoleCount}
                           </p>
                         </div>
                         <div className="h-6 w-px bg-white/20" />
                         <div>
                           <p className="text-[10px] text-slate-300">Dept</p>
                           <p className="text-base font-bold text-sky-300">
-                            {userProfile.departmentCount ?? 0}
+                            {userDeptCount}
                           </p>
                         </div>
                         <div className="h-6 w-px bg-white/20" />
                         <div>
                           <p className="text-[10px] text-slate-300">Total</p>
                           <p className="text-base font-bold text-white">
-                            {userProfile.totalCount}
+                            {userTotalCount}
                           </p>
                         </div>
                       </div>
@@ -625,7 +707,7 @@ export const UserPermissionsPage: React.FC = () => {
                       >
                         <span>Direct</span>
                         <span className="rounded-full bg-emerald-500/30 px-1.5 text-[10px]">
-                          {userProfile.directCount}
+                          {userDirectCount}
                         </span>
                       </button>
                       <button
@@ -638,7 +720,7 @@ export const UserPermissionsPage: React.FC = () => {
                       >
                         <span>Role</span>
                         <span className="rounded-full bg-purple-500/30 px-1.5 text-[10px]">
-                          {userProfile.roleCount ?? 0}
+                          {userRoleCount}
                         </span>
                       </button>
                       <button
@@ -651,7 +733,7 @@ export const UserPermissionsPage: React.FC = () => {
                       >
                         <span>Department</span>
                         <span className="rounded-full bg-sky-500/30 px-1.5 text-[10px]">
-                          {userProfile.departmentCount ?? 0}
+                          {userDeptCount}
                         </span>
                       </button>
                     </div>
@@ -699,7 +781,7 @@ export const UserPermissionsPage: React.FC = () => {
                     <table className="w-full text-left text-xs border-collapse">
                       <thead className="sticky top-0 z-10 bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-xs text-slate-600 dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
                         <tr>
-                          <th className="px-4 py-2.5 font-bold">Capability / Action</th>
+                          <th className="px-4 py-2.5 font-bold">Permission Name</th>
                           <th className="px-4 py-2.5 font-bold hidden sm:table-cell">Permission Key</th>
                           <th className="px-4 py-2.5 font-bold">Source & Level</th>
                           <th className="px-4 py-2.5 font-bold">Status</th>
@@ -734,7 +816,7 @@ export const UserPermissionsPage: React.FC = () => {
                                   )}
                                   <div>
                                     <p className="font-semibold text-slate-900 dark:text-white leading-tight">
-                                      {p.name}
+                                      {p.name || p.permissionKey}
                                     </p>
                                     <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
                                       {p.description}
@@ -765,9 +847,16 @@ export const UserPermissionsPage: React.FC = () => {
                                     )}
                                   </div>
                                 ) : p.source === "SuperAdmin" ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 text-[10px] font-bold border border-amber-300 dark:border-amber-800 w-fit">
-                                    👑 Super Admin
-                                  </span>
+                                  <div className="flex flex-wrap gap-1 items-center">
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 text-[10px] font-bold border border-amber-300 dark:border-amber-800 w-fit">
+                                      👑 Super Admin
+                                    </span>
+                                    {p.isFromDepartment && (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2.5 py-0.5 text-[10px] font-medium border border-sky-200 dark:border-sky-800 w-fit">
+                                        Dept ({p.departmentName || userProfile.departmentName})
+                                      </span>
+                                    )}
+                                  </div>
                                 ) : p.source === "RoleAndDepartment" ? (
                                   <div className="flex flex-wrap gap-1 items-center">
                                     <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 px-2 py-0.5 text-[10px] font-medium border border-purple-200 dark:border-purple-800 w-fit">
@@ -844,7 +933,7 @@ export const UserPermissionsPage: React.FC = () => {
       {/* Add Direct Permission Modal */}
       {isAddModalOpen && userProfile && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
               <div className="flex items-center gap-3">
@@ -856,7 +945,7 @@ export const UserPermissionsPage: React.FC = () => {
                     Add Direct Permission
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Grant individual capability to <strong className="text-slate-800 dark:text-slate-200">{userProfile.name}</strong>
+                    Grant individual direct permission to <strong className="text-slate-800 dark:text-slate-200">{userProfile.name}</strong>
                   </p>
                 </div>
               </div>
@@ -871,93 +960,160 @@ export const UserPermissionsPage: React.FC = () => {
 
             {/* Modal Body */}
             <div className="p-5 overflow-y-auto space-y-4 flex-1">
-              {/* Permission search inside modal */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Search Missing Permissions
-                </label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-2.5 text-slate-400 pointer-events-none" sx={{ fontSize: 16 }} />
-                  <input
-                    type="text"
-                    value={modalSearch}
-                    onChange={(e) => setModalSearch(e.target.value)}
-                    placeholder="Search missing permissions by name or key..."
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-              </div>
-
-              {/* Permission Select List */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    Select Missing Permission ({availablePermissionsForModal.length} missing)
-                  </label>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                    {userProfile.totalCount} active / {allSystemPermissions.length || 39} total
-                  </span>
-                </div>
-                <div className="max-h-60 overflow-y-auto border border-slate-200 dark:border-slate-800 rounded-xl divide-y divide-slate-100 dark:divide-slate-800 p-1">
-                  {availablePermissionsForModal.length === 0 ? (
-                    <div className="p-6 text-center space-y-1">
-                      <p className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                        {userProfile.totalCount >= (allSystemPermissions.length || 39)
-                          ? "This user already has all capabilities granted."
-                          : "No matching missing permissions found."}
-                      </p>
-                      <p className="text-[11px] text-slate-400">
-                        {userProfile.totalCount >= (allSystemPermissions.length || 39)
-                          ? "All system permissions are already active via role, department, or direct assignment."
-                          : "Try adjusting your search keywords."}
-                      </p>
-                    </div>
-                  ) : (
-                    availablePermissionsForModal.map((perm) => {
-                      const isSelected = selectedPermKeyToAdd === perm.permissionKey;
-
-                      return (
-                        <button
-                          key={perm.permissionKey}
-                          type="button"
-                          onClick={() => setSelectedPermKeyToAdd(perm.permissionKey)}
-                          className={`w-full text-left p-2.5 rounded-lg transition-colors cursor-pointer flex items-center justify-between gap-3 ${
-                            isSelected
-                              ? "bg-blue-50 dark:bg-blue-950/60 border border-blue-500"
-                              : "hover:bg-slate-50 dark:hover:bg-slate-800/60"
-                          }`}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs font-bold text-slate-900 dark:text-white">
-                                {perm.name}
-                              </p>
-                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-                                Missing
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
-                              {perm.description}
-                            </p>
-                            <span className="font-mono text-[10px] text-blue-600 dark:text-blue-400 mt-0.5 inline-block">
-                              {perm.permissionKey}
-                            </span>
-                          </div>
-                          <div
-                            className={`h-5 w-5 rounded-full border flex items-center justify-center shrink-0 ${
-                              isSelected
-                                ? "bg-blue-600 border-blue-600 text-white"
-                                : "border-slate-300 dark:border-slate-600"
-                            }`}
-                          >
-                            {isSelected && <CheckCircle sx={{ fontSize: 14 }} />}
-                          </div>
-                        </button>
-                      );
-                    })
+              {/* Search & Filter Bar inside modal */}
+              <div className="space-y-2.5">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-2.5 text-slate-400 pointer-events-none" sx={{ fontSize: 16 }} />
+                    <input
+                      type="text"
+                      value={modalSearch}
+                      autoFocus
+                      onChange={(e) => setModalSearch(e.target.value)}
+                      placeholder="Search unassigned permissions by name, key, or category..."
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-8 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                    />
+                    {modalSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setModalSearch("")}
+                        className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      >
+                        <Close sx={{ fontSize: 14 }} />
+                      </button>
+                    )}
+                  </div>
+                  {availableModalCategories.length > 0 && (
+                    <select
+                      value={modalCategory}
+                      onChange={(e) => setModalCategory(e.target.value)}
+                      className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 shrink-0"
+                    >
+                      <option value="all">All Categories</option>
+                      {availableModalCategories.map((c) => (
+                        <option key={c} value={c}>
+                          {c.toUpperCase()}
+                        </option>
+                      ))}
+                    </select>
                   )}
                 </div>
+
+                {/* Counter indicator */}
+                <div className="flex items-center justify-between text-xs px-0.5">
+                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                    Permissions user does not have ({missingPermissionsForModal.length} unassigned)
+                  </span>
+                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Showing {filteredModalPermissions.length} of {missingPermissionsForModal.length}
+                  </span>
+                </div>
               </div>
+
+              {/* Permission Table inside Modal */}
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
+                {missingPermissionsForModal.length === 0 ? (
+                  <div className="p-8 text-center space-y-2">
+                    <div className="h-10 w-10 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <CheckCircle sx={{ fontSize: 22 }} />
+                    </div>
+                    <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                      All Permissions Granted
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+                      This user already has all system permissions active via their role, department, or direct grants. There are no unassigned permissions to add.
+                    </p>
+                  </div>
+                ) : filteredModalPermissions.length === 0 ? (
+                  <div className="p-8 text-center space-y-1">
+                    <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                      No unassigned permissions match your search.
+                    </p>
+                    <p className="text-[11px] text-slate-400">
+                      Try adjusting your search keywords or resetting the category filter.
+                    </p>
+                  </div>
+                ) : (
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
+                      <tr>
+                        <th className="px-4 py-2.5 font-bold">Permission Name</th>
+                        <th className="px-3 py-2.5 font-bold hidden sm:table-cell">Permission Key</th>
+                        <th className="px-3 py-2.5 font-bold text-center">Select</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {filteredModalPermissions.map((perm) => {
+                        const isSelected = selectedPermKeyToAdd === perm.permissionKey;
+
+                        return (
+                          <tr
+                            key={perm.permissionKey}
+                            onClick={() => setSelectedPermKeyToAdd(perm.permissionKey)}
+                            className={`transition-colors cursor-pointer ${
+                              isSelected
+                                ? "bg-blue-50 dark:bg-blue-950/60"
+                                : "hover:bg-slate-50 dark:hover:bg-slate-800/60"
+                            }`}
+                          >
+                            {/* Permission Name & Description */}
+                            <td className="px-4 py-3">
+                              <p className="font-semibold text-slate-900 dark:text-white leading-tight">
+                                {perm.name || perm.permissionKey}
+                              </p>
+                              {perm.description && (
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                                  {perm.description}
+                                </p>
+                              )}
+                            </td>
+
+                            {/* Permission Key */}
+                            <td className="px-3 py-3 hidden sm:table-cell whitespace-nowrap">
+                              <span className="font-mono text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-900">
+                                {perm.permissionKey}
+                              </span>
+                            </td>
+
+                            {/* Select Radio */}
+                            <td className="px-3 py-3 text-center">
+                              <input
+                                type="radio"
+                                name="selectedPermToAdd"
+                                checked={isSelected}
+                                onChange={() => setSelectedPermKeyToAdd(perm.permissionKey)}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+
+              {/* Selected Permission indicator */}
+              {selectedPermKeyToAdd && (
+                <div className="flex items-center justify-between p-2.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl text-xs">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="text-blue-600 dark:text-blue-400" sx={{ fontSize: 16 }} />
+                    <span className="text-slate-700 dark:text-slate-300 font-medium">
+                      Selected:{" "}
+                      <strong className="text-blue-700 dark:text-blue-300 font-mono">
+                        {selectedPermKeyToAdd}
+                      </strong>
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPermKeyToAdd("")}
+                    className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                </div>
+              )}
 
               {/* Optional Reason / Notes */}
               <div>
@@ -975,22 +1131,27 @@ export const UserPermissionsPage: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-end gap-2.5">
-              <button
-                type="button"
-                onClick={() => setIsAddModalOpen(false)}
-                className="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAssignPermission}
-                disabled={actionLoading || !selectedPermKeyToAdd}
-                className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2 text-xs font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer"
-              >
-                {actionLoading ? "Assigning..." : "Assign Permission"}
-              </button>
+            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
+              <p className="text-[11px] text-slate-400">
+                {selectedPermKeyToAdd ? "Ready to assign" : "Select a permission from the list above"}
+              </p>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAssignPermission}
+                  disabled={actionLoading || !selectedPermKeyToAdd}
+                  className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2 text-xs font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                >
+                  {actionLoading ? "Assigning..." : "Assign Permission"}
+                </button>
+              </div>
             </div>
           </div>
         </div>

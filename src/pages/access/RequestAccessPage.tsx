@@ -56,13 +56,14 @@ export const RequestAccessPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
 
+  // Search State across Tabs & Topbar
+  const [searchQuery, setSearchQuery] = useState<string>("");
+
   // Filters for Catalog
-  const [catalogSearch, setCatalogSearch] = useState<string>("");
   const [catalogModule, setCatalogModule] = useState<string>("all");
   const [catalogStatusFilter, setCatalogStatusFilter] = useState<"all" | "granted" | "locked">("all");
 
   // Filters for Requests Queue
-  const [queueSearch, setQueueSearch] = useState<string>("");
   const [queueStatus, setQueueStatus] = useState<string>("all");
   const [queuePriority, setQueuePriority] = useState<string>("all");
 
@@ -129,17 +130,17 @@ export const RequestAccessPage: React.FC = () => {
       if (catalogStatusFilter === "granted" && !p.isGranted) return false;
       if (catalogStatusFilter === "locked" && p.isGranted) return false;
 
-      if (catalogSearch.trim()) {
-        const s = catalogSearch.toLowerCase();
-        const matchName = p.name.toLowerCase().includes(s);
-        const matchKey = p.permissionKey.toLowerCase().includes(s);
-        const matchDesc = p.description.toLowerCase().includes(s);
-        const matchMod = p.module.toLowerCase().includes(s);
+      if (searchQuery.trim()) {
+        const s = searchQuery.toLowerCase();
+        const matchName = (p.name || "").toLowerCase().includes(s);
+        const matchKey = (p.permissionKey || "").toLowerCase().includes(s);
+        const matchDesc = (p.description || "").toLowerCase().includes(s);
+        const matchMod = (p.module || "").toLowerCase().includes(s);
         if (!matchName && !matchKey && !matchDesc && !matchMod) return false;
       }
       return true;
     });
-  }, [permissions, catalogModule, catalogStatusFilter, catalogSearch]);
+  }, [permissions, catalogModule, catalogStatusFilter, searchQuery]);
 
   // Filtered Queue Requests
   const filteredQueueRequests = useMemo(() => {
@@ -147,17 +148,35 @@ export const RequestAccessPage: React.FC = () => {
       if (queueStatus !== "all" && r.status.toLowerCase() !== queueStatus.toLowerCase()) return false;
       if (queuePriority !== "all" && r.priority.toLowerCase() !== queuePriority.toLowerCase()) return false;
 
-      if (queueSearch.trim()) {
-        const s = queueSearch.toLowerCase();
-        const matchUser = r.userName.toLowerCase().includes(s) || r.userEmail.toLowerCase().includes(s);
-        const matchPerm = r.permissionName.toLowerCase().includes(s) || r.permissionKey.toLowerCase().includes(s);
-        const matchReason = r.reason.toLowerCase().includes(s);
-        const matchDept = r.departmentName?.toLowerCase().includes(s);
+      if (searchQuery.trim()) {
+        const s = searchQuery.toLowerCase();
+        const matchUser = (r.userName || "").toLowerCase().includes(s) || (r.userEmail || "").toLowerCase().includes(s);
+        const matchPerm = (r.permissionName || "").toLowerCase().includes(s) || (r.permissionKey || "").toLowerCase().includes(s);
+        const matchReason = (r.reason || "").toLowerCase().includes(s);
+        const matchDept = (r.departmentName || "").toLowerCase().includes(s);
         if (!matchUser && !matchPerm && !matchReason && !matchDept) return false;
       }
       return true;
     });
-  }, [requests, queueStatus, queuePriority, queueSearch]);
+  }, [requests, queueStatus, queuePriority, searchQuery]);
+
+  // Filtered My Requests History
+  const filteredMyRequests = useMemo(() => {
+    return myRequests.filter((req) => {
+      if (searchQuery.trim()) {
+        const s = searchQuery.toLowerCase();
+        const matchPerm =
+          (req.permissionName || "").toLowerCase().includes(s) ||
+          (req.permissionKey || "").toLowerCase().includes(s);
+        const matchReason = (req.reason || "").toLowerCase().includes(s);
+        const matchReviewer = (req.reviewerName || "").toLowerCase().includes(s);
+        const matchComments = (req.reviewerComments || "").toLowerCase().includes(s);
+        const matchStatus = (req.status || "").toLowerCase().includes(s);
+        if (!matchPerm && !matchReason && !matchReviewer && !matchComments && !matchStatus) return false;
+      }
+      return true;
+    });
+  }, [myRequests, searchQuery]);
 
   // Open Request Modal for a Permission
   const handleOpenRequestModal = (perm: AvailablePermissionItem) => {
@@ -301,13 +320,19 @@ export const RequestAccessPage: React.FC = () => {
     }
   };
 
+  const currentSearchPlaceholder = useMemo(() => {
+    if (activeTab === "queue") return "Search queue by requester, email, permission...";
+    if (activeTab === "catalog") return "Search permissions or modules...";
+    return "Search my submitted requests...";
+  }, [activeTab]);
+
   return (
     <WorkspaceLayout
       label="Request Access"
       showHero={false}
-      searchValue={catalogSearch}
-      onSearchChange={setCatalogSearch}
-      searchPlaceholder="Search permissions or modules..."
+      searchValue={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder={currentSearchPlaceholder}
     >
       <div className="w-full min-h-screen bg-slate-50/50 dark:bg-[#0b0f19] px-4 py-6 sm:px-8 space-y-6">
         {/* Header Title Banner */}
@@ -517,6 +542,28 @@ export const RequestAccessPage: React.FC = () => {
                     Active / Granted ({permissions.filter((p) => p.isGranted).length})
                   </button>
                 </div>
+
+                {/* In-page Catalog Search Input */}
+                <div className="relative">
+                  <Search sx={{ fontSize: 16 }} className="absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search permissions or modules..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-56 sm:w-64 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 pl-8 pr-8 text-xs font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <Close sx={{ fontSize: 14 }} />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <span className="text-xs text-slate-400">
@@ -620,14 +667,24 @@ export const RequestAccessPage: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-3 shadow-xs">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
-                  <Search sx={{ fontSize: 16 }} className="absolute left-2.5 top-2.5 text-slate-400" />
+                  <Search sx={{ fontSize: 16 }} className="absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
                   <input
                     type="text"
                     placeholder="Search by requester, email, permission..."
-                    value={queueSearch}
-                    onChange={(e) => setQueueSearch(e.target.value)}
-                    className="w-64 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 pl-8 pr-3 text-xs font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-56 sm:w-64 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 pl-8 pr-8 text-xs font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                   />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <Close sx={{ fontSize: 14 }} />
+                    </button>
+                  )}
                 </div>
 
                 {/* Status Filter */}
@@ -782,14 +839,37 @@ export const RequestAccessPage: React.FC = () => {
         {/* TAB 3: My Request History */}
         {activeTab === "history" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                My Access Request Submissions ({myRequests.length})
-              </h3>
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-3 shadow-xs">
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <Search sx={{ fontSize: 16 }} className="absolute left-2.5 top-2.5 text-slate-400 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Search my requests..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-56 sm:w-64 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 py-1.5 pl-8 pr-8 text-xs font-medium text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      onClick={() => setSearchQuery("")}
+                      className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      title="Clear search"
+                    >
+                      <Close sx={{ fontSize: 14 }} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <span className="text-xs text-slate-400">
+                Showing {filteredMyRequests.length} of {myRequests.length} submissions
+              </span>
             </div>
 
             <div className="space-y-3">
-              {myRequests.map((req) => {
+              {filteredMyRequests.map((req) => {
                 const statusMeta = getStatusBadge(req.status);
                 const isPending = req.status.toLowerCase() === "pending";
 
@@ -853,6 +933,19 @@ export const RequestAccessPage: React.FC = () => {
                   </div>
                 );
               })}
+
+              {myRequests.length > 0 && filteredMyRequests.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center text-xs text-slate-500 dark:text-slate-400">
+                  <span>No requests match "{searchQuery}".</span>
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="ml-2 font-semibold text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              )}
 
               {myRequests.length === 0 && (
                 <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 p-12 text-center">

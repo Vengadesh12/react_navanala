@@ -483,7 +483,7 @@ export const PurchasesPage: React.FC = () => {
   // Render Access Restricted Screen
   if (!isAuthorized) {
     return (
-      <WorkspaceLayout label="Purchases" icon="🛒" showHero={false}>
+      <WorkspaceLayout label="Purchases" icon="🛒" showHero={false} showSearchBar={false}>
         <div className="flex flex-col items-center justify-center min-h-[65vh] p-6 text-center">
           <div className="w-16 h-16 rounded-2xl bg-rose-500/10 text-rose-500 flex items-center justify-center mb-4 ring-8 ring-rose-500/5">
             <LockOutlined sx={{ fontSize: 32 }} />
@@ -509,7 +509,14 @@ export const PurchasesPage: React.FC = () => {
   }
 
   return (
-    <WorkspaceLayout label="Purchases" icon="🛒" showHero={false}>
+    <WorkspaceLayout
+      label="Purchases"
+      icon="🛒"
+      showHero={false}
+      searchValue={search}
+      onSearchChange={setSearch}
+      searchPlaceholder="Search item, vendor, quote#..."
+    >
       <div className="space-y-6 pb-12">
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
