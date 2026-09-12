@@ -2,7 +2,16 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import { authService } from "../api/auth.service";
 import { menuService } from "../api/menu.service";
 import { canAccess as checkCanAccess, getFirstAccessiblePath } from "../config/workspace.config";
-import { clearSession, getStoredToken, getStoredUser, setStoredToken, setStoredUser } from "../utils/storage";
+import {
+  clearSession,
+  getStoredToken,
+  getStoredUser,
+  setStoredToken,
+  setStoredUser,
+  setLoginTimestamp,
+  isSessionExpired,
+  getSessionRemainingMs,
+} from "../utils/storage";
 import { showErrorAlert } from "../utils/alerts";
 import type { AuthResponseData, LoggedInUser, LoginCredentials, MenuItemDto, GoogleLoginPayload } from "../types";
 
@@ -37,11 +46,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const syncRequest = useRef<Promise<string[]> | null>(null);
   const isLoggingOutRef = useRef<boolean>(false);
 
-  // Global listener for terminated/force-logged-out sessions
+  // Global listener for terminated/expired/force-logged-out sessions
   useEffect(() => {
     const handleForceLogout = (e: Event) => {
       const customEvent = e as CustomEvent<string>;
-      const msg = customEvent.detail || "Your session has been terminated by an administrator. Please log in again.";
+      const msg = customEvent.detail || "Your session has expired. Please log in again.";
+      const isExpired = msg.toLowerCase().includes("expired") || msg.toLowerCase().includes("5 hours");
+      const title = isExpired ? "Session Expired" : "Session Terminated";
       isLoggingOutRef.current = true;
       clearSession();
       cachedUserId.current = null;
@@ -49,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(null);
       setMenus([]);
       isLoggingOutRef.current = false;
-      showErrorAlert("Session Terminated", msg);
+      showErrorAlert(title, msg);
     };
 
     window.addEventListener("auth:force-logout", handleForceLogout);
@@ -58,21 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, []);
 
-  // Periodic heartbeat session check every 15s to detect force logout
-  useEffect(() => {
-    if (!user?.token) return;
-
-    const interval = setInterval(async () => {
-      if (isLoggingOutRef.current || !getStoredToken()) return;
-      try {
-        await authService.getPermissions();
-      } catch {
-        // If 401, client.ts automatically dispatches auth:force-logout
-      }
-    }, 15000);
-
-    return () => clearInterval(interval);
-  }, [user?.token]);
 
   const completeFirstLoginPasswordChange = useCallback(() => {
     setUser((prev) => {
@@ -93,8 +89,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const saveAuthSession = async (data: AuthResponseData): Promise<string> => {
-    // Save token first
+    // Save token and login timestamp
     setStoredToken(data.token);
+    setLoginTimestamp(Date.now());
 
     // Use menus from login response (or fallback fetch if empty)
     let userMenus = data.menus || [];
@@ -156,16 +153,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Synchronize permissions and menus only when needed (or when force = true)
   const refreshPermissions = useCallback(
     async (force: boolean = false): Promise<string[]> => {
-      if (!user || isLoggingOutRef.current || !getStoredToken()) return [];
+      const token = getStoredToken();
+      if (isLoggingOutRef.current || !token) return [];
+
+      const currentStored = getStoredUser();
+      const currentUser = user || currentStored;
+      if (!currentUser) return [];
 
       // If data is already cached in memory for this user and not forcing, return immediately without network calls
-      // Note: An empty array [] is a valid permissions set for 0-permission users
       if (
         !force &&
-        cachedUserId.current === user.id &&
-        Array.isArray(user.permissions)
+        cachedUserId.current === currentUser.id &&
+        Array.isArray(currentUser.permissions) &&
+        currentUser.permissions.length > 0
       ) {
-        return user.permissions;
+        return currentUser.permissions;
       }
 
       // Deduplicate concurrent inflight requests
@@ -179,42 +181,52 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       ])
         .then(([permsResult, menusResult]) => {
           // If session was cleared/logged out while request was in-flight, discard response
-          if (isLoggingOutRef.current || !getStoredToken() || cachedUserId.current === null) {
+          if (isLoggingOutRef.current || !getStoredToken()) {
             return [];
           }
+
+          const currentStoredUser = getStoredUser();
+          const baseUser = user || currentStoredUser;
+          if (!baseUser) return [];
 
           const perms =
             permsResult.status === "fulfilled"
               ? permsResult.value.permissions || []
-              : user.permissions || [];
+              : baseUser.permissions || [];
 
           const userMenus =
             menusResult.status === "fulfilled"
               ? menusResult.value || []
-              : user.menus || [];
+              : baseUser.menus || [];
 
           // Compare if permissions or menus actually changed before updating state
+          const oldPerms = baseUser.permissions || [];
+          const permsSet = new Set(perms);
+          const oldPermsSet = new Set(oldPerms);
           const permsChanged =
-            !Array.isArray(user.permissions) ||
-            user.permissions.length !== perms.length ||
-            user.permissions.some((p, i) => p !== perms[i]);
+            !Array.isArray(oldPerms) ||
+            oldPerms.length !== perms.length ||
+            perms.some((p) => !oldPermsSet.has(p)) ||
+            oldPerms.some((p) => !permsSet.has(p));
 
+          const oldMenus = menus || [];
           const menusChanged =
-            !Array.isArray(menus) ||
-            menus.length !== userMenus.length ||
-            menus.some((m, i) => m.id !== userMenus[i].id);
+            !Array.isArray(oldMenus) ||
+            oldMenus.length !== userMenus.length ||
+            userMenus.some((m, i) => m.id !== oldMenus[i]?.id);
 
-          cachedUserId.current = user.id;
+          cachedUserId.current = baseUser.id;
 
           if (menusChanged) {
             setMenus(userMenus);
           }
 
-          if (permsChanged || menusChanged) {
+          if (permsChanged || menusChanged || !baseUser.permissions || baseUser.permissions.length === 0) {
             const updatedUser: LoggedInUser = {
-              ...user,
+              ...baseUser,
               permissions: perms,
               menus: userMenus,
+              menuNames: userMenus.map((m) => m.label || (m as any).name || "").filter(Boolean),
             };
             setUser(updatedUser);
             setStoredUser(updatedUser);
@@ -222,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           return perms;
         })
-        .catch(() => user.permissions || [])
+        .catch(() => user?.permissions || [])
         .finally(() => {
           syncRequest.current = null;
         });
@@ -233,14 +245,83 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [user, menus]
   );
 
-  // Fetch only once on app startup if session exists but menus/permissions are missing
+  // 1. Revalidate fresh permissions and menus on app startup/refresh if user session exists and is not expired
   useEffect(() => {
-    if (user?.token && (!Array.isArray(user.menus) || !Array.isArray(user.permissions))) {
-      refreshPermissions(true);
-    } else if (user?.id) {
-      cachedUserId.current = user.id;
+    if (isSessionExpired()) {
+      window.dispatchEvent(
+        new CustomEvent("auth:force-logout", {
+          detail: "Your session has expired after 5 hours. Please log in again.",
+        })
+      );
+      return;
     }
-  }, []);
+    if (getStoredToken()) {
+      refreshPermissions(true);
+    }
+  }, [refreshPermissions]);
+
+  // 2. Proactive 5-hour session expiration timer and visibility/focus listener
+  useEffect(() => {
+    if (!user?.token) return;
+
+    const checkAndTriggerExpiration = () => {
+      if (isSessionExpired()) {
+        window.dispatchEvent(
+          new CustomEvent("auth:force-logout", {
+            detail: "Your session has expired after 5 hours. Please log in again.",
+          })
+        );
+        return true;
+      }
+      return false;
+    };
+
+    if (checkAndTriggerExpiration()) return;
+
+    // Set countdown timeout for the remaining time of the 5-hour session
+    const remainingMs = getSessionRemainingMs();
+    const timerId = setTimeout(() => {
+      checkAndTriggerExpiration();
+    }, remainingMs);
+
+    // When the tab becomes visible or receives focus, check if session elapsed while user was away
+    const handleFocusOrVisibility = () => {
+      checkAndTriggerExpiration();
+    };
+
+    window.addEventListener("focus", handleFocusOrVisibility);
+    document.addEventListener("visibilitychange", handleFocusOrVisibility);
+
+    return () => {
+      clearTimeout(timerId);
+      window.removeEventListener("focus", handleFocusOrVisibility);
+      document.removeEventListener("visibilitychange", handleFocusOrVisibility);
+    };
+  }, [user?.token]);
+
+  // 3. Periodic heartbeat session check every 15s to detect force logout and sync permissions
+  useEffect(() => {
+    if (!user?.token) return;
+
+    const interval = setInterval(async () => {
+      if (isLoggingOutRef.current || !getStoredToken()) return;
+      if (isSessionExpired()) {
+        window.dispatchEvent(
+          new CustomEvent("auth:force-logout", {
+            detail: "Your session has expired after 5 hours. Please log in again.",
+          })
+        );
+        return;
+      }
+      try {
+        await refreshPermissions(true);
+      } catch {
+        // If 401, client.ts automatically dispatches auth:force-logout
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [user?.token, refreshPermissions]);
 
   const login = async (credentials: LoginCredentials): Promise<LoginResult> => {
     setLoading(true);

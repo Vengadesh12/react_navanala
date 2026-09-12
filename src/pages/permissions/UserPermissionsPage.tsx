@@ -35,7 +35,7 @@ import type {
 } from "../../types";
 
 export const UserPermissionsPage: React.FC = () => {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, refreshPermissions } = useAuth();
 
   // Master user directory state
   const [usersOverview, setUsersOverview] = useState<UserPermissionOverview[]>([]);
@@ -305,7 +305,11 @@ export const UserPermissionsPage: React.FC = () => {
       setSelectedPermKeyToAdd("");
       setAddReason("");
       // Refresh details and overview counts
-      await Promise.all([fetchUserDetails(selectedUserId), fetchUsersOverview(selectedUserId)]);
+      await Promise.all([
+        fetchUserDetails(selectedUserId),
+        fetchUsersOverview(selectedUserId),
+        selectedUserId === currentUser?.id ? refreshPermissions(true) : Promise.resolve(),
+      ]);
     } catch (err: any) {
       showErrorAlert("Assignment Failed", err.message || "Could not assign permission.");
     } finally {
@@ -332,7 +336,11 @@ export const UserPermissionsPage: React.FC = () => {
       await permissionService.revokeUserPermission(selectedUserId, perm.permissionKey);
       showSuccessAlert("Permission Revoked", `Direct permission '${perm.permissionKey}' has been removed.`);
       // Refresh details and overview counts
-      await Promise.all([fetchUserDetails(selectedUserId), fetchUsersOverview(selectedUserId)]);
+      await Promise.all([
+        fetchUserDetails(selectedUserId),
+        fetchUsersOverview(selectedUserId),
+        selectedUserId === currentUser?.id ? refreshPermissions(true) : Promise.resolve(),
+      ]);
     } catch (err: any) {
       showErrorAlert("Revocation Failed", err.message || "Could not revoke permission.");
     } finally {

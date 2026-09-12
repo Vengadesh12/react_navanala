@@ -13,8 +13,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permission, chil
   const { user, can, refreshPermissions } = useAuth();
   const [status, setStatus] = useState<"checking" | "allowed" | "denied" | "login">(() => {
     if (!user) return "login";
-    if (Array.isArray(user.permissions)) {
-      return can(permission) ? "allowed" : "denied";
+    if (can(permission)) {
+      return "allowed";
     }
     return "checking";
   });
@@ -25,18 +25,26 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ permission, chil
       return;
     }
 
-    if (Array.isArray(user.permissions)) {
-      setStatus(can(permission) ? "allowed" : "denied");
+    if (can(permission)) {
+      setStatus("allowed");
       return;
     }
 
-    refreshPermissions()
+    let isMounted = true;
+    // Attempt fresh revalidation with server before denying
+    refreshPermissions(true)
       .then(() => {
+        if (!isMounted) return;
         setStatus(can(permission) ? "allowed" : "denied");
       })
       .catch(() => {
+        if (!isMounted) return;
         setStatus(can(permission) ? "allowed" : "denied");
       });
+
+    return () => {
+      isMounted = false;
+    };
   }, [permission, user, can, refreshPermissions]);
 
   if (status === "checking") {

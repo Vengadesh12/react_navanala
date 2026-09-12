@@ -43,31 +43,36 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
       return;
     }
 
-    if (Array.isArray(user.permissions)) {
-      const isAllowed = can(permission);
-      if (!isAllowed) {
-        navigate(getFirstAccessiblePath(user), { replace: true });
-      }
+    if (can(permission)) {
       setChecking(false);
       return;
     }
 
-    refreshPermissions()
+    let isMounted = true;
+    refreshPermissions(true)
       .then(() => {
+        if (!isMounted) return;
         const isAllowed = can(permission);
         if (!isAllowed) {
           navigate(getFirstAccessiblePath(user), { replace: true });
         }
       })
       .catch(() => {
+        if (!isMounted) return;
         if (!can(permission)) {
           navigate(getFirstAccessiblePath(user), { replace: true });
         }
       })
       .finally(() => {
-        setChecking(false);
+        if (isMounted) {
+          setChecking(false);
+        }
       });
-  }, [navigate, permission, user]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [navigate, permission, user, can, refreshPermissions]);
 
   if (checking) {
     return <LoadingSpinner fullScreen message="Verifying workspace credentials..." />;
