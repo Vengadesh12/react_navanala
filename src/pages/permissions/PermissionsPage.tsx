@@ -526,7 +526,7 @@ export const PermissionsPage: React.FC = () => {
                           const count = (role.permissionKeys || []).length;
                           return (
                             <option key={role.roleId} value={role.roleId}>
-                              {role.roleName} (ID: {role.roleId}) — {count} permissions active
+                              {role.roleName} — {count} permissions active
                             </option>
                           );
                         })}
