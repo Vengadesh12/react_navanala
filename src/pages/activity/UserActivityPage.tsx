@@ -36,8 +36,8 @@ export const UserActivityPage: React.FC = () => {
   const { user: currentUser, can, logout } = useAuth();
   const navigate = useNavigate();
 
-  const isSuperAdmin = Number(currentUser?.roleId) === 2;
-  const canForceLogout = isSuperAdmin || can("user_activity.force_logout");
+  const isSuperAdmin = Boolean(currentUser?.isSuperAdmin || can("manage_all_permissions") || currentUser?.roleName?.toLowerCase().includes("super admin"));
+  const canForceLogout = isSuperAdmin || can("user_activity.force_logout") || can("user_activity.manage");
 
   // Summary & list states
   const [summary, setSummary] = useState<UserActivitySummary>({

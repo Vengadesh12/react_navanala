@@ -72,20 +72,22 @@ const PAYMENT_TERMS_PRESETS = [
 ];
 
 export const PurchasesPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
   const navigate = useNavigate();
 
-  // Strict Access Guard: Only Super Admin, Manager, and HR Department
+  // Dynamic Access Guard: Super Admin, Purchases Permissions, Manager, or HR Department
   const isAuthorized = useMemo(() => {
     if (!user) return false;
-    const roleId = Number(user.roleId);
+    if (user.isSuperAdmin || can("manage_all_permissions") || can("purchases.view") || can("purchases.manage") || can("purchases.create")) {
+      return true;
+    }
+
     const roleName = (user.roleName || "").toLowerCase();
     const deptName = (user.departmentName || "").toLowerCase();
     const designationName = (user.designationName || "").toLowerCase();
 
-    const isSuperAdmin = roleId === 2 || roleName.includes("super admin") || roleName === "admin";
+    const isSuperAdmin = roleName.includes("super admin");
     const isManager =
-      roleId === 3 ||
       roleName.includes("manager") ||
       designationName.includes("manager") ||
       roleName.includes("lead");
@@ -93,7 +95,7 @@ export const PurchasesPage: React.FC = () => {
       deptName.includes("hr") || deptName.includes("human resources") || designationName.includes("hr");
 
     return isSuperAdmin || isManager || isHrDepartment;
-  }, [user]);
+  }, [user, can]);
 
   // Data states
   const [purchases, setPurchases] = useState<PurchaseDto[]>([]);

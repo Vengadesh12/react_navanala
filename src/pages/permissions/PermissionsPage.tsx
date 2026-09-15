@@ -188,7 +188,7 @@ export const PermissionsPage: React.FC = () => {
   };
 
   useEffect(() => {
-    if (!user || !(Number(user.roleId) === 2 || can("permissions.manage"))) {
+    if (!user || !(user.isSuperAdmin || can("permissions.manage") || can("manage_all_permissions"))) {
       navigate(getFirstAccessiblePath(user), { replace: true });
       return;
     }
@@ -418,7 +418,7 @@ export const PermissionsPage: React.FC = () => {
     return categories;
   }, [data.permissions, searchQuery]);
 
-  if (!user || !(Number(user.roleId) === 2 || can("permissions.manage"))) {
+  if (!user || !(user.isSuperAdmin || can("permissions.manage") || can("manage_all_permissions"))) {
     return null;
   }
 

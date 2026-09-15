@@ -99,7 +99,7 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
       />
 
       {/* Main Content */}
-      <main className="flex-1 min-w-0 flex flex-col">
+      <main className="flex-1 min-w-0 flex flex-col w-full overflow-x-hidden">
         {/* Modern Sticky Topbar */}
         {showTopbar && (
           <Topbar
@@ -116,15 +116,15 @@ export const WorkspaceLayout: React.FC<WorkspaceLayoutProps> = ({
 
         {/* Optional Page Hero */}
         {showHero && (
-          <section className="border-b border-slate-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-8 text-white">
+          <section className="border-b border-slate-200 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 p-4 sm:p-6 lg:p-8 text-white">
             <div className="mx-auto max-w-7xl">
-              <h2 className="flex items-center gap-3 text-2xl font-bold tracking-tight">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-white/10 text-lg backdrop-blur-sm">
+              <h2 className="flex items-center gap-2.5 sm:gap-3 text-xl sm:text-2xl font-bold tracking-tight">
+                <span className="grid h-9 w-9 sm:h-10 sm:w-10 place-items-center rounded-xl bg-white/10 text-base sm:text-lg backdrop-blur-sm">
                   {icon}
                 </span>
                 {label} Workspace
               </h2>
-              <p className="mt-2 text-sm text-slate-300">
+              <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-slate-300">
                 Role-based access management and real-time controls for {label.toLowerCase()}.
               </p>
             </div>

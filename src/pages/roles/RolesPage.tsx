@@ -137,9 +137,9 @@ export const RolesPage: React.FC = () => {
 
     // Type filter
     if (typeFilter === "SYSTEM") {
-      result = result.filter((r) => Number(r.id) === 2 || r.name?.toLowerCase().includes("super admin"));
+      result = result.filter((r) => Boolean(r.isSuperAdmin || r.isSystemRole || r.name?.toLowerCase().includes("super admin")));
     } else if (typeFilter === "CUSTOM") {
-      result = result.filter((r) => !(Number(r.id) === 2 || r.name?.toLowerCase().includes("super admin")));
+      result = result.filter((r) => !Boolean(r.isSuperAdmin || r.isSystemRole || r.name?.toLowerCase().includes("super admin")));
     }
 
     return result;
@@ -175,7 +175,7 @@ export const RolesPage: React.FC = () => {
   }, [sortedRoles, page, pageSize]);
 
   const systemRolesCount = useMemo(() => {
-    return roles.filter((r) => Number(r.id) === 2 || r.name?.toLowerCase().includes("super admin")).length;
+    return roles.filter((r) => Boolean(r.isSuperAdmin || r.isSystemRole || r.name?.toLowerCase().includes("super admin"))).length;
   }, [roles]);
 
   const customRolesCount = useMemo(() => {
@@ -234,8 +234,8 @@ export const RolesPage: React.FC = () => {
   };
 
   const handleDeleteRole = async (role: Role) => {
-    if (Number(role.id) === 2 || role.name?.toLowerCase().includes("super admin")) {
-      await showWarningAlert("Protected System Role", "The Super Admin role is protected and cannot be deleted.");
+    if (Boolean(role.isSuperAdmin || role.isSystemRole || role.name?.toLowerCase().includes("super admin"))) {
+      await showWarningAlert("Protected System Role", "System and Super Admin roles are protected and cannot be deleted.");
       return;
     }
 
@@ -528,7 +528,7 @@ export const RolesPage: React.FC = () => {
         {!loading && !error && filteredRoles.length > 0 && viewMode === "grid" && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredRoles.map((role) => {
-              const isSuper = Number(role.id) === 2 || role.name?.toLowerCase().includes("super admin");
+              const isSuper = Boolean(role.isSuperAdmin || role.isSystemRole || role.name?.toLowerCase().includes("super admin"));
               const meta = getRoleMeta(role.id, role.name);
               const memberCount = roleMembersCount[String(role.id)] || 0;
               const permCount = rolePermissionsCount[String(role.id)];
@@ -696,7 +696,7 @@ export const RolesPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {paginatedRoles.map((role) => {
-                    const isSuper = Number(role.id) === 2 || role.name?.toLowerCase().includes("super admin");
+                    const isSuper = Boolean(role.isSuperAdmin || role.isSystemRole || role.name?.toLowerCase().includes("super admin"));
                     const meta = getRoleMeta(role.id, role.name);
                     const memberCount = roleMembersCount[String(role.id)] || 0;
                     const permCount = rolePermissionsCount[String(role.id)];

@@ -17,6 +17,7 @@ export interface LoggedInUser {
   age?: number;
   address?: string;
   isFirstLogin?: boolean;
+  isSuperAdmin?: boolean;
 }
 
 export interface LoginCredentials {
@@ -42,6 +43,7 @@ export interface AuthResponseData {
   age?: number;
   address?: string;
   isFirstLogin?: boolean;
+  isSuperAdmin?: boolean;
 }
 
 export interface AuthResponse {

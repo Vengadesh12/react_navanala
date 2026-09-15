@@ -2,6 +2,8 @@ export interface Role {
   id: number | string;
   name: string;
   description?: string;
+  isSuperAdmin?: boolean;
+  isSystemRole?: boolean;
   createdAt?: string;
   CreatedAt?: string;
 }

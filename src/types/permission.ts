@@ -54,6 +54,7 @@ export interface UserPermissionOverview {
   rolePermissionsCount?: number;
   departmentPermissionsCount?: number;
   totalEffectivePermissionsCount: number;
+  isSuperAdmin?: boolean;
 }
 
 export interface UserPermissionDetail {
@@ -88,6 +89,7 @@ export interface UserPermissionProfile {
   roleCount?: number;
   departmentCount?: number;
   totalCount: number;
+  isSuperAdmin?: boolean;
   permissions: UserPermissionDetail[];
 }
 

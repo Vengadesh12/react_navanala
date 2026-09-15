@@ -93,6 +93,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, [fetchPendingApprovals, fetchPendingAccessRequests]);
 
+  // Lock body scroll and listen for Escape key when mobile menu is open
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCloseMenu();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [menuOpen, onCloseMenu]);
+
   const handleLogout = async () => {
     const res = await showConfirmDialog(
       "Sign Out?",

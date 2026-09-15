@@ -1,4 +1,3 @@
-import { SUPER_ADMIN_ROLE_ID } from "./constants";
 import type { LoggedInUser, NavMenuItem, RoleMeta } from "../types";
 
 export const workspaceMenus: NavMenuItem[] = [
@@ -24,35 +23,48 @@ export const workspaceMenus: NavMenuItem[] = [
 
 export const canAccess = (user: LoggedInUser | null, permission?: string): boolean => {
   if (!user) return false;
-  const roleId = Number(user.roleId);
+
+  // Dynamic Super Admin bypass
+  if (user.isSuperAdmin || (Array.isArray(user.permissions) && (user.permissions.includes("*") || user.permissions.includes("manage_all_permissions")))) {
+    return true;
+  }
+
   const roleName = (user.roleName || "").toLowerCase();
   const deptName = (user.departmentName || "").toLowerCase();
   const designationName = (user.designationName || "").toLowerCase();
 
-  // Super Admin bypass
-  if (roleId === SUPER_ADMIN_ROLE_ID || roleName.includes("super admin") || roleName === "admin") return true;
+  // Role name fallback for Super Admin
+  if (roleName.includes("super admin")) return true;
 
   if (!permission || permission === "request_access.view") return true;
 
-  // Purchases module specific access rule: Super Admin, Manager, or HR Department
+  // Direct permission match or wildcard manage match
+  if (Array.isArray(user.permissions)) {
+    if (user.permissions.includes(permission)) return true;
+    const modulePrefix = permission.split(".")[0];
+    if (modulePrefix && user.permissions.includes(`${modulePrefix}.manage`)) return true;
+    if (user.permissions.includes("permissions.manage")) return true;
+  }
+
+  // Purchases module specific access rule: Manager or HR Department
   if (permission === "purchases.view" || permission === "purchases.manage" || permission === "purchases.create") {
-    const isManager = roleId === 3 || roleName.includes("manager") || designationName.includes("manager") || roleName.includes("lead");
+    const isManager = roleName.includes("manager") || designationName.includes("manager") || roleName.includes("lead");
     const isHrDepartment = deptName.includes("hr") || deptName.includes("human resources") || designationName.includes("hr");
     if (isManager || isHrDepartment) return true;
   }
 
-  // Invoices module specific access rule: Super Admin, Manager
+  // Invoices module specific access rule: Manager
   if (permission === "invoices.view" || permission === "invoices.create" || permission === "invoices.edit" || permission === "invoices.delete" || permission === "invoices.manage") {
-    const isManager = roleId === 3 || roleName.includes("manager") || designationName.includes("manager") || roleName.includes("lead");
+    const isManager = roleName.includes("manager") || designationName.includes("manager") || roleName.includes("lead");
     if (isManager) return true;
   }
 
-  return Array.isArray(user.permissions) && user.permissions.includes(permission);
+  return false;
 };
 
 export const getFirstAccessiblePath = (user: LoggedInUser | null): string => {
   if (!user) return "/login";
-  if (Number(user.roleId) === SUPER_ADMIN_ROLE_ID) return "/dashboard";
+  if (user.isSuperAdmin || canAccess(user, "dashboard.view")) return "/dashboard";
   if (user.menus && user.menus.length > 0 && user.menus[0]?.route) {
     return user.menus[0].route;
   }
@@ -67,7 +79,7 @@ export const getRoleMeta = (roleId?: number | string, roleName?: string): RoleMe
   const id = Number(roleId);
   const nameLower = (roleName || "").toLowerCase().trim();
 
-  if (id === SUPER_ADMIN_ROLE_ID || nameLower.includes("super admin")) {
+  if (nameLower.includes("super admin")) {
     return {
       name: roleName || "Super Admin",
       color: "bg-purple-50 text-purple-700 border-purple-200",

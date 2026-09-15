@@ -135,7 +135,7 @@ export const UserPermissionsPage: React.FC = () => {
       }
       if (userFilterMode === "admins") {
         const role = u.roleName.toLowerCase();
-        return role.includes("admin") || role.includes("manager") || u.roleId === 2;
+        return Boolean(u.isSuperAdmin) || role.includes("admin") || role.includes("manager");
       }
       return true;
     });
@@ -170,7 +170,7 @@ export const UserPermissionsPage: React.FC = () => {
       // Tab filter
       if (permTab === "direct" && !p.isDirect) return false;
       if (permTab === "role") {
-        const isSuperAdmin = userProfile.roleId === 2 || userProfile.roleName.toLowerCase().includes("super admin");
+        const isSuperAdmin = Boolean(userProfile.isSuperAdmin || userProfile.roleName?.toLowerCase().includes("super admin"));
         if (isSuperAdmin) {
           if (p.isDirect) return false;
         } else if (!p.isFromRole || p.isDirect) {
@@ -362,7 +362,7 @@ export const UserPermissionsPage: React.FC = () => {
   const selectedUserOverview = usersOverview.find((u) => u.userId === selectedUserId);
   const selectedRoleMeta = getRoleMeta(selectedUserOverview?.roleId ?? undefined, selectedUserOverview?.roleName);
 
-  const isSelectedSuperAdmin = userProfile?.roleId === 2 || userProfile?.roleName?.toLowerCase().includes("super admin");
+  const isSelectedSuperAdmin = Boolean(userProfile?.isSuperAdmin || userProfile?.roleName?.toLowerCase().includes("super admin"));
   const userDirectCount = userProfile?.directCount ?? userProfile?.permissions?.filter(p => p.isDirect).length ?? 0;
   const userRoleCount = (userProfile?.roleCount !== undefined && userProfile.roleCount > 0)
     ? userProfile.roleCount
@@ -617,7 +617,7 @@ export const UserPermissionsPage: React.FC = () => {
                       <div>
                         <div className="flex items-center gap-2">
                           <h2 className="text-lg font-bold tracking-tight text-white">{userProfile.name}</h2>
-                          {userProfile.roleId === 2 && (
+                          {Boolean(userProfile.isSuperAdmin || userProfile.roleName?.toLowerCase().includes("super admin")) && (
                             <span className="rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 text-[10px] font-bold">
                               👑 Super Admin
                             </span>

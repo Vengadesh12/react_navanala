@@ -56,20 +56,19 @@ const PRESETS = [
 ];
 
 export const CreateApprovalPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, can } = useAuth();
 
-  // Strict Role detection: Only Super Admin (Role 2) or Manager (Role 3) can see all approvals & take actions
+  // Role & permission detection: Super Admin, approvals.manage permission, or Manager
   const isManagerOrAdmin = useMemo(() => {
     if (!user) return false;
-    const roleId = Number(user.roleId);
-    if (roleId === 2 || roleId === 3) return true; // 2 = Super Admin, 3 = Manager
+    if (user.isSuperAdmin || can("manage_all_permissions") || can("approvals.manage")) return true;
     const roleName = (user.roleName || "").trim().toLowerCase();
     return (
       roleName.includes("manager") ||
       roleName.includes("super admin") ||
       roleName === "admin"
     );
-  }, [user]);
+  }, [user, can]);
 
   // Data state
   const [items, setItems] = useState<ApprovalItem[]>([]);

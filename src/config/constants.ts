@@ -9,5 +9,3 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const SESSION_TIMEOUT_MS = 5 * 60 * 60 * 1000; // 5 hours in milliseconds (18,000,000 ms)
-
-export const SUPER_ADMIN_ROLE_ID = 2;

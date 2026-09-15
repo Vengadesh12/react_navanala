@@ -263,6 +263,7 @@ export interface UserProfile {
   roleName?: string;
   permissions?: string[];
   isFirstLogin?: boolean;
+  isSuperAdmin?: boolean;
 }
 
 export interface ProfileFormData {

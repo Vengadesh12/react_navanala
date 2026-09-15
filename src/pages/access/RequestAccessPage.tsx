@@ -35,14 +35,14 @@ import type {
 } from "../../types";
 
 export const RequestAccessPage: React.FC = () => {
-  const { user, refreshPermissions } = useAuth();
+  const { user, can, refreshPermissions } = useAuth();
 
   const isSuperAdmin = useMemo(() => {
     if (!user) return false;
-    const roleId = Number(user.roleId);
+    if (user.isSuperAdmin || can("manage_all_permissions") || can("user_permissions.manage") || can("permissions.manage")) return true;
     const roleName = (user.roleName || "").toLowerCase();
-    return roleId === 2 || roleName.includes("super admin") || roleName === "admin";
-  }, [user]);
+    return roleName.includes("super admin") || roleName === "admin";
+  }, [user, can]);
 
   // Tab State: 'catalog' | 'queue' | 'history'
   const [activeTab, setActiveTab] = useState<"catalog" | "queue" | "history">(() =>

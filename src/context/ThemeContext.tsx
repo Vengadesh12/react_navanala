@@ -11,7 +11,6 @@ const THEME_SESSION_KEY = "user_theme_dark_mode";
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // Read theme solely from sessionStorage (browser/session specific, never from shared DB)
   const [isDarkMode, setIsDarkModeState] = useState<boolean>(() => {
     const saved = sessionStorage.getItem(THEME_SESSION_KEY);
     if (saved !== null) {

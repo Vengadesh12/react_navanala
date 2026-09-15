@@ -37,9 +37,8 @@ export const SettingsPage: React.FC = () => {
   const { isDarkMode, setDarkMode } = useTheme();
 
   // Role & Maintenance Mode Permission Logic
-  const roleId = Number(user?.roleId);
   const roleName = (user?.roleName || "").toLowerCase();
-  const isSuperAdminOrAdmin = roleId === 2 || roleName.includes("super admin") || roleName === "admin";
+  const isSuperAdminOrAdmin = Boolean(user?.isSuperAdmin || can("manage_all_permissions") || roleName.includes("super admin") || roleName === "admin");
   const hasMaintenancePermission = isSuperAdminOrAdmin || can("settings.maintenance");
 
   const [maintenanceRequestPending, setMaintenanceRequestPending] = useState<boolean>(false);

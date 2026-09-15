@@ -7,7 +7,7 @@ export const usePermissions = () => {
     permissions: user?.permissions || [],
     roleId: user?.roleId,
     roleName: user?.roleName,
-    isSuperAdmin: Number(user?.roleId) === 2,
+    isSuperAdmin: Boolean(user?.isSuperAdmin || can("manage_all_permissions") || user?.roleName?.toLowerCase().includes("super admin")),
     hasPermission: can,
     refreshPermissions,
   };

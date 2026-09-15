@@ -74,9 +74,8 @@ export const InvoicesPage: React.FC = () => {
   // Strict check: Only users with all permissions / Super Admin can edit Company GST
   const canEditGst = useMemo(() => {
     if (!user) return false;
-    const roleId = Number(user.roleId);
     const roleName = (user.roleName || "").toLowerCase();
-    const isSuperAdmin = roleId === 2 || roleName.includes("super admin") || roleName === "admin";
+    const isSuperAdmin = Boolean(user.isSuperAdmin || can("manage_all_permissions") || roleName.includes("super admin") || roleName === "admin");
     const hasFullPerms = can("permissions.manage") || can("invoices.manage");
     return isSuperAdmin || hasFullPerms;
   }, [user, can]);

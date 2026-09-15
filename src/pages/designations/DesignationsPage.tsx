@@ -448,9 +448,7 @@ export const DesignationsPage: React.FC = () => {
                             <div className="font-semibold text-slate-900 dark:text-white">
                               {des.name}
                             </div>
-                            <div className="text-[11px] text-slate-400 dark:text-slate-500">
-                              ID: #{des.id}
-                            </div>
+                            
                           </div>
                         </div>
                       </td>
