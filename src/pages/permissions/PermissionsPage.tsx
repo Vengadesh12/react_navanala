@@ -18,6 +18,7 @@ import {
   FactCheckOutlined,
   ReceiptLongOutlined,
   ShoppingCartOutlined,
+  BadgeOutlined,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { SearchInput } from "../../components/common/SearchInput";
@@ -65,6 +66,14 @@ const PERMISSION_CATEGORIES: PermissionCategory[] = [
     icon: <CorporateFare sx={{ fontSize: 20 }} />,
     color: "bg-teal-50 text-teal-700 border-teal-200",
     keys: ["departments.view", "departments.create", "departments.edit", "departments.delete", "departments.manage"],
+  },
+  {
+    id: "designations",
+    name: "Designations Management",
+    desc: "Create, view, modify, and delete workspace designations and title mapping",
+    icon: <BadgeOutlined sx={{ fontSize: 20 }} />,
+    color: "bg-blue-50 text-blue-700 border-blue-200",
+    keys: ["designations.view", "designations.create", "designations.edit", "designations.delete", "designations.manage"],
   },
   {
     id: "roles",

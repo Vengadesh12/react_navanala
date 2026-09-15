@@ -6,6 +6,7 @@ export const workspaceMenus: NavMenuItem[] = [
   { key: "users.view", label: "User Directory", icon: "▦", to: "/add-user", group: "Core Access", desc: "Manage members & assign roles" },
   { key: "roles.view", label: "Roles", icon: "♙", to: "/roles", group: "Core Access", desc: "Configure workspace roles" },
   { key: "departments.view", label: "Departments", icon: "🏢", to: "/departments", group: "Core Access", desc: "Department hierarchy & designation mapping" },
+  { key: "designations.view", label: "Designations", icon: "💼", to: "/designations", group: "Core Access", desc: "Workspace designations and title mapping" },
   { key: "permissions.manage", label: "Permission Matrix", icon: "⚿", to: "/permissions", group: "Core Access", desc: "Role permission assignments" },
   { key: "user_permissions.view", label: "User Permissions", icon: "🛡️", to: "/user-permissions", group: "Core Access", desc: "User direct permission access control & assignment" },
   { key: "approvals.view", label: "Create Approval", icon: "✓", to: "/create-approval", group: "Core Access", desc: "Raise resource requests and manager approval workflows" },

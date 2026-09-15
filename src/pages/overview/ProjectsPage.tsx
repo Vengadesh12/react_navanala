@@ -184,6 +184,37 @@ export const ProjectsPage: React.FC = () => {
     }
   };
 
+  const getProgressTheme = (percentage: number) => {
+    if (percentage >= 100) {
+      return {
+        bar: "bg-emerald-500",
+        text: "text-emerald-600 dark:text-emerald-400",
+      };
+    }
+    if (percentage >= 75) {
+      return {
+        bar: "bg-teal-500",
+        text: "text-teal-600 dark:text-teal-400",
+      };
+    }
+    if (percentage >= 50) {
+      return {
+        bar: "bg-blue-600",
+        text: "text-blue-600 dark:text-blue-400",
+      };
+    }
+    if (percentage >= 25) {
+      return {
+        bar: "bg-amber-500",
+        text: "text-amber-600 dark:text-amber-400",
+      };
+    }
+    return {
+      bar: "bg-rose-500",
+      text: "text-rose-600 dark:text-rose-400",
+    };
+  };
+
   const q = searchTerm.toLowerCase().trim();
 
   const matchActiveRollouts =
@@ -414,16 +445,23 @@ export const ProjectsPage: React.FC = () => {
 
                   {/* Progress Bar */}
                   <div className="mt-4">
-                    <div className="flex items-center justify-between text-xs font-semibold mb-1">
-                      <span className="text-slate-500">Progress</span>
-                      <span className="text-slate-900">{project.progressPercentage}%</span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                      <div
-                        className="h-full rounded-full bg-blue-600 transition-all duration-500"
-                        style={{ width: `${project.progressPercentage}%` }}
-                      />
-                    </div>
+                    {(() => {
+                      const theme = getProgressTheme(project.progressPercentage);
+                      return (
+                        <>
+                          <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                            <span className="text-slate-500">Progress</span>
+                            <span className={`font-bold ${theme.text}`}>{project.progressPercentage}%</span>
+                          </div>
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${theme.bar}`}
+                              style={{ width: `${Math.min(100, Math.max(0, project.progressPercentage))}%` }}
+                            />
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -577,16 +615,28 @@ export const ProjectsPage: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Progress ({formData.progressPercentage}%)
-                  </label>
+                  <div className="flex items-center justify-between text-xs font-semibold mb-1">
+                    <label className="text-slate-700">
+                      Progress
+                    </label>
+                    <span className={`font-bold ${getProgressTheme(formData.progressPercentage).text}`}>
+                      {formData.progressPercentage}%
+                    </span>
+                  </div>
+                  {/* Live preview progress bar */}
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 mb-2">
+                    <div
+                      className={`h-full rounded-full transition-all duration-300 ${getProgressTheme(formData.progressPercentage).bar}`}
+                      style={{ width: `${Math.min(100, Math.max(0, formData.progressPercentage))}%` }}
+                    />
+                  </div>
                   <input
                     type="range"
                     min={0}
                     max={100}
                     value={formData.progressPercentage}
                     onChange={(e) => setFormData({ ...formData, progressPercentage: Number(e.target.value) })}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-3"
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer mt-1"
                   />
                 </div>
               </div>

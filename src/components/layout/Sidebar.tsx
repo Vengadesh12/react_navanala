@@ -21,6 +21,7 @@ import {
   KeyOutlined,
   BuildCircleOutlined,
   AdminPanelSettings,
+  BadgeOutlined,
 } from "@mui/icons-material";
 import { useAuth } from "../../hooks/useAuth";
 import { showConfirmDialog } from "../../utils/alerts";
@@ -113,6 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const navManagement = [
     { label: "Roles", path: "/roles", permissionKey: "roles.view", icon: <GridView sx={{ fontSize: 18 }} /> },
     { label: "Departments", path: "/departments", permissionKey: "departments.view", icon: <CorporateFare sx={{ fontSize: 18 }} /> },
+    { label: "Designations", path: "/designations", permissionKey: "designations.view", icon: <BadgeOutlined sx={{ fontSize: 18 }} /> },
     { label: "Permissions", path: "/permissions", permissionKey: "permissions.manage", icon: <Security sx={{ fontSize: 18 }} /> },
     { label: "User Permissions", path: "/user-permissions", permissionKey: "permissions.manage", icon: <AdminPanelSettings sx={{ fontSize: 18 }} /> },
     { label: "Users", path: "/users", permissionKey: "users.view", icon: <PersonOutline sx={{ fontSize: 18 }} /> },
@@ -139,11 +141,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const isItemActive = (item: { path: string; permissionKey?: string }) => {
     if (activeKey && item.permissionKey && activeKey === item.permissionKey) {
-      return currentPath === item.path || (item.path === "/users" && currentPath === "/add-user") || (item.path === "/invoices" && currentPath === "/invoice");
+      return (
+        currentPath === item.path ||
+        (item.path === "/users" && currentPath === "/add-user") ||
+        (item.path === "/invoices" && currentPath === "/invoice") ||
+        (item.path === "/designations" && currentPath === "/designation")
+      );
     }
     if (currentPath === item.path) return true;
     if (item.path === "/users" && currentPath === "/add-user") return true;
     if (item.path === "/invoices" && currentPath === "/invoice") return true;
+    if (item.path === "/designations" && currentPath === "/designation") return true;
     return false;
   };
 
