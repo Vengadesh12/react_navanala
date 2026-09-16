@@ -20,6 +20,8 @@ import {
   Badge,
   DoneAll,
   InfoOutlined,
+  ArrowBack,
+  ChevronRight,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
@@ -43,6 +45,7 @@ export const UserPermissionsPage: React.FC = () => {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [userSearch, setUserSearch] = useState<string>("");
   const [userFilterMode, setUserFilterMode] = useState<"all" | "direct-only" | "admins">("all");
+  const [mobileTab, setMobileTab] = useState<"directory" | "detail">("directory");
 
   // Selected user detail state
   const [userProfile, setUserProfile] = useState<UserPermissionProfile | null>(null);
@@ -58,7 +61,8 @@ export const UserPermissionsPage: React.FC = () => {
   // Add Permission Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [allSystemPermissions, setAllSystemPermissions] = useState<Permission[]>([]);
-  const [selectedPermKeyToAdd, setSelectedPermKeyToAdd] = useState<string>("");
+  const [selectedPermKeysToAdd, setSelectedPermKeysToAdd] = useState<string[]>([]);
+  const [assigningProgress, setAssigningProgress] = useState<{ current: number; total: number } | null>(null);
   const [addReason, setAddReason] = useState<string>("");
   const [modalSearch, setModalSearch] = useState<string>("");
   const [modalCategory, setModalCategory] = useState<string>("all");
@@ -284,26 +288,84 @@ export const UserPermissionsPage: React.FC = () => {
 
   // Open Add Modal and reset selection state
   const handleOpenAddModal = () => {
-    setSelectedPermKeyToAdd("");
+    setSelectedPermKeysToAdd([]);
     setAddReason("");
     setModalSearch("");
     setModalCategory("all");
+    setAssigningProgress(null);
     setIsAddModalOpen(true);
   };
 
-  // Assign Permission Action
-  const handleAssignPermission = async () => {
-    if (!selectedUserId || !selectedPermKeyToAdd) {
-      showErrorAlert("Selection Required", "Please select a permission to assign.");
+  // Toggle selection for a single permission
+  const togglePermissionSelection = (permKey: string) => {
+    setSelectedPermKeysToAdd((prev) =>
+      prev.includes(permKey) ? prev.filter((k) => k !== permKey) : [...prev, permKey]
+    );
+  };
+
+  // Toggle selection for all currently filtered permissions in modal
+  const handleToggleSelectAllModal = () => {
+    const allFilteredKeys = filteredModalPermissions.map((p) => p.permissionKey);
+    if (allFilteredKeys.length === 0) return;
+
+    const areAllFilteredSelected = allFilteredKeys.every((k) => selectedPermKeysToAdd.includes(k));
+
+    if (areAllFilteredSelected) {
+      // Unselect all currently filtered keys
+      setSelectedPermKeysToAdd((prev) => prev.filter((k) => !allFilteredKeys.includes(k)));
+    } else {
+      // Add any filtered keys not yet selected
+      setSelectedPermKeysToAdd((prev) => {
+        const set = new Set([...prev, ...allFilteredKeys]);
+        return Array.from(set);
+      });
+    }
+  };
+
+  // Clear all selections
+  const handleClearModalSelection = () => {
+    setSelectedPermKeysToAdd([]);
+  };
+
+  // Assign Permissions Action (Multi-select)
+  const handleAssignPermissions = async () => {
+    if (!selectedUserId || selectedPermKeysToAdd.length === 0) {
+      showErrorAlert("Selection Required", "Please select at least one permission to assign.");
       return;
     }
 
     try {
       setActionLoading(true);
-      await permissionService.assignUserPermission(selectedUserId, selectedPermKeyToAdd, addReason);
-      showSuccessAlert("Permission Assigned", `Granted '${selectedPermKeyToAdd}' directly to user.`);
+      const totalCount = selectedPermKeysToAdd.length;
+
+      const result = await permissionService.assignUserPermissions(
+        selectedUserId,
+        selectedPermKeysToAdd,
+        addReason,
+        (current, total) => {
+          setAssigningProgress({ current, total });
+        }
+      );
+
+      if (result.errors.length === 0) {
+        showSuccessAlert(
+          "Permissions Assigned",
+          `Successfully granted ${result.successCount} direct permission${result.successCount > 1 ? "s" : ""} to ${userProfile?.name || "user"}.`
+        );
+      } else if (result.successCount > 0) {
+        showSuccessAlert(
+          "Partially Assigned",
+          `Granted ${result.successCount} of ${totalCount} permissions. Failed: ${result.errors.join(", ")}`
+        );
+      } else {
+        showErrorAlert(
+          "Assignment Failed",
+          result.errors.join("; ") || "Could not assign permissions."
+        );
+      }
+
       setIsAddModalOpen(false);
-      setSelectedPermKeyToAdd("");
+      setSelectedPermKeysToAdd([]);
       setAddReason("");
       // Refresh details and overview counts
       await Promise.all([
@@ -312,9 +374,10 @@ export const UserPermissionsPage: React.FC = () => {
         selectedUserId === currentUser?.id ? refreshPermissions(true) : Promise.resolve(),
       ]);
     } catch (err: any) {
-      showErrorAlert("Assignment Failed", err.message || "Could not assign permission.");
+      showErrorAlert("Assignment Failed", err.message || "Could not assign permissions.");
     } finally {
       setActionLoading(false);
+      setAssigningProgress(null);
     }
   };
 
@@ -382,20 +445,28 @@ export const UserPermissionsPage: React.FC = () => {
       onSearchChange={setUserSearch}
       searchPlaceholder="Search users by name, role, department..."
     >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6 space-y-6 animate-fade-in">
+      <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-3 sm:py-4 space-y-3.5 sm:space-y-4 animate-fade-in">
         {/* Page Top Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
-         
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-2 sm:pb-1 border-b border-slate-200 dark:border-slate-800">
+          <div>
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+              User Permissions
+            </h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Manage user-level permissions, direct access overrides, and view role/department inheritance.
+            </p>
+          </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => {
                 if (selectedUserId) {
                   fetchUserDetails(selectedUserId);
                 }
                 fetchUsersOverview(selectedUserId || undefined);
               }}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 shadow-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               title="Refresh permissions data"
             >
               <Refresh sx={{ fontSize: 16 }} />
@@ -404,63 +475,99 @@ export const UserPermissionsPage: React.FC = () => {
 
             {selectedUserId && (
               <button
+                type="button"
                 onClick={handleOpenAddModal}
-                className="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-xs font-semibold shadow-md shadow-blue-600/20 transition-all cursor-pointer hover:scale-[1.02]"
+                className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white px-3.5 py-1.5 text-xs font-semibold shadow-md shadow-blue-600/20 transition-all cursor-pointer hover:scale-[1.02]"
               >
-                <Add sx={{ fontSize: 18 }} />
+                <Add sx={{ fontSize: 16 }} />
                 <span>Add Permission</span>
               </button>
             )}
           </div>
         </div>
 
-        {/* Top Summary Stats Cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Top Summary Stats Cards (2x2 on mobile, 4-col on desktop) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           <MetricCard
             label="Total Users"
             value={stats.totalUsers}
-            note="Active member accounts"
-            icon={<Person sx={{ fontSize: 24 }} />}
+            note="Active accounts"
+            icon={<Person sx={{ fontSize: 22 }} />}
             color="blue"
             onClick={() => setUserFilterMode("all")}
-            className={userFilterMode === "all" ? "ring-2 ring-blue-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+            className={`p-3.5! sm:p-5! ${userFilterMode === "all" ? "ring-2 ring-blue-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}`}
           />
 
           <MetricCard
-            label="Users with Overrides"
+            label="With Overrides"
             value={stats.usersWithDirect}
-            note="Custom user-level access"
-            icon={<Shield sx={{ fontSize: 24 }} />}
+            note="Custom access"
+            icon={<Shield sx={{ fontSize: 22 }} />}
             color="emerald"
             onClick={() => setUserFilterMode(userFilterMode === "direct-only" ? "all" : "direct-only")}
-            className={userFilterMode === "direct-only" ? "ring-2 ring-emerald-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+            className={`p-3.5! sm:p-5! ${userFilterMode === "direct-only" ? "ring-2 ring-emerald-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}`}
           />
 
           <MetricCard
             label="Direct Grants"
             value={stats.totalDirectGrants}
-            note="Active individual overrides"
-            icon={<VpnKey sx={{ fontSize: 24 }} />}
+            note="Active overrides"
+            icon={<VpnKey sx={{ fontSize: 22 }} />}
             color="indigo"
             onClick={() => setPermTab(permTab === "direct" ? "all" : "direct")}
-            className={permTab === "direct" ? "ring-2 ring-indigo-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}
+            className={`p-3.5! sm:p-5! ${permTab === "direct" ? "ring-2 ring-indigo-500/60 ring-offset-2 dark:ring-offset-slate-900" : ""}`}
           />
 
           <MetricCard
-            label="System Capabilities"
+            label="Capabilities"
             value={stats.totalSystemCapabilities}
-            note="Available workspace features"
-            icon={<DoneAll sx={{ fontSize: 24 }} />}
+            note="Workspace features"
+            icon={<DoneAll sx={{ fontSize: 22 }} />}
             color="purple"
+            className="p-3.5! sm:p-5!"
           />
         </div>
 
+        {/* Mobile Master-Detail Segmented View Switcher (Visible on < lg screens) */}
+        <div className="lg:hidden flex items-center p-1 rounded-xl bg-slate-200/80 dark:bg-slate-800 text-xs font-semibold">
+          <button
+            type="button"
+            onClick={() => setMobileTab("directory")}
+            className={`flex-1 py-2 px-2.5 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              mobileTab === "directory"
+                ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs font-bold"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+            }`}
+          >
+            <PersonOutline sx={{ fontSize: 16 }} />
+            <span>Users ({filteredUsers.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileTab("detail")}
+            className={`flex-1 py-2 px-2.5 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              mobileTab === "detail"
+                ? "bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs font-bold"
+                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200"
+            }`}
+          >
+            <Shield sx={{ fontSize: 16 }} />
+            <span className="truncate max-w-[130px] sm:max-w-none">
+              {userProfile?.name ? `${userProfile.name.split(" ")[0]}'s Permissions` : "Permissions"}
+            </span>
+          </button>
+        </div>
+
         {/* Master-Detail Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Users Directory Master List (4 Cols) */}
-          <div className="lg:col-span-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden flex flex-col h-[750px]">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-6 items-start">
+          {/* Left Column: Users Directory Master List (4 Cols on desktop, full width on mobile) */}
+          <div
+            className={`${
+              mobileTab === "directory" ? "flex" : "hidden"
+            } lg:flex lg:col-span-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden flex-col h-[calc(100vh-210px)] min-h-[460px] lg:h-[calc(100vh-19rem)] lg:min-h-[540px] lg:max-h-[750px]`}
+          >
             {/* Header & Filter */}
-            <div className="p-4 border-b border-slate-200 dark:border-slate-800 space-y-3 bg-slate-50/50 dark:bg-slate-950/50">
+            <div className="shrink-0 p-3.5 sm:p-4 border-b border-slate-200 dark:border-slate-800 space-y-2.5 sm:space-y-3 bg-slate-50/50 dark:bg-slate-950/50">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
                   <PersonOutline sx={{ fontSize: 18 }} className="text-blue-600" />
@@ -484,11 +591,11 @@ export const UserPermissionsPage: React.FC = () => {
               </div>
 
               {/* Filter Pills */}
-              <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto">
+              <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto scrollbar-none whitespace-nowrap">
                 <button
                   type="button"
                   onClick={() => setUserFilterMode("all")}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
                     userFilterMode === "all"
                       ? "bg-blue-600 text-white font-semibold shadow-xs"
                       : "bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700"
@@ -499,7 +606,7 @@ export const UserPermissionsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setUserFilterMode("direct-only")}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors flex items-center gap-1 ${
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors flex items-center gap-1 cursor-pointer ${
                     userFilterMode === "direct-only"
                       ? "bg-emerald-600 text-white font-semibold shadow-xs"
                       : "bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700"
@@ -511,7 +618,7 @@ export const UserPermissionsPage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setUserFilterMode("admins")}
-                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-medium transition-colors cursor-pointer ${
                     userFilterMode === "admins"
                       ? "bg-purple-600 text-white font-semibold shadow-xs"
                       : "bg-slate-200/70 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-300 dark:hover:bg-slate-700"
@@ -523,7 +630,7 @@ export const UserPermissionsPage: React.FC = () => {
             </div>
 
             {/* User List */}
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60 p-1">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain divide-y divide-slate-100 dark:divide-slate-800/60 p-1">
               {loadingUsers ? (
                 <div className="p-8 text-center">
                   <LoadingSpinner message="Loading users..." />
@@ -541,8 +648,11 @@ export const UserPermissionsPage: React.FC = () => {
                     <button
                       key={u.userId}
                       type="button"
-                      onClick={() => setSelectedUserId(u.userId)}
-                      className={`w-full text-left p-3 rounded-xl transition-all cursor-pointer flex items-center gap-3 ${
+                      onClick={() => {
+                        setSelectedUserId(u.userId);
+                        setMobileTab("detail");
+                      }}
+                      className={`w-full text-left p-2.5 sm:p-3 rounded-xl transition-all cursor-pointer flex items-center gap-2.5 sm:gap-3 ${
                         isSelected
                           ? "bg-blue-50/80 dark:bg-blue-950/40 border-l-4 border-blue-600 shadow-xs"
                           : "hover:bg-slate-50 dark:hover:bg-slate-800/60"
@@ -550,7 +660,7 @@ export const UserPermissionsPage: React.FC = () => {
                     >
                       {/* Avatar */}
                       <div
-                        className={`h-10 w-10 shrink-0 rounded-xl flex items-center justify-center font-bold text-sm shadow-xs ${
+                        className={`h-9 w-9 sm:h-10 sm:w-10 shrink-0 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm shadow-xs ${
                           isSelected
                             ? "bg-blue-600 text-white"
                             : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700"
@@ -566,7 +676,7 @@ export const UserPermissionsPage: React.FC = () => {
                             {u.name}
                           </p>
                           {u.directPermissionsCount > 0 && (
-                            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-2 py-0.2 text-[10px] font-bold">
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-1.5 py-0.2 text-[9px] sm:text-[10px] font-bold shrink-0">
                               +{u.directPermissionsCount} Direct
                             </span>
                           )}
@@ -587,6 +697,11 @@ export const UserPermissionsPage: React.FC = () => {
                           )}
                         </div>
                       </div>
+
+                      {/* Mobile Arrow Chevron */}
+                      <div className="lg:hidden text-slate-400 shrink-0 pl-1">
+                        <ChevronRight sx={{ fontSize: 18 }} />
+                      </div>
                     </button>
                   );
                 })
@@ -594,37 +709,63 @@ export const UserPermissionsPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Column: Selected User's Permissions Detail (8 Cols) */}
-          <div className="lg:col-span-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden flex flex-col min-h-[750px]">
+          {/* Right Column: Selected User's Permissions Detail (8 Cols on desktop, full width on mobile) */}
+          <div
+            className={`${
+              mobileTab === "detail" ? "flex" : "hidden"
+            } lg:flex lg:col-span-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden flex-col h-[calc(100vh-210px)] min-h-[460px] lg:h-[calc(100vh-19rem)] lg:min-h-[540px] lg:max-h-[750px]`}
+          >
             {loadingDetails ? (
-              <div className="p-16 text-center">
+              <div className="p-12 sm:p-16 text-center">
                 <LoadingSpinner message="Loading user permission matrix..." />
               </div>
             ) : !userProfile ? (
-              <div className="p-16 text-center text-slate-400">
-                <Person sx={{ fontSize: 48 }} className="opacity-40 mb-2" />
-                <p>Select a user from the directory to inspect and manage their permissions.</p>
+              <div className="p-12 sm:p-16 text-center text-slate-400 space-y-3">
+                <Person sx={{ fontSize: 48 }} className="opacity-40" />
+                <p className="text-xs sm:text-sm">Select a user from the directory to inspect and manage their permissions.</p>
+                <button
+                  type="button"
+                  onClick={() => setMobileTab("directory")}
+                  className="lg:hidden inline-flex items-center gap-1.5 rounded-xl bg-blue-600 text-white px-4 py-2 text-xs font-semibold cursor-pointer shadow-sm"
+                >
+                  <PersonOutline sx={{ fontSize: 16 }} />
+                  <span>Browse User Directory</span>
+                </button>
               </div>
             ) : (
               <>
                 {/* User Detail Banner */}
-                <div className="p-5 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 text-white">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5">
-                      <div className="h-13 w-13 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-xl font-bold text-white shadow-lg ring-2 ring-white/20">
+                <div className="shrink-0 p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 text-white">
+                  {/* Mobile Back Button */}
+                  <div className="lg:hidden mb-2.5">
+                    <button
+                      type="button"
+                      onClick={() => setMobileTab("directory")}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 active:bg-white/30 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <ArrowBack sx={{ fontSize: 14 }} />
+                      <span>Back to User Directory</span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 sm:h-13 sm:w-13 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-lg sm:text-xl font-bold text-white shadow-lg ring-2 ring-white/20 shrink-0">
                         {userProfile.name.charAt(0).toUpperCase()}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h2 className="text-lg font-bold tracking-tight text-white">{userProfile.name}</h2>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-base sm:text-lg font-bold tracking-tight text-white truncate max-w-[200px] sm:max-w-none">
+                            {userProfile.name}
+                          </h2>
                           {Boolean(userProfile.isSuperAdmin || userProfile.roleName?.toLowerCase().includes("super admin")) && (
-                            <span className="rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 text-[10px] font-bold">
+                            <span className="rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 text-[10px] font-bold shrink-0">
                               👑 Super Admin
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-300">{userProfile.email}</p>
-                        <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                        <p className="text-xs text-slate-300 truncate">{userProfile.email}</p>
+                        <div className="mt-1 flex items-center gap-1.5 flex-wrap">
                           <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold border ${selectedRoleMeta.color}`}>
                             {userProfile.roleName}
                           </span>
@@ -643,8 +784,29 @@ export const UserPermissionsPage: React.FC = () => {
                     </div>
 
                     {/* Quick Stats & Add Button */}
-                    <div className="flex sm:flex-col items-end justify-between sm:justify-center gap-2">
-                      <div className="flex items-center gap-2.5 text-right">
+                    <div className="space-y-2.5 sm:space-y-2">
+                      {/* Mobile 4-col Stat Grid (< sm) */}
+                      <div className="grid grid-cols-4 gap-1 sm:hidden bg-white/10 dark:bg-slate-950/60 p-2 rounded-xl text-center backdrop-blur-xs">
+                        <div>
+                          <p className="text-[10px] text-slate-300 font-medium">Direct</p>
+                          <p className="text-sm font-bold text-emerald-400">{userDirectCount}</p>
+                        </div>
+                        <div className="border-l border-white/15">
+                          <p className="text-[10px] text-slate-300 font-medium">Role</p>
+                          <p className="text-sm font-bold text-purple-300">{userRoleCount}</p>
+                        </div>
+                        <div className="border-l border-white/15">
+                          <p className="text-[10px] text-slate-300 font-medium">Dept</p>
+                          <p className="text-sm font-bold text-sky-300">{userDeptCount}</p>
+                        </div>
+                        <div className="border-l border-white/15">
+                          <p className="text-[10px] text-slate-300 font-medium">Total</p>
+                          <p className="text-sm font-bold text-white">{userTotalCount}</p>
+                        </div>
+                      </div>
+
+                      {/* Desktop Stat Row (sm and up) */}
+                      <div className="hidden sm:flex items-center gap-2.5 text-right justify-end">
                         <div>
                           <p className="text-[10px] text-slate-300">Direct</p>
                           <p className="text-base font-bold text-emerald-400">
@@ -675,8 +837,9 @@ export const UserPermissionsPage: React.FC = () => {
                       </div>
 
                       <button
+                        type="button"
                         onClick={handleOpenAddModal}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white px-3.5 py-1.5 text-xs font-semibold shadow-md transition-all cursor-pointer"
+                        className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-white px-3.5 py-1.5 text-xs font-semibold shadow-md transition-all cursor-pointer"
                       >
                         <Add sx={{ fontSize: 16 }} />
                         <span>Add Direct Permission</span>
@@ -686,13 +849,14 @@ export const UserPermissionsPage: React.FC = () => {
                 </div>
 
                 {/* Sub-Header / Filters Bar */}
-                <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 space-y-3">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    {/* View Filter Tabs */}
-                    <div className="flex items-center rounded-xl bg-slate-200/70 dark:bg-slate-800 p-1 text-xs font-medium text-slate-600 dark:text-slate-400">
+                <div className="shrink-0 p-3 sm:p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 space-y-2.5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
+                    {/* View Filter Tabs with horizontal scroll */}
+                    <div className="flex items-center rounded-xl bg-slate-200/70 dark:bg-slate-800 p-1 text-xs font-medium text-slate-600 dark:text-slate-400 overflow-x-auto scrollbar-none whitespace-nowrap max-w-full">
                       <button
+                        type="button"
                         onClick={() => setPermTab("all")}
-                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all ${
+                        className={`rounded-lg px-2.5 sm:px-3 py-1 text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                           permTab === "all"
                             ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs"
                             : "hover:text-slate-900 dark:hover:text-white"
@@ -701,8 +865,9 @@ export const UserPermissionsPage: React.FC = () => {
                         All ({userProfile.permissions.length})
                       </button>
                       <button
+                        type="button"
                         onClick={() => setPermTab("direct")}
-                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all flex items-center gap-1 ${
+                        className={`rounded-lg px-2.5 sm:px-3 py-1 text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer ${
                           permTab === "direct"
                             ? "bg-emerald-600 text-white shadow-xs"
                             : "hover:text-slate-900 dark:hover:text-white"
@@ -714,8 +879,9 @@ export const UserPermissionsPage: React.FC = () => {
                         </span>
                       </button>
                       <button
+                        type="button"
                         onClick={() => setPermTab("role")}
-                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all flex items-center gap-1 ${
+                        className={`rounded-lg px-2.5 sm:px-3 py-1 text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer ${
                           permTab === "role"
                             ? "bg-purple-600 text-white shadow-xs"
                             : "hover:text-slate-900 dark:hover:text-white"
@@ -727,14 +893,15 @@ export const UserPermissionsPage: React.FC = () => {
                         </span>
                       </button>
                       <button
+                        type="button"
                         onClick={() => setPermTab("department")}
-                        className={`rounded-lg px-3 py-1 text-xs font-semibold transition-all flex items-center gap-1 ${
+                        className={`rounded-lg px-2.5 sm:px-3 py-1 text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1 cursor-pointer ${
                           permTab === "department"
                             ? "bg-sky-600 text-white shadow-xs"
                             : "hover:text-slate-900 dark:hover:text-white"
                         }`}
                       >
-                        <span>Department</span>
+                        <span>Dept</span>
                         <span className="rounded-full bg-sky-500/30 px-1.5 text-[10px]">
                           {userDeptCount}
                         </span>
@@ -743,13 +910,13 @@ export const UserPermissionsPage: React.FC = () => {
 
                     {/* Category Filter Dropdown */}
                     <div className="flex items-center gap-2">
-                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                      <label className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap hidden sm:inline">
                         Category:
                       </label>
                       <select
                         value={categoryFilter}
                         onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                        className="w-full sm:w-auto rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
                       >
                         <option value="all">All Categories</option>
                         {availableCategories.map((c) => (
@@ -774,157 +941,289 @@ export const UserPermissionsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Permissions List Table */}
-                <div className="flex-1 overflow-y-auto">
+                {/* Permissions List Display (Responsive Card View on Mobile, Table on Desktop) */}
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
                   {filteredPermissions.length === 0 ? (
-                    <div className="p-12 text-center text-xs text-slate-400 dark:text-slate-500">
+                    <div className="p-10 text-center text-xs text-slate-400 dark:text-slate-500">
                       No permissions match the selected filter.
                     </div>
                   ) : (
-                    <table className="w-full text-left text-xs border-collapse">
-                      <thead className="sticky top-0 z-10 bg-slate-100/90 dark:bg-slate-800/90 backdrop-blur-xs text-slate-600 dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
-                        <tr>
-                          <th className="px-4 py-2.5 font-bold">Permission Name</th>
-                          <th className="px-4 py-2.5 font-bold hidden sm:table-cell">Permission Key</th>
-                          <th className="px-4 py-2.5 font-bold">Source & Level</th>
-                          <th className="px-4 py-2.5 font-bold">Status</th>
-                          <th className="px-4 py-2.5 font-bold text-right">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <>
+                      {/* Mobile Card View (< sm) */}
+                      <div className="sm:hidden p-2.5 space-y-2">
                         {filteredPermissions.map((p) => {
                           const isDirect = p.isDirect;
                           const isAllowed = p.isAllowed;
 
                           return (
-                            <tr
+                            <div
                               key={p.permissionKey}
-                              className={`transition-colors ${
+                              className={`p-3 rounded-xl border transition-all ${
                                 isDirect
-                                  ? "bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/40"
-                                  : "hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
+                                  ? "bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60 shadow-2xs"
+                                  : "bg-white dark:bg-slate-900/90 border-slate-200 dark:border-slate-800 shadow-2xs"
                               }`}
                             >
-                              {/* Name & Desc */}
-                              <td className="px-4 py-3 min-w-[180px]">
-                                <div className="flex items-center gap-2">
-                                  {isDirect ? (
-                                    <span className="text-emerald-600 dark:text-emerald-400 shrink-0" title="Direct Grant">
-                                      <Shield sx={{ fontSize: 16 }} />
-                                    </span>
-                                  ) : (
-                                    <span className="text-slate-400 shrink-0" title="Inherited Access">
-                                      <LockOutlined sx={{ fontSize: 16 }} />
-                                    </span>
-                                  )}
-                                  <div>
-                                    <p className="font-semibold text-slate-900 dark:text-white leading-tight">
+                              {/* Top: Name & Status */}
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-start gap-2 min-w-0">
+                                  <div className="mt-0.5 shrink-0">
+                                    {isDirect ? (
+                                      <Shield sx={{ fontSize: 16 }} className="text-emerald-600 dark:text-emerald-400" />
+                                    ) : (
+                                      <LockOutlined sx={{ fontSize: 16 }} className="text-slate-400" />
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">
                                       {p.name || p.permissionKey}
                                     </p>
-                                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
-                                      {p.description}
-                                    </p>
+                                    {p.description && (
+                                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                                        {p.description}
+                                      </p>
+                                    )}
                                   </div>
                                 </div>
-                              </td>
 
-                              {/* Key & Category */}
-                              <td className="px-4 py-3 hidden sm:table-cell">
-                                <span className="font-mono text-[11px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-900">
+                                <div className="shrink-0">
+                                  {isAllowed ? (
+                                    <span className="inline-flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 font-bold text-[10px] bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-full">
+                                      <CheckCircle sx={{ fontSize: 11 }} />
+                                      Allowed
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center text-slate-400 text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                                      Denied
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Middle: Permission Key & Category */}
+                              <div className="mt-2 flex items-center gap-1.5 flex-wrap">
+                                <span className="font-mono text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-900">
                                   {p.permissionKey}
                                 </span>
-                              </td>
+                                {p.category && (
+                                  <span className="text-[9px] uppercase font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                                    {p.category}
+                                  </span>
+                                )}
+                              </div>
 
-                              {/* Source */}
-                              <td className="px-4 py-3">
-                                {isDirect ? (
-                                  <div className="flex flex-col">
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 text-[10px] font-bold border border-emerald-300 dark:border-emerald-800 w-fit">
-                                      <CheckCircle sx={{ fontSize: 12 }} />
-                                      Direct Grant
-                                    </span>
-                                    {p.grantedAt && (
-                                      <span className="text-[9px] text-slate-400 mt-0.5">
-                                        Assigned: {new Date(p.grantedAt).toLocaleDateString()}
+                              {/* Bottom: Source & Action */}
+                              <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+                                <div className="min-w-0 flex-1">
+                                  {isDirect ? (
+                                    <div className="flex flex-col">
+                                      <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
+                                        <CheckCircle sx={{ fontSize: 11 }} />
+                                        Direct Grant
                                       </span>
-                                    )}
-                                  </div>
-                                ) : p.source === "SuperAdmin" ? (
-                                  <div className="flex flex-wrap gap-1 items-center">
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 text-[10px] font-bold border border-amber-300 dark:border-amber-800 w-fit">
+                                      {p.grantedAt && (
+                                        <span className="text-[9px] text-slate-400">
+                                          Assigned: {new Date(p.grantedAt).toLocaleDateString()}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : p.source === "SuperAdmin" ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 text-[10px] font-bold border border-amber-300 dark:border-amber-800">
                                       👑 Super Admin
                                     </span>
-                                    {p.isFromDepartment && (
-                                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2.5 py-0.5 text-[10px] font-medium border border-sky-200 dark:border-sky-800 w-fit">
-                                        Dept ({p.departmentName || userProfile.departmentName})
+                                  ) : p.source === "RoleAndDepartment" ? (
+                                    <div className="flex flex-wrap gap-1">
+                                      <span className="rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 px-2 py-0.5 text-[9px] font-medium border border-purple-200 dark:border-purple-800">
+                                        Role
                                       </span>
-                                    )}
-                                  </div>
-                                ) : p.source === "RoleAndDepartment" ? (
-                                  <div className="flex flex-wrap gap-1 items-center">
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 px-2 py-0.5 text-[10px] font-medium border border-purple-200 dark:border-purple-800 w-fit">
-                                      Role ({p.roleName || userProfile.roleName})
+                                      <span className="rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2 py-0.5 text-[9px] font-medium border border-sky-200 dark:border-sky-800">
+                                        Dept
+                                      </span>
+                                    </div>
+                                  ) : p.isFromDepartment || p.source === "Department" ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2 py-0.5 text-[10px] font-semibold border border-sky-200 dark:border-sky-800 truncate max-w-[170px]">
+                                      🏢 {p.departmentName || userProfile.departmentName || "Dept"}
                                     </span>
-                                    <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2 py-0.5 text-[10px] font-medium border border-sky-200 dark:border-sky-800 w-fit">
-                                      Dept ({p.departmentName || userProfile.departmentName})
+                                  ) : p.isFromRole || p.source === "Role" || p.source === "ExplicitChildAllow" || p.source === "InheritedAllow" ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 px-2 py-0.5 text-[10px] font-medium border border-purple-200 dark:border-purple-800 truncate max-w-[170px]">
+                                      ♙ {p.roleName || userProfile.roleName || "Role"}
                                     </span>
-                                  </div>
-                                ) : p.isFromDepartment || p.source === "Department" ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2.5 py-0.5 text-[10px] font-semibold border border-sky-200 dark:border-sky-800 w-fit">
-                                    🏢 Dept ({p.departmentName || userProfile.departmentName || "Department"})
-                                  </span>
-                                ) : p.isFromRole || p.source === "Role" || p.source === "ExplicitChildAllow" || p.source === "InheritedAllow" ? (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 px-2.5 py-0.5 text-[10px] font-medium border border-purple-200 dark:border-purple-800 w-fit">
-                                    ♙ Role ({p.roleName || userProfile.roleName || "Role"})
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 text-[10px] border border-slate-200 dark:border-slate-700 w-fit">
-                                    Denied
-                                  </span>
-                                )}
-                              </td>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400">Denied</span>
+                                  )}
+                                </div>
 
-                              {/* Status */}
-                              <td className="px-4 py-3">
-                                {isAllowed ? (
-                                  <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">
-                                    <CheckCircle sx={{ fontSize: 14 }} />
-                                    Allowed
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-400 text-[11px]">
-                                    Denied
-                                  </span>
-                                )}
-                              </td>
-
-                              {/* Actions */}
-                              <td className="px-4 py-3 text-right">
-                                {isDirect ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRevokePermission(p)}
-                                    disabled={actionLoading}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-colors cursor-pointer"
-                                    title="Remove direct permission assignment for this user"
-                                  >
-                                    <DeleteOutline sx={{ fontSize: 14 }} />
-                                    <span>Remove</span>
-                                  </button>
-                                ) : (
-                                  <span
-                                    className="text-[11px] text-slate-400 dark:text-slate-500 italic"
-                                    title="Inherited access"
-                                  >
-                                    {p.isFromDepartment && !p.isFromRole ? "Dept Default" : "Role Default"}
-                                  </span>
-                                )}
-                              </td>
-                            </tr>
+                                <div>
+                                  {isDirect ? (
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRevokePermission(p)}
+                                      disabled={actionLoading}
+                                      className="inline-flex items-center gap-1 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/50 px-2 py-1 text-[10px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-colors cursor-pointer"
+                                    >
+                                      <DeleteOutline sx={{ fontSize: 13 }} />
+                                      <span>Remove</span>
+                                    </button>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400 dark:text-slate-500 italic">
+                                      {p.isFromDepartment && !p.isFromRole ? "Dept Default" : "Role Default"}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           );
                         })}
-                      </tbody>
-                    </table>
+                      </div>
+
+                      {/* Desktop Table View (sm and up) */}
+                      <div className="hidden sm:block overflow-x-auto">
+                        <table className="w-full text-left text-xs border-collapse">
+                          <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700 shadow-xs">
+                            <tr>
+                              <th className="px-4 py-2.5 font-bold">Permission Name</th>
+                              <th className="px-4 py-2.5 font-bold hidden md:table-cell">Permission Key</th>
+                              <th className="px-4 py-2.5 font-bold">Source & Level</th>
+                              <th className="px-4 py-2.5 font-bold">Status</th>
+                              <th className="px-4 py-2.5 font-bold text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                            {filteredPermissions.map((p) => {
+                              const isDirect = p.isDirect;
+                              const isAllowed = p.isAllowed;
+
+                              return (
+                                <tr
+                                  key={p.permissionKey}
+                                  className={`transition-colors ${
+                                    isDirect
+                                      ? "bg-emerald-50/40 dark:bg-emerald-950/20 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/40"
+                                      : "hover:bg-slate-50/80 dark:hover:bg-slate-800/50"
+                                  }`}
+                                >
+                                  {/* Name & Desc */}
+                                  <td className="px-4 py-3 min-w-[180px]">
+                                    <div className="flex items-center gap-2">
+                                      {isDirect ? (
+                                        <span className="text-emerald-600 dark:text-emerald-400 shrink-0" title="Direct Grant">
+                                          <Shield sx={{ fontSize: 16 }} />
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-400 shrink-0" title="Inherited Access">
+                                          <LockOutlined sx={{ fontSize: 16 }} />
+                                        </span>
+                                      )}
+                                      <div>
+                                        <p className="font-semibold text-slate-900 dark:text-white leading-tight">
+                                          {p.name || p.permissionKey}
+                                        </p>
+                                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                                          {p.description}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </td>
+
+                                  {/* Key & Category */}
+                                  <td className="px-4 py-3 hidden md:table-cell">
+                                    <span className="font-mono text-[11px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-900">
+                                      {p.permissionKey}
+                                    </span>
+                                  </td>
+
+                                  {/* Source */}
+                                  <td className="px-4 py-3">
+                                    {isDirect ? (
+                                      <div className="flex flex-col">
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 text-[10px] font-bold border border-emerald-300 dark:border-emerald-800 w-fit">
+                                          <CheckCircle sx={{ fontSize: 12 }} />
+                                          Direct Grant
+                                        </span>
+                                        {p.grantedAt && (
+                                          <span className="text-[9px] text-slate-400 mt-0.5">
+                                            Assigned: {new Date(p.grantedAt).toLocaleDateString()}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : p.source === "SuperAdmin" ? (
+                                      <div className="flex flex-wrap gap-1 items-center">
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-0.5 text-[10px] font-bold border border-amber-300 dark:border-amber-800 w-fit">
+                                          👑 Super Admin
+                                        </span>
+                                        {p.isFromDepartment && (
+                                          <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2.5 py-0.5 text-[10px] font-medium border border-sky-200 dark:border-sky-800 w-fit">
+                                            Dept ({p.departmentName || userProfile.departmentName})
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : p.source === "RoleAndDepartment" ? (
+                                      <div className="flex flex-wrap gap-1 items-center">
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 px-2 py-0.5 text-[10px] font-medium border border-purple-200 dark:border-purple-800 w-fit">
+                                          Role ({p.roleName || userProfile.roleName})
+                                        </span>
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2 py-0.5 text-[10px] font-medium border border-sky-200 dark:border-sky-800 w-fit">
+                                          Dept ({p.departmentName || userProfile.departmentName})
+                                        </span>
+                                      </div>
+                                    ) : p.isFromDepartment || p.source === "Department" ? (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2.5 py-0.5 text-[10px] font-semibold border border-sky-200 dark:border-sky-800 w-fit">
+                                        🏢 Dept ({p.departmentName || userProfile.departmentName || "Department"})
+                                      </span>
+                                    ) : p.isFromRole || p.source === "Role" || p.source === "ExplicitChildAllow" || p.source === "InheritedAllow" ? (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-purple-100 dark:bg-purple-950/60 text-purple-800 dark:text-purple-300 px-2.5 py-0.5 text-[10px] font-medium border border-purple-200 dark:border-purple-800 w-fit">
+                                        ♙ Role ({p.roleName || userProfile.roleName || "Role"})
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-2 py-0.5 text-[10px] border border-slate-200 dark:border-slate-700 w-fit">
+                                        Denied
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  {/* Status */}
+                                  <td className="px-4 py-3">
+                                    {isAllowed ? (
+                                      <span className="inline-flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-semibold text-[11px]">
+                                        <CheckCircle sx={{ fontSize: 14 }} />
+                                        Allowed
+                                      </span>
+                                    ) : (
+                                      <span className="text-slate-400 text-[11px]">
+                                        Denied
+                                      </span>
+                                    )}
+                                  </td>
+
+                                  {/* Actions */}
+                                  <td className="px-4 py-3 text-right">
+                                    {isDirect ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRevokePermission(p)}
+                                        disabled={actionLoading}
+                                        className="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/50 px-2.5 py-1 text-[11px] font-bold text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/60 transition-colors cursor-pointer"
+                                        title="Remove direct permission assignment for this user"
+                                      >
+                                        <DeleteOutline sx={{ fontSize: 14 }} />
+                                        <span>Remove</span>
+                                      </button>
+                                    ) : (
+                                      <span
+                                        className="text-[11px] text-slate-400 dark:text-slate-500 italic"
+                                        title="Inherited access"
+                                      >
+                                        {p.isFromDepartment && !p.isFromRole ? "Dept Default" : "Role Default"}
+                                      </span>
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
                   )}
                 </div>
               </>
@@ -935,19 +1234,19 @@ export const UserPermissionsPage: React.FC = () => {
 
       {/* Add Direct Permission Modal */}
       {isAddModalOpen && userProfile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in">
-          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh]">
             {/* Modal Header */}
-            <div className="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
+            <div className="p-3.5 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/50">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md">
+                <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md shrink-0">
                   <Add sx={{ fontSize: 20 }} />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white">
                     Add Direct Permission
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 truncate max-w-[220px] sm:max-w-none">
                     Grant individual direct permission to <strong className="text-slate-800 dark:text-slate-200">{userProfile.name}</strong>
                   </p>
                 </div>
@@ -955,16 +1254,16 @@ export const UserPermissionsPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsAddModalOpen(false)}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <Close sx={{ fontSize: 20 }} />
               </button>
             </div>
 
             {/* Modal Body */}
-            <div className="p-5 overflow-y-auto space-y-4 flex-1">
+            <div className="p-3.5 sm:p-5 overflow-y-auto space-y-3 sm:space-y-4 flex-1">
               {/* Search & Filter Bar inside modal */}
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 text-slate-400 pointer-events-none" sx={{ fontSize: 16 }} />
@@ -973,7 +1272,7 @@ export const UserPermissionsPage: React.FC = () => {
                       value={modalSearch}
                       autoFocus
                       onChange={(e) => setModalSearch(e.target.value)}
-                      placeholder="Search unassigned permissions by name, key, or category..."
+                      placeholder="Search unassigned permissions..."
                       className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 pl-9 pr-8 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                     />
                     {modalSearch && (
@@ -990,7 +1289,7 @@ export const UserPermissionsPage: React.FC = () => {
                     <select
                       value={modalCategory}
                       onChange={(e) => setModalCategory(e.target.value)}
-                      className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 shrink-0"
+                      className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 shrink-0 cursor-pointer"
                     >
                       <option value="all">All Categories</option>
                       {availableModalCategories.map((c) => (
@@ -1002,19 +1301,49 @@ export const UserPermissionsPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Counter indicator */}
-                <div className="flex items-center justify-between text-xs px-0.5">
-                  <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                    Permissions user does not have ({missingPermissionsForModal.length} unassigned)
-                  </span>
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                    Showing {filteredModalPermissions.length} of {missingPermissionsForModal.length}
-                  </span>
+                {/* Counter indicator & Quick action buttons */}
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs px-0.5">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                      Unassigned ({missingPermissionsForModal.length})
+                    </span>
+                    {selectedPermKeysToAdd.length > 0 && (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/60 dark:text-blue-200">
+                        {selectedPermKeysToAdd.length} selected
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-2 text-[11px]">
+                    {filteredModalPermissions.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handleToggleSelectAllModal}
+                        className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold cursor-pointer transition-colors"
+                      >
+                        {filteredModalPermissions.every((p) => selectedPermKeysToAdd.includes(p.permissionKey))
+                          ? "Deselect filtered"
+                          : `Select filtered (${filteredModalPermissions.length})`}
+                      </button>
+                    )}
+                    {selectedPermKeysToAdd.length > 0 && (
+                      <>
+                        <span className="text-slate-300 dark:text-slate-700">|</span>
+                        <button
+                          type="button"
+                          onClick={handleClearModalSelection}
+                          className="text-slate-500 hover:text-red-500 dark:text-slate-400 dark:hover:text-red-400 font-medium cursor-pointer transition-colors"
+                        >
+                          Clear all
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
               {/* Permission Table inside Modal */}
-              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden max-h-72 overflow-y-auto">
+              <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden max-h-64 sm:max-h-72 overflow-y-auto">
                 {missingPermissionsForModal.length === 0 ? (
                   <div className="p-8 text-center space-y-2">
                     <div className="h-10 w-10 mx-auto rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
@@ -1024,7 +1353,7 @@ export const UserPermissionsPage: React.FC = () => {
                       All Permissions Granted
                     </p>
                     <p className="text-[11px] text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                      This user already has all system permissions active via their role, department, or direct grants. There are no unassigned permissions to add.
+                      This user already has all system permissions active via their role, department, or direct grants.
                     </p>
                   </div>
                 ) : filteredModalPermissions.length === 0 ? (
@@ -1040,53 +1369,99 @@ export const UserPermissionsPage: React.FC = () => {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="sticky top-0 z-10 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
                       <tr>
-                        <th className="px-4 py-2.5 font-bold">Permission Name</th>
+                        <th className="w-10 px-3 py-2.5 text-center">
+                          <input
+                            type="checkbox"
+                            checked={
+                              filteredModalPermissions.length > 0 &&
+                              filteredModalPermissions.every((p) =>
+                                selectedPermKeysToAdd.includes(p.permissionKey)
+                              )
+                            }
+                            ref={(input) => {
+                              if (input) {
+                                const someSelected =
+                                  filteredModalPermissions.some((p) =>
+                                    selectedPermKeysToAdd.includes(p.permissionKey)
+                                  ) &&
+                                  !filteredModalPermissions.every((p) =>
+                                    selectedPermKeysToAdd.includes(p.permissionKey)
+                                  );
+                                input.indeterminate = someSelected;
+                              }
+                            }}
+                            onChange={handleToggleSelectAllModal}
+                            className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                            title="Select / Deselect all filtered"
+                          />
+                        </th>
+                        <th className="px-3 py-2.5 font-bold">Permission Name</th>
                         <th className="px-3 py-2.5 font-bold hidden sm:table-cell">Permission Key</th>
-                        <th className="px-3 py-2.5 font-bold text-center">Select</th>
+                        <th className="px-3 py-2.5 font-bold text-center hidden md:table-cell">Category</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                       {filteredModalPermissions.map((perm) => {
-                        const isSelected = selectedPermKeyToAdd === perm.permissionKey;
+                        const isSelected = selectedPermKeysToAdd.includes(perm.permissionKey);
 
                         return (
                           <tr
                             key={perm.permissionKey}
-                            onClick={() => setSelectedPermKeyToAdd(perm.permissionKey)}
-                            className={`transition-colors cursor-pointer ${
+                            onClick={() => togglePermissionSelection(perm.permissionKey)}
+                            className={`transition-colors cursor-pointer select-none ${
                               isSelected
-                                ? "bg-blue-50 dark:bg-blue-950/60"
+                                ? "bg-blue-50/90 dark:bg-blue-950/60 font-medium"
                                 : "hover:bg-slate-50 dark:hover:bg-slate-800/60"
                             }`}
                           >
+                            {/* Checkbox */}
+                            <td
+                              className="w-10 px-3 py-2.5 text-center"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => togglePermissionSelection(perm.permissionKey)}
+                                className="h-4 w-4 rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                              />
+                            </td>
+
                             {/* Permission Name & Description */}
-                            <td className="px-4 py-3">
+                            <td className="px-3 py-2.5">
                               <p className="font-semibold text-slate-900 dark:text-white leading-tight">
                                 {perm.name || perm.permissionKey}
                               </p>
                               {perm.description && (
-                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1 font-normal">
                                   {perm.description}
                                 </p>
                               )}
+                              {/* Mobile Sub-tags (Key & Category) */}
+                              <div className="sm:hidden flex items-center gap-1.5 mt-1 flex-wrap">
+                                <span className="font-mono text-[9px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-1.5 py-0.2 rounded">
+                                  {perm.permissionKey}
+                                </span>
+                                {perm.category && (
+                                  <span className="text-[9px] uppercase font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded">
+                                    {perm.category}
+                                  </span>
+                                )}
+                              </div>
                             </td>
 
                             {/* Permission Key */}
-                            <td className="px-3 py-3 hidden sm:table-cell whitespace-nowrap">
+                            <td className="px-3 py-2.5 hidden sm:table-cell whitespace-nowrap">
                               <span className="font-mono text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-900">
                                 {perm.permissionKey}
                               </span>
                             </td>
 
-                            {/* Select Radio */}
-                            <td className="px-3 py-3 text-center">
-                              <input
-                                type="radio"
-                                name="selectedPermToAdd"
-                                checked={isSelected}
-                                onChange={() => setSelectedPermKeyToAdd(perm.permissionKey)}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer"
-                              />
+                            {/* Category Badge */}
+                            <td className="px-3 py-2.5 text-center hidden md:table-cell whitespace-nowrap">
+                              <span className="text-[10px] uppercase font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
+                                {perm.category || "General"}
+                              </span>
                             </td>
                           </tr>
                         );
@@ -1096,25 +1471,42 @@ export const UserPermissionsPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Selected Permission indicator */}
-              {selectedPermKeyToAdd && (
-                <div className="flex items-center justify-between p-2.5 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl text-xs">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="text-blue-600 dark:text-blue-400" sx={{ fontSize: 16 }} />
-                    <span className="text-slate-700 dark:text-slate-300 font-medium">
-                      Selected:{" "}
-                      <strong className="text-blue-700 dark:text-blue-300 font-mono">
-                        {selectedPermKeyToAdd}
-                      </strong>
-                    </span>
+              {/* Selected Permissions chips summary */}
+              {selectedPermKeysToAdd.length > 0 && (
+                <div className="p-3 bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900 rounded-xl text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle className="text-blue-600 dark:text-blue-400" sx={{ fontSize: 16 }} />
+                      <span className="text-slate-700 dark:text-slate-300 font-semibold text-xs">
+                        Selected ({selectedPermKeysToAdd.length}):
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearModalSelection}
+                      className="text-[11px] text-slate-400 hover:text-red-500 dark:hover:text-red-400 font-medium cursor-pointer transition-colors"
+                    >
+                      Clear All
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPermKeyToAdd("")}
-                    className="text-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                  >
-                    Clear
-                  </button>
+                  <div className="flex flex-wrap gap-1.5 max-h-20 sm:max-h-24 overflow-y-auto pr-1">
+                    {selectedPermKeysToAdd.map((key) => (
+                      <span
+                        key={key}
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-mono font-medium bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-300 border border-blue-300 dark:border-blue-800 shadow-2xs"
+                      >
+                        {key}
+                        <button
+                          type="button"
+                          onClick={() => togglePermissionSelection(key)}
+                          className="text-slate-400 hover:text-red-500 cursor-pointer ml-0.5"
+                          title={`Remove ${key}`}
+                        >
+                          <Close sx={{ fontSize: 12 }} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -1134,25 +1526,41 @@ export const UserPermissionsPage: React.FC = () => {
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex items-center justify-between">
-              <p className="text-[11px] text-slate-400">
-                {selectedPermKeyToAdd ? "Ready to assign" : "Select a permission from the list above"}
+            <div className="p-3.5 sm:p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 text-center sm:text-left">
+                {selectedPermKeysToAdd.length === 0
+                  ? "Select one or more permissions from the list above"
+                  : `${selectedPermKeysToAdd.length} permission${selectedPermKeysToAdd.length > 1 ? "s" : ""} selected for assignment`}
               </p>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  disabled={actionLoading}
+                  className="flex-1 sm:flex-initial rounded-xl border border-slate-300 dark:border-slate-700 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50 text-center"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  onClick={handleAssignPermission}
-                  disabled={actionLoading || !selectedPermKeyToAdd}
-                  className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2 text-xs font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                  onClick={handleAssignPermissions}
+                  disabled={actionLoading || selectedPermKeysToAdd.length === 0}
+                  className="flex-1 sm:flex-initial rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-5 py-2 text-xs font-bold shadow-md shadow-blue-600/20 transition-all cursor-pointer flex items-center justify-center gap-2 text-center"
                 >
-                  {actionLoading ? "Assigning..." : "Assign Permission"}
+                  {actionLoading ? (
+                    <>
+                      <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                      <span>
+                        {assigningProgress
+                          ? `(${assigningProgress.current}/${assigningProgress.total})...`
+                          : "Assigning..."}
+                      </span>
+                    </>
+                  ) : (
+                    <span>
+                      Assign {selectedPermKeysToAdd.length > 0 ? `${selectedPermKeysToAdd.length} Perms` : "Permission"}
+                    </span>
+                  )}
                 </button>
               </div>
             </div>

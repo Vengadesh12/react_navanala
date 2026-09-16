@@ -57,6 +57,33 @@ export const permissionService = {
     });
   },
 
+  assignUserPermissions: async (
+    userId: number | string,
+    permissionKeys: string[],
+    reason?: string,
+    onProgress?: (current: number, total: number) => void
+  ): Promise<{ successCount: number; errors: string[] }> => {
+    let successCount = 0;
+    const errors: string[] = [];
+    for (let i = 0; i < permissionKeys.length; i++) {
+      const key = permissionKeys[i];
+      if (onProgress) {
+        onProgress(i + 1, permissionKeys.length);
+      }
+      try {
+        await apiClient<{ message?: string }>(`/api/permissions/users/${userId}/assign`, {
+          method: "POST",
+          includeJson: true,
+          body: JSON.stringify({ permissionKey: key, reason }),
+        });
+        successCount++;
+      } catch (err: any) {
+        errors.push(err.message || `Failed to assign ${key}`);
+      }
+    }
+    return { successCount, errors };
+  },
+
   revokeUserPermission: async (
     userId: number | string,
     permissionKey: string
