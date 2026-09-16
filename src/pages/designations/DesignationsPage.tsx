@@ -454,7 +454,7 @@ export const DesignationsPage: React.FC = () => {
                       </td>
 
                       {/* Department */}
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4 whitespace-nowrap">
                         {des.departmentName ? (
                           <span className="inline-flex items-center gap-1.5 rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-xs font-medium text-teal-700 dark:border-teal-900/60 dark:bg-teal-950/40 dark:text-teal-300">
                             <CorporateFare sx={{ fontSize: 13 }} />
