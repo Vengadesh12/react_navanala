@@ -24,6 +24,7 @@ import {
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { MetricCard } from "../../components/common/MetricCard";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { useAuth } from "../../hooks/useAuth";
 import { accessRequestService } from "../../api/accessRequest.service";
 import { showSuccessAlert, showErrorAlert, showConfirmDialog } from "../../utils/alerts";
@@ -486,10 +487,9 @@ export const RequestAccessPage: React.FC = () => {
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-3 shadow-xs">
               <div className="flex flex-wrap items-center gap-2">
                 {/* Module Category Filter Dropdown */}
-                <select
+                <CustomSelect
                   value={catalogModule}
                   onChange={(e) => setCatalogModule(e.target.value)}
-                  className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
                 >
                   <option value="all">All Modules ({permissions.length})</option>
                   {modulesList.map((mod) => (
@@ -497,7 +497,7 @@ export const RequestAccessPage: React.FC = () => {
                       {mod} ({permissions.filter((p) => p.module === mod).length})
                     </option>
                   ))}
-                </select>
+                </CustomSelect>
 
                 {/* Status Toggle Pills */}
                 <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800 p-0.5 text-xs">
@@ -682,29 +682,27 @@ export const RequestAccessPage: React.FC = () => {
                 </div>
 
                 {/* Status Filter */}
-                <select
+                <CustomSelect
                   value={queueStatus}
                   onChange={(e) => setQueueStatus(e.target.value)}
-                  className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none"
                 >
                   <option value="all">All Statuses</option>
                   <option value="Pending">Pending Only</option>
                   <option value="Approved">Approved</option>
                   <option value="Rejected">Rejected</option>
-                </select>
+                </CustomSelect>
 
                 {/* Priority Filter */}
-                <select
+                <CustomSelect
                   value={queuePriority}
                   onChange={(e) => setQueuePriority(e.target.value)}
-                  className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none"
                 >
                   <option value="all">All Priorities</option>
                   <option value="Urgent">Urgent</option>
                   <option value="High">High</option>
                   <option value="Medium">Medium</option>
                   <option value="Low">Low</option>
-                </select>
+                </CustomSelect>
               </div>
 
               <span className="text-xs text-slate-400">

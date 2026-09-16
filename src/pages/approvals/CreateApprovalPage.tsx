@@ -26,6 +26,7 @@ import {
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { Pagination } from "../../components/common/Pagination";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { SortableHeader } from "../../components/common/SortableHeader";
 import { useTableSort } from "../../hooks/useTableSort";
 import { approvalService } from "../../api/approval.service";
@@ -597,10 +598,9 @@ export const CreateApprovalPage: React.FC = () => {
               </div>
 
               {/* Category Select */}
-              <select
+              <CustomSelect
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 py-1.5 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:border-blue-500 focus:outline-none shrink-0 cursor-pointer"
               >
                 <option value="ALL">All Categories</option>
                 {CATEGORIES.map((c) => (
@@ -608,20 +608,19 @@ export const CreateApprovalPage: React.FC = () => {
                     {c}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
 
               {/* Priority Select */}
-              <select
+              <CustomSelect
                 value={priorityFilter}
                 onChange={(e) => setPriorityFilter(e.target.value)}
-                className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 py-1.5 px-2.5 text-xs font-semibold text-slate-700 dark:text-slate-200 focus:border-blue-500 focus:outline-none shrink-0 cursor-pointer"
               >
                 <option value="ALL">All Priorities</option>
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
                 <option value="Urgent">Urgent</option>
-              </select>
+              </CustomSelect>
 
               {/* Refresh Button */}
               <button
@@ -956,17 +955,17 @@ export const CreateApprovalPage: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Category
                   </label>
-                  <select
+                  <CustomSelect
                     value={createForm.category}
                     onChange={(e) => setCreateForm({ ...createForm, category: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 px-3.5 py-2.5 text-xs font-medium text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none"
+                    fullWidth
                   >
                     {CATEGORIES.map((c) => (
                       <option key={c} value={c}>
                         {c}
                       </option>
                     ))}
-                  </select>
+                  </CustomSelect>
                 </div>
 
                 <div>
@@ -992,16 +991,16 @@ export const CreateApprovalPage: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Priority
                   </label>
-                  <select
+                  <CustomSelect
                     value={createForm.priority}
                     onChange={(e) => setCreateForm({ ...createForm, priority: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 px-3.5 py-2.5 text-xs font-medium text-slate-900 dark:text-white focus:border-blue-500 focus:outline-none"
+                    fullWidth
                   >
                     <option value="Low">Low - Nice to have</option>
                     <option value="Medium">Medium - Standard requirement</option>
                     <option value="High">High - Needed for upcoming deliverables</option>
                     <option value="Urgent">Urgent - Work blocked without it</option>
-                  </select>
+                  </CustomSelect>
                 </div>
 
                 <div>

@@ -13,6 +13,7 @@ import {
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { Pagination } from "../../components/common/Pagination";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { SortableHeader } from "../../components/common/SortableHeader";
 import { useTableSort } from "../../hooks/useTableSort";
 import { auditService } from "../../api/audit.service";
@@ -477,10 +478,10 @@ export const AuditPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Target Module</label>
-                  <select
+                  <CustomSelect
                     value={formData.module}
                     onChange={(e) => setFormData({ ...formData, module: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
+                    fullWidth
                   >
                     <option value="Security">Security</option>
                     <option value="Users">Users</option>
@@ -489,20 +490,20 @@ export const AuditPage: React.FC = () => {
                     <option value="Auth">Auth</option>
                     <option value="Reports">Reports</option>
                     <option value="Projects">Projects</option>
-                  </select>
+                  </CustomSelect>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Status</label>
-                  <select
+                  <CustomSelect
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
+                    fullWidth
                   >
                     <option value="Success">Success</option>
                     <option value="Warning">Warning</option>
                     <option value="Failed">Failed</option>
-                  </select>
+                  </CustomSelect>
                 </div>
               </div>
 

@@ -8,6 +8,7 @@ import {
   ErrorOutline,
 } from "@mui/icons-material";
 import { designationService } from "../../../api/designation.service";
+import { CustomSelect } from "../../../components/common/CustomSelect";
 import { showSuccessAlert, showErrorAlert } from "../../../utils/alerts";
 import type { Department, Designation } from "../../../types";
 
@@ -191,11 +192,12 @@ export const DesignationModal: React.FC<DesignationModalProps> = ({
               Associated Department <span className="text-xs font-normal text-slate-400 dark:text-slate-500">(Optional)</span>
             </label>
             <div className="relative">
-              <select
+              <CustomSelect
                 value={departmentId}
                 onChange={(e) => setDepartmentId(e.target.value)}
                 disabled={loading}
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-3.5 py-2.5 text-sm text-slate-900 focus:border-blue-500 focus:bg-white focus:outline-hidden focus:ring-3 focus:ring-blue-500/20 transition-all dark:border-slate-700 dark:bg-slate-800/50 dark:text-white dark:focus:border-blue-400 dark:focus:bg-slate-800"
+                fullWidth
+                placeholder="-- No Department Assigned (Unassigned) --"
               >
                 <option value="">-- No Department Assigned (Unassigned) --</option>
                 {departments.map((dept) => (
@@ -203,7 +205,7 @@ export const DesignationModal: React.FC<DesignationModalProps> = ({
                     {dept.name}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
             </div>
             <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
               Assigning a department helps structure teams and automatic permission inheritance.

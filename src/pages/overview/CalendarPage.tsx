@@ -26,6 +26,7 @@ import {
   Check,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { scheduleService } from "../../api/schedule.service";
 import { showConfirmDialog, showSuccessToast, showErrorToast } from "../../utils/alerts";
 import type { ScheduleEvent, ScheduleFormData, EventType, CreateEventTypeFormData } from "../../types";
@@ -1391,10 +1392,10 @@ export const CalendarPage: React.FC = () => {
                       <span>New Type</span>
                     </button>
                   </div>
-                  <select
+                  <CustomSelect
                     value={formData.eventType}
                     onChange={(e) => setFormData({ ...formData, eventType: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-800 focus:border-blue-500 focus:outline-hidden"
+                    fullWidth
                   >
                     {eventTypes.map((t) => (
                       <option key={t.id} value={t.name}>
@@ -1404,22 +1405,22 @@ export const CalendarPage: React.FC = () => {
                     {formData.eventType && !eventTypes.some((t) => t.name.toLowerCase() === formData.eventType.toLowerCase()) && (
                       <option value={formData.eventType}>{formData.eventType}</option>
                     )}
-                  </select>
+                  </CustomSelect>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Priority
                   </label>
-                  <select
+                  <CustomSelect
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-800 focus:border-blue-500 focus:outline-hidden"
+                    fullWidth
                   >
                     <option value="Normal">Normal</option>
                     <option value="High">High</option>
                     <option value="Urgent">Urgent</option>
-                  </select>
+                  </CustomSelect>
                 </div>
               </div>
 
@@ -1497,16 +1498,16 @@ export const CalendarPage: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                     Status
                   </label>
-                  <select
+                  <CustomSelect
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-100 bg-slate-50/50 dark:bg-slate-800 focus:border-blue-500 focus:outline-hidden"
+                    fullWidth
                   >
                     <option value="Scheduled">Scheduled</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Completed">Completed</option>
                     <option value="Postponed">Postponed</option>
-                  </select>
+                  </CustomSelect>
                 </div>
 
                 <div>

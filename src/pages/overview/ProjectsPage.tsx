@@ -13,6 +13,7 @@ import {
   CategoryOutlined,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { projectService } from "../../api/project.service";
 import { showConfirmDialog, showSuccessToast, showErrorToast } from "../../utils/alerts";
 import { CreateProjectCategoryModal } from "./components/CreateProjectCategoryModal";
@@ -547,31 +548,31 @@ export const ProjectsPage: React.FC = () => {
                       <span>New</span>
                     </button>
                   </div>
-                  <select
+                  <CustomSelect
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
+                    fullWidth
                   >
                     {categoryNames.map((catName) => (
                       <option key={catName} value={catName}>
                         {catName}
                       </option>
                     ))}
-                  </select>
+                  </CustomSelect>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Priority</label>
-                  <select
+                  <CustomSelect
                     value={formData.priority}
                     onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
+                    fullWidth
                   >
                     <option value="Low">Low</option>
                     <option value="Medium">Medium</option>
                     <option value="High">High</option>
                     <option value="Critical">Critical</option>
-                  </select>
+                  </CustomSelect>
                 </div>
               </div>
 
@@ -589,16 +590,16 @@ export const ProjectsPage: React.FC = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Status</label>
-                  <select
+                  <CustomSelect
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
+                    fullWidth
                   >
                     <option value="Planning">Planning</option>
                     <option value="In Progress">In Progress</option>
                     <option value="Review">In Review</option>
                     <option value="Completed">Completed</option>
-                  </select>
+                  </CustomSelect>
                 </div>
               </div>
 

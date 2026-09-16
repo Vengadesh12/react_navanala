@@ -5,6 +5,7 @@ import {
   FirstPage,
   LastPage,
 } from "@mui/icons-material";
+import { CustomSelect } from "./CustomSelect";
 
 export interface PaginationProps {
   currentPage: number;
@@ -89,21 +90,21 @@ export const Pagination: React.FC<PaginationProps> = ({
             <label htmlFor="pageSizeSelect" className="text-slate-500 dark:text-slate-400 text-xs">
               Rows per page:
             </label>
-            <select
+            <CustomSelect
               id="pageSizeSelect"
+              size="sm"
               value={pageSize}
               onChange={(e) => {
                 onPageSizeChange(Number(e.target.value));
                 onPageChange(1);
               }}
-              className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-semibold text-slate-700 shadow-2xs hover:border-slate-300 focus:border-indigo-500 focus:outline-hidden dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"
             >
               {pageSizeOptions.map((opt) => (
                 <option key={opt} value={opt}>
                   {opt}
                 </option>
               ))}
-            </select>
+            </CustomSelect>
           </div>
         )}
       </div>

@@ -24,6 +24,7 @@ import { SearchInput } from "../../components/common/SearchInput";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { EmptyState } from "../../components/common/EmptyState";
 import { Pagination } from "../../components/common/Pagination";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { SortableHeader } from "../../components/common/SortableHeader";
 import { useTableSort } from "../../hooks/useTableSort";
 import { UserModal } from "./components/UserModal";
@@ -488,8 +489,7 @@ export const UsersPage: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
               <FilterList sx={{ fontSize: 18, color: "#64748b" }} />
-              <select
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-all focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+              <CustomSelect
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
               >
@@ -499,11 +499,10 @@ export const UsersPage: React.FC = () => {
                     {r.name}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
             </div>
 
-            <select
-              className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition-all focus:border-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
+            <CustomSelect
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as UserStatusFilter)}
             >
@@ -511,7 +510,7 @@ export const UsersPage: React.FC = () => {
               <option value="ACTIVE">Active Accounts</option>
               <option value="ONLINE">Currently Online ({activeUsersCount})</option>
               <option value="DELETED">Deleted Only ({deletedUsersCount})</option>
-            </select>
+            </CustomSelect>
 
             <button
               type="button"

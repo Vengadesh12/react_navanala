@@ -10,6 +10,7 @@ import {
   WarningAmber,
 } from "@mui/icons-material";
 import { departmentService } from "../../../api/department.service";
+import { CustomSelect } from "../../../components/common/CustomSelect";
 import { showSuccessAlert, showErrorAlert } from "../../../utils/alerts";
 import type { Department, Designation } from "../../../types";
 
@@ -213,13 +214,14 @@ export const AssignDesignationModal: React.FC<AssignDesignationModalProps> = ({
                 No active departments found. Please create a department first.
               </div>
             ) : (
-              <select
+              <CustomSelect
                 value={selectedDepartmentId}
                 onChange={(e) => {
                   setSelectedDepartmentId(Number(e.target.value));
                   if (error) setError("");
                 }}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-medium text-slate-900 focus:border-teal-500 focus:outline-hidden focus:ring-2 focus:ring-teal-500/20 dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                fullWidth
+                placeholder="Select target department..."
                 required
               >
                 <option value="" disabled>
@@ -230,7 +232,7 @@ export const AssignDesignationModal: React.FC<AssignDesignationModalProps> = ({
                     {dept.name} ({(dept.designations || []).length} existing roles, {dept.userCount || 0} members)
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
             )}
 
             {selectedDepartment && (

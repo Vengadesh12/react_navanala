@@ -24,6 +24,7 @@ import {
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { Pagination } from "../../components/common/Pagination";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { SortableHeader } from "../../components/common/SortableHeader";
 import { useTableSort } from "../../hooks/useTableSort";
 import { userActivityService } from "../../api/userActivity.service";
@@ -746,18 +747,17 @@ export const UserActivityPage: React.FC = () => {
               </div>
             ) : (
               <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                <select
+                <CustomSelect
                   value={statusFilter}
                   onChange={(e) => {
                     setStatusFilter(e.target.value);
                     setPage(1);
                   }}
-                  className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-700 focus:bg-white focus:border-blue-500 focus:outline-hidden"
                 >
                   <option value="all">All Statuses</option>
                   <option value="active">Active Sessions Only</option>
                   <option value="completed">Completed / Logged Out</option>
-                </select>
+                </CustomSelect>
 
                 <div className="relative min-w-[220px]">
                   <Search sx={{ fontSize: 18 }} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />

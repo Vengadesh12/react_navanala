@@ -30,6 +30,7 @@ import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { MetricCard } from "../../components/common/MetricCard";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { Pagination } from "../../components/common/Pagination";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { SortableHeader } from "../../components/common/SortableHeader";
 import { useTableSort } from "../../hooks/useTableSort";
 import { purchaseService } from "../../api/purchase.service";
@@ -833,17 +834,16 @@ export const PurchasesPage: React.FC = () => {
                 />
               </div>
 
-              <select
+              <CustomSelect
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
                     {cat === "ALL" ? "All Categories" : cat}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
 
               {/* View Switcher: Cards vs Table */}
               <div className="flex items-center rounded-xl bg-slate-100 p-1 dark:bg-slate-800 shrink-0">
@@ -1407,11 +1407,12 @@ export const PurchasesPage: React.FC = () => {
                     No approved product requests found. Please approve an employee request in the Approvals workspace first.
                   </div>
                 ) : (
-                  <select
+                  <CustomSelect
                     value={selectedApprovalId}
                     onChange={(e) => setSelectedApprovalId(Number(e.target.value))}
                     required
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    fullWidth
+                    placeholder="-- Choose Approved Product --"
                   >
                     <option value="" disabled>
                       -- Choose Approved Product --
@@ -1424,7 +1425,7 @@ export const PurchasesPage: React.FC = () => {
                         </option>
                       );
                     })}
-                  </select>
+                  </CustomSelect>
                 )}
               </div>
 
@@ -1612,34 +1613,34 @@ export const PurchasesPage: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Payment Terms
                   </label>
-                  <select
+                  <CustomSelect
                     value={paymentTerms}
                     onChange={(e) => setPaymentTerms(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    fullWidth
                   >
                     {PAYMENT_TERMS_PRESETS.map((t) => (
                       <option key={t} value={t}>
                         {t}
                       </option>
                     ))}
-                  </select>
+                  </CustomSelect>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Initial Status
                   </label>
-                  <select
+                  <CustomSelect
                     value={purchaseStatus}
                     onChange={(e) => setPurchaseStatus(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    fullWidth
                   >
                     <option value="Quotation Received">Quotation Received</option>
                     <option value="PO Issued">PO Issued</option>
                     <option value="In Procurement">In Procurement</option>
                     <option value="Delivered">Delivered</option>
                     <option value="Completed">Completed</option>
-                  </select>
+                  </CustomSelect>
                 </div>
               </div>
 
@@ -2067,10 +2068,10 @@ export const PurchasesPage: React.FC = () => {
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     Procurement Status
                   </label>
-                  <select
+                  <CustomSelect
                     value={editStatus}
                     onChange={(e) => setEditStatus(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    fullWidth
                   >
                     <option value="Quotation Received">Quotation Received</option>
                     <option value="PO Issued">PO Issued</option>
@@ -2078,7 +2079,7 @@ export const PurchasesPage: React.FC = () => {
                     <option value="Delivered">Delivered</option>
                     <option value="Completed">Completed</option>
                     <option value="Cancelled">Cancelled</option>
-                  </select>
+                  </CustomSelect>
                 </div>
               </div>
 

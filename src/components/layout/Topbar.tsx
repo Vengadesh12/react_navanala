@@ -443,7 +443,7 @@ export const Topbar: React.FC<TopbarProps> = ({
 
           {/* Dropdown Menu below profile */}
           {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 shadow-xl shadow-slate-900/10 dark:shadow-black/40 z-50 animate-fadeIn">
+            <div className="absolute right-0 top-full mt-2 w-64 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 shadow-xl shadow-slate-900/10 dark:shadow-black/40 z-50 animate-fadeIn">
               {/* Profile Summary Header */}
               <div className="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-100 dark:border-slate-700/60">
                 <img

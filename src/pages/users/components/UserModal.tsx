@@ -14,6 +14,7 @@ import {
 import { authService } from "../../../api/auth.service";
 import { designationService } from "../../../api/designation.service";
 import { CreateDesignationModal } from "./CreateDesignationModal";
+import { CustomSelect } from "../../../components/common/CustomSelect";
 import type {
   Role,
   Designation,
@@ -302,16 +303,13 @@ export const UserModal: React.FC<UserModalProps> = ({
                 <ShieldOutlined sx={{ fontSize: 14 }} className="text-purple-600" />
                 <span>Assigned Role <span className="text-rose-500">*</span></span>
               </label>
-              <select
+              <CustomSelect
                 id="user_modal_roleId"
                 name="roleId"
-                className={`w-full rounded-xl border bg-white px-3.5 py-2 text-xs font-medium text-slate-900 shadow-2xs transition-all focus:outline-hidden focus:ring-2 cursor-pointer dark:bg-slate-950 dark:text-white ${
-                  errors.roleId
-                    ? "border-rose-400 bg-rose-50/50 focus:ring-rose-500/20 dark:border-rose-500"
-                    : "border-slate-200 focus:border-indigo-600 focus:ring-indigo-500/20 dark:border-slate-800"
-                }`}
+                fullWidth
                 value={formData.roleId}
                 onChange={handleChange}
+                placeholder="Select a Role..."
                 required
               >
                 <option value="">Select a Role...</option>
@@ -320,7 +318,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                     {r.name}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
               {errors.roleId && <p className="mt-1 text-[11px] font-medium text-rose-500">{errors.roleId}</p>}
             </div>
 
@@ -341,12 +339,13 @@ export const UserModal: React.FC<UserModalProps> = ({
                   <span>New Title</span>
                 </button>
               </div>
-              <select
+              <CustomSelect
                 id="user_modal_designationId"
                 name="designationId"
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-medium text-slate-900 shadow-2xs transition-all focus:border-indigo-600 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 cursor-pointer dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+                fullWidth
                 value={formData.designationId}
                 onChange={handleChange}
+                placeholder="Select a Designation (Optional)..."
               >
                 <option value="">Select a Designation (Optional)...</option>
                 {safeDesignations.map((d) => {
@@ -359,7 +358,7 @@ export const UserModal: React.FC<UserModalProps> = ({
                     </option>
                   );
                 })}
-              </select>
+              </CustomSelect>
             </div>
 
             {/* Phone */}

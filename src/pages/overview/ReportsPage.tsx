@@ -19,6 +19,7 @@ import {
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { Pagination } from "../../components/common/Pagination";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { SortableHeader } from "../../components/common/SortableHeader";
 import { useTableSort } from "../../hooks/useTableSort";
 import { reportService } from "../../api/report.service";
@@ -1075,7 +1076,7 @@ export const ReportsPage: React.FC = () => {
                       <span>New</span>
                     </button>
                   </div>
-                  <select
+                  <CustomSelect
                     value={formData.category}
                     onChange={(e) => {
                       const val = e.target.value;
@@ -1086,7 +1087,7 @@ export const ReportsPage: React.FC = () => {
                         categoryId: matched?.id,
                       });
                     }}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
+                    fullWidth
                   >
                     {categoryNames.map((catName) => (
                       <option key={catName} value={catName}>
@@ -1094,21 +1095,21 @@ export const ReportsPage: React.FC = () => {
                       </option>
                     ))}
                     <option value="__custom__">+ Enter Custom Category...</option>
-                  </select>
+                  </CustomSelect>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Export Format</label>
-                  <select
+                  <CustomSelect
                     value={formData.format}
                     onChange={(e) => setFormData({ ...formData, format: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-hidden"
+                    fullWidth
                   >
                     <option value="PDF">PDF Document (.pdf)</option>
                     <option value="CSV">CSV Spreadsheet (.csv)</option>
                     <option value="JSON">JSON Data (.json)</option>
                     <option value="Excel">Microsoft Excel (.xlsx)</option>
-                  </select>
+                  </CustomSelect>
                 </div>
               </div>
 

@@ -25,6 +25,7 @@ import { SearchInput } from "../../components/common/SearchInput";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { EmptyState } from "../../components/common/EmptyState";
 import { Pagination } from "../../components/common/Pagination";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { SortableHeader } from "../../components/common/SortableHeader";
 import { useTableSort } from "../../hooks/useTableSort";
 import { RoleModal } from "./components/RoleModal";
@@ -423,16 +424,15 @@ export const RolesPage: React.FC = () => {
             </div>
 
             {/* Sort Selector */}
-            <select
+            <CustomSelect
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition-all focus:border-indigo-600 focus:outline-none cursor-pointer"
             >
               <option value="id_asc">Sort: ID (Low to High)</option>
               <option value="id_desc">Sort: ID (High to Low)</option>
               <option value="name">Sort: Name (A to Z)</option>
               <option value="members">Sort: Most Members</option>
-            </select>
+            </CustomSelect>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">

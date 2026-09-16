@@ -19,6 +19,7 @@ import { SearchInput } from "../../components/common/SearchInput";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { EmptyState } from "../../components/common/EmptyState";
 import { Pagination } from "../../components/common/Pagination";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { SortableHeader } from "../../components/common/SortableHeader";
 import { useTableSort } from "../../hooks/useTableSort";
 import { DesignationModal } from "./components/DesignationModal";
@@ -297,10 +298,9 @@ export const DesignationsPage: React.FC = () => {
 
             {/* Department Dropdown Filter */}
             <div className="flex items-center gap-2">
-              <select
+              <CustomSelect
                 value={deptFilter}
                 onChange={(e) => setDeptFilter(e.target.value)}
-                className="rounded-xl border border-slate-200 bg-slate-50/70 px-3 py-2 text-xs font-medium text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-hidden dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:focus:border-blue-400"
               >
                 <option value="all">All Departments</option>
                 <option value="unassigned">Unassigned (No Dept)</option>
@@ -309,7 +309,7 @@ export const DesignationsPage: React.FC = () => {
                     {dept.name}
                   </option>
                 ))}
-              </select>
+              </CustomSelect>
             </div>
 
             {/* View Mode Toggle */}

@@ -26,11 +26,12 @@ import {
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { Pagination } from "../../components/common/Pagination";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { SortableHeader } from "../../components/common/SortableHeader";
 import { useTableSort } from "../../hooks/useTableSort";
 import { invoiceService } from "../../api/invoice.service";
 import { useAuth } from "../../hooks/useAuth";
-import { showConfirmDialog, showErrorAlert, showSuccessAlert } from "../../utils/alerts";
+import { showConfirmDialog, showErrorAlert, showSuccessAlert, showSuccessToast } from "../../utils/alerts";
 import { numberToWordsInIndianRupees } from "../../utils/numberToWords";
 import type {
   InvoiceDto,
@@ -39,6 +40,7 @@ import type {
   CreateInvoicePayload,
 } from "../../types/invoice";
 import { InvoicePreviewModal } from "./components/InvoicePreviewModal";
+import { InvoiceStatusSelect } from "./components/InvoiceStatusSelect";
 
 const STATUS_TABS = [
   { id: "ALL", label: "All Invoices" },
@@ -208,51 +210,91 @@ export const InvoicesPage: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  // Client-side Overdue computations (fallback & instant reactivity)
+  // Overdue calculations (direct from summary with safe fallback)
   const computedOverdueAmount = useMemo(() => {
-    if (summary.totalOverdueAmount && summary.totalOverdueAmount > 0) {
-      return summary.totalOverdueAmount;
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return invoices
-      .filter((inv) => {
-        const st = (inv.status || "").toLowerCase();
-        if (st === "overdue") return true;
-        if (st === "pending" && inv.dueDate) {
-          return new Date(inv.dueDate) < today;
-        }
-        return false;
-      })
-      .reduce((sum, inv) => sum + (Number(inv.totalAmount) || 0), 0);
-  }, [summary.totalOverdueAmount, invoices]);
+    return Number(summary.totalOverdueAmount ?? 0);
+  }, [summary.totalOverdueAmount]);
 
   const computedOverdueCount = useMemo(() => {
-    if (summary.overdueCount && summary.overdueCount > 0) {
-      return summary.overdueCount;
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return invoices.filter((inv) => {
-      const st = (inv.status || "").toLowerCase();
-      if (st === "overdue") return true;
-      if (st === "pending" && inv.dueDate) {
-        return new Date(inv.dueDate) < today;
-      }
-      return false;
-    }).length;
-  }, [summary.overdueCount, invoices]);
+    return Number(summary.overdueCount ?? 0);
+  }, [summary.overdueCount]);
 
-  // Quick Status Update
+  // Quick Status Update with Optimistic UI & Metric Cards Update
   const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
 
   const handleQuickStatusChange = async (invoiceId: number, newStatus: string) => {
+    const targetInvoice = invoices.find((inv) => inv.id === invoiceId);
+    if (!targetInvoice || (targetInvoice.status || "").toLowerCase() === newStatus.toLowerCase()) return;
+
+    const prevStatus = targetInvoice.status;
+    const invoiceAmount = Number(targetInvoice.totalAmount) || 0;
+    const invoiceTax = Number(targetInvoice.taxAmount) || 0;
+
+    // 1. Optimistically update invoices list immediately so UI changes instantly
+    setInvoices((prev) =>
+      prev.map((inv) => (inv.id === invoiceId ? { ...inv, status: newStatus } : inv))
+    );
+
+    // 2. Optimistically update summary metrics immediately
+    setSummary((prev) => {
+      const updated = { ...prev };
+      const oldSt = (prevStatus || "").toLowerCase();
+      const newSt = (newStatus || "").toLowerCase();
+
+      // Decrement previous status bucket
+      if (oldSt === "paid") {
+        updated.paidCount = Math.max(0, updated.paidCount - 1);
+        updated.totalPaidAmount = Math.max(0, updated.totalPaidAmount - invoiceAmount);
+      } else if (oldSt === "pending") {
+        updated.pendingCount = Math.max(0, updated.pendingCount - 1);
+        updated.totalPendingAmount = Math.max(0, updated.totalPendingAmount - invoiceAmount);
+      } else if (oldSt === "overdue") {
+        updated.overdueCount = Math.max(0, updated.overdueCount - 1);
+        updated.totalOverdueAmount = Math.max(0, updated.totalOverdueAmount - invoiceAmount);
+      } else if (oldSt === "draft") {
+        updated.draftCount = Math.max(0, updated.draftCount - 1);
+      }
+
+      // Increment new status bucket
+      if (newSt === "paid") {
+        updated.paidCount += 1;
+        updated.totalPaidAmount += invoiceAmount;
+      } else if (newSt === "pending") {
+        updated.pendingCount += 1;
+        updated.totalPendingAmount += invoiceAmount;
+      } else if (newSt === "overdue") {
+        updated.overdueCount += 1;
+        updated.totalOverdueAmount += invoiceAmount;
+      } else if (newSt === "draft") {
+        updated.draftCount += 1;
+      }
+
+      // If cancelling an invoice, exclude from active total invoiced
+      if (newSt === "cancelled" && oldSt !== "cancelled") {
+        updated.totalInvoices = Math.max(0, updated.totalInvoices - 1);
+        updated.totalInvoicedAmount = Math.max(0, updated.totalInvoicedAmount - invoiceAmount);
+        updated.totalGstCollected = Math.max(0, updated.totalGstCollected - invoiceTax);
+      } else if (oldSt === "cancelled" && newSt !== "cancelled") {
+        updated.totalInvoices += 1;
+        updated.totalInvoicedAmount += invoiceAmount;
+        updated.totalGstCollected += invoiceTax;
+      }
+
+      return updated;
+    });
+
     try {
       setUpdatingStatusId(invoiceId);
       await invoiceService.updateInvoiceStatus(invoiceId, newStatus);
-      showSuccessAlert("Status Updated", `Invoice status updated to ${newStatus}.`);
+      showSuccessToast(`Invoice #${targetInvoice.invoiceNumber} status updated to ${newStatus}`);
+      // Refresh authoritative data silently in background
       await loadData();
     } catch (err: any) {
+      // Revert optimistic change on failure
+      setInvoices((prev) =>
+        prev.map((inv) => (inv.id === invoiceId ? { ...inv, status: prevStatus } : inv))
+      );
+      await loadData();
       showErrorAlert("Update Failed", err?.message || "Failed to update status.");
     } finally {
       setUpdatingStatusId(null);
@@ -801,29 +843,21 @@ export const InvoicesPage: React.FC = () => {
                       </td>
                       <td className="px-5 py-4">
                         {can("invoices.edit") || can("invoices.manage") ? (
-                          <select
+                          <InvoiceStatusSelect
+                            size="sm"
                             value={inv.status}
                             disabled={updatingStatusId === inv.id}
-                            onChange={(e) => handleQuickStatusChange(inv.id, e.target.value)}
-                            title="Quick change invoice status"
-                            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold cursor-pointer focus:outline-hidden transition-all shadow-2xs ${getStatusBadge(
-                              inv.status
-                            )} ${updatingStatusId === inv.id ? "opacity-40 animate-pulse" : ""}`}
-                          >
-                            <option value="Draft" className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200">Draft</option>
-                            <option value="Pending" className="bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400">Pending</option>
-                            <option value="Paid" className="bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400">Paid</option>
-                            <option value="Overdue" className="bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 font-bold">Overdue</option>
-                            <option value="Cancelled" className="bg-white dark:bg-slate-900 text-slate-500">Cancelled</option>
-                          </select>
+                            onChange={(newStatus) => handleQuickStatusChange(inv.id, newStatus)}
+                            title="Change invoice status"
+                          />
                         ) : (
-                          <span
-                            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold ${getStatusBadge(
-                              inv.status
-                            )}`}
-                          >
-                            {inv.status}
-                          </span>
+                          <InvoiceStatusSelect
+                            size="sm"
+                            value={inv.status}
+                            disabled={true}
+                            onChange={() => {}}
+                            title={`Status: ${inv.status}`}
+                          />
                         )}
                       </td>
                       <td className="px-5 py-4 text-right">
@@ -1304,32 +1338,28 @@ export const InvoicesPage: React.FC = () => {
 
                     <div className="grid grid-cols-2 gap-3 pt-2">
                       <div>
-                        <label className="mb-1 block text-[11px] text-slate-600 dark:text-slate-400">Status</label>
-                        <select
+                        <label className="mb-1 block text-[11px] font-semibold text-slate-600 dark:text-slate-400">Status</label>
+                        <InvoiceStatusSelect
+                          size="md"
                           value={status}
-                          onChange={(e) => setStatus(e.target.value)}
-                          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white cursor-pointer"
-                        >
-                          <option value="Draft">Draft</option>
-                          <option value="Pending">Pending</option>
-                          <option value="Paid">Paid</option>
-                          <option value="Overdue">Overdue</option>
-                        </select>
+                          onChange={(newStatus) => setStatus(newStatus)}
+                          fullWidth
+                        />
                       </div>
 
                       <div>
                         <label className="mb-1 block text-[11px] text-slate-600 dark:text-slate-400">Payment Mode</label>
-                        <select
+                        <CustomSelect
                           value={paymentMethod}
                           onChange={(e) => setPaymentMethod(e.target.value)}
-                          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs text-slate-900 dark:text-white cursor-pointer"
+                          fullWidth
                         >
                           <option value="Bank Transfer">Bank Transfer (NEFT/RTGS)</option>
                           <option value="UPI">UPI / QR Code</option>
                           <option value="Credit Card">Credit / Debit Card</option>
                           <option value="Cheque">Cheque</option>
                           <option value="Cash">Cash</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                     </div>
                   </div>

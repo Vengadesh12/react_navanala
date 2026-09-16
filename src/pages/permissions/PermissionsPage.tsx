@@ -24,6 +24,7 @@ import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { SearchInput } from "../../components/common/SearchInput";
 import { ToggleSwitch } from "../../components/common/ToggleSwitch";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { permissionService } from "../../api/permission.service";
 import { useAuth } from "../../hooks/useAuth";
 import { getFirstAccessiblePath, getRoleMeta } from "../../config/workspace.config";
@@ -525,11 +526,11 @@ export const PermissionsPage: React.FC = () => {
                       Select Role to Configure:
                     </label>
                     <div className="relative">
-                      <select
+                      <CustomSelect
                         id="role-select"
                         value={selectedRoleId}
                         onChange={handleRoleDropdownChange}
-                        className="w-full rounded-xl border border-indigo-200 bg-white py-2.5 pl-3.5 pr-10 text-sm font-semibold text-slate-800 shadow-xs transition-all focus:border-indigo-600 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/20 dark:border-indigo-900 dark:bg-slate-950 dark:text-white cursor-pointer"
+                        fullWidth
                       >
                         {data.roles.map((role) => {
                           const count = (role.permissionKeys || []).length;
@@ -539,7 +540,7 @@ export const PermissionsPage: React.FC = () => {
                             </option>
                           );
                         })}
-                      </select>
+                      </CustomSelect>
                     </div>
                   </div>
                 ) : (
@@ -552,11 +553,11 @@ export const PermissionsPage: React.FC = () => {
                       Select Department to Configure:
                     </label>
                     <div className="relative">
-                      <select
+                      <CustomSelect
                         id="dept-select"
                         value={selectedDeptId}
                         onChange={handleDeptDropdownChange}
-                        className="w-full rounded-xl border border-teal-200 bg-white py-2.5 pl-3.5 pr-10 text-sm font-semibold text-slate-800 shadow-xs transition-all focus:border-teal-600 focus:outline-hidden focus:ring-2 focus:ring-teal-500/20 dark:border-teal-900 dark:bg-slate-950 dark:text-white cursor-pointer"
+                        fullWidth
                       >
                         {(data.departments || []).map((dept) => {
                           const count = (dept.permissionKeys || []).length;
@@ -566,7 +567,7 @@ export const PermissionsPage: React.FC = () => {
                             </option>
                           );
                         })}
-                      </select>
+                      </CustomSelect>
                     </div>
                   </div>
                 )}

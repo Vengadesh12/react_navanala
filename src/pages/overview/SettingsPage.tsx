@@ -20,6 +20,7 @@ import {
   Send,
 } from "@mui/icons-material";
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { settingService } from "../../api/setting.service";
 import { accessRequestService } from "../../api/accessRequest.service";
 import { useAuth } from "../../hooks/useAuth";
@@ -540,10 +541,10 @@ export const SettingsPage: React.FC = () => {
                           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             Default Timezone
                           </label>
-                          <select
+                          <CustomSelect
                             value={formValues.timezone || "(GMT+05:30) Asia/Kolkata"}
                             onChange={(e) => handleChange("timezone", e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+                            fullWidth
                           >
                             <option value="(GMT+05:30) Asia/Kolkata">(GMT+05:30) Asia/Kolkata</option>
                             <option value="(GMT+00:00) UTC">(GMT+00:00) UTC</option>
@@ -551,23 +552,23 @@ export const SettingsPage: React.FC = () => {
                             <option value="(GMT-08:00) Pacific Time (US & Canada)">(GMT-08:00) Pacific Time (US & Canada)</option>
                             <option value="(GMT+01:00) Central European Time">(GMT+01:00) Central European Time</option>
                             <option value="(GMT+08:00) Singapore, Beijing">(GMT+08:00) Singapore, Beijing</option>
-                          </select>
+                          </CustomSelect>
                         </div>
 
                         <div>
                           <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                             Date Format
                           </label>
-                          <select
+                          <CustomSelect
                             value={formValues.date_format || "DD MMM YYYY"}
                             onChange={(e) => handleChange("date_format", e.target.value)}
-                            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+                            fullWidth
                           >
                             <option value="DD MMM YYYY">DD MMM YYYY</option>
                             <option value="YYYY-MM-DD">YYYY-MM-DD</option>
                             <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                             <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                          </select>
+                          </CustomSelect>
                         </div>
                       </div>
 
@@ -575,16 +576,16 @@ export const SettingsPage: React.FC = () => {
                         <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                           Items Per Page
                         </label>
-                        <select
+                        <CustomSelect
                           value={formValues.items_per_page || "10"}
                           onChange={(e) => handleChange("items_per_page", e.target.value)}
-                          className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+                          fullWidth
                         >
                           <option value="10">10</option>
                           <option value="25">25</option>
                           <option value="50">50</option>
                           <option value="100">100</option>
-                        </select>
+                        </CustomSelect>
                       </div>
 
                       <div className="pt-2">
@@ -715,7 +716,7 @@ export const SettingsPage: React.FC = () => {
                           <h3 className="text-xs font-bold text-slate-800 dark:text-slate-200">User Session Timeout</h3>
                           <p className="text-[11px] text-slate-500">Automatically log out inactive users</p>
                         </div>
-                        <select
+                        <CustomSelect
                           value={formValues.session_timeout || "24 Hours"}
                           onChange={async (e) => {
                             const val = e.target.value;
@@ -727,14 +728,13 @@ export const SettingsPage: React.FC = () => {
                               showErrorToast(err?.message || "Failed to update timeout.");
                             }
                           }}
-                          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-1.5 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden min-w-[140px]"
                         >
                           <option value="15 Minutes">15 Minutes</option>
                           <option value="30 Minutes">30 Minutes</option>
                           <option value="1 Hour">1 Hour</option>
                           <option value="2 Hours">2 Hours</option>
                           <option value="24 Hours">24 Hours</option>
-                        </select>
+                        </CustomSelect>
                       </div>
                     </div>
                   </div>
@@ -1071,27 +1071,27 @@ export const SettingsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Category</label>
-                  <select
+                  <CustomSelect
                     value={keyFormData.category}
                     onChange={(e) => setKeyFormData((prev) => ({ ...prev, category: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+                    fullWidth
                   >
                     <option value="General">General</option>
                     <option value="Security">Security</option>
-                  </select>
+                  </CustomSelect>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Data Type</label>
-                  <select
+                  <CustomSelect
                     value={keyFormData.dataType}
                     onChange={(e) => setKeyFormData((prev) => ({ ...prev, dataType: e.target.value }))}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+                    fullWidth
                   >
                     <option value="string">String / Text</option>
                     <option value="boolean">Boolean (True/False)</option>
                     <option value="number">Numeric</option>
-                  </select>
+                  </CustomSelect>
                 </div>
               </div>
 
@@ -1218,16 +1218,16 @@ export const SettingsPage: React.FC = () => {
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
                   Urgency / Priority
                 </label>
-                <select
+                <CustomSelect
                   value={requestPriority}
                   onChange={(e) => setRequestPriority(e.target.value as any)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-800 dark:text-slate-200 focus:border-indigo-500 focus:outline-hidden"
+                  fullWidth
                 >
                   <option value="Low">Low - General administrative inquiry</option>
                   <option value="Normal">Normal - Standard operational requirement</option>
                   <option value="High">High - Scheduled deployment or audit</option>
                   <option value="Urgent">Urgent - Critical outage / live issue resolution</option>
-                </select>
+                </CustomSelect>
               </div>
 
               <div className="flex items-center justify-end gap-2.5 pt-2">

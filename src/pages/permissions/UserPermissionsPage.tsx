@@ -26,6 +26,7 @@ import {
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { MetricCard } from "../../components/common/MetricCard";
+import { CustomSelect } from "../../components/common/CustomSelect";
 import { permissionService } from "../../api/permission.service";
 import { useAuth } from "../../hooks/useAuth";
 import { getRoleMeta } from "../../config/workspace.config";
@@ -913,10 +914,9 @@ export const UserPermissionsPage: React.FC = () => {
                       <label className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap hidden sm:inline">
                         Category:
                       </label>
-                      <select
+                      <CustomSelect
                         value={categoryFilter}
                         onChange={(e) => setCategoryFilter(e.target.value)}
-                        className="w-full sm:w-auto rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
                       >
                         <option value="all">All Categories</option>
                         {availableCategories.map((c) => (
@@ -924,7 +924,7 @@ export const UserPermissionsPage: React.FC = () => {
                             {c.toUpperCase()}
                           </option>
                         ))}
-                      </select>
+                      </CustomSelect>
                     </div>
                   </div>
 
@@ -1286,10 +1286,9 @@ export const UserPermissionsPage: React.FC = () => {
                     )}
                   </div>
                   {availableModalCategories.length > 0 && (
-                    <select
+                    <CustomSelect
                       value={modalCategory}
                       onChange={(e) => setModalCategory(e.target.value)}
-                      className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 shrink-0 cursor-pointer"
                     >
                       <option value="all">All Categories</option>
                       {availableModalCategories.map((c) => (
@@ -1297,7 +1296,7 @@ export const UserPermissionsPage: React.FC = () => {
                           {c.toUpperCase()}
                         </option>
                       ))}
-                    </select>
+                    </CustomSelect>
                   )}
                 </div>
 
