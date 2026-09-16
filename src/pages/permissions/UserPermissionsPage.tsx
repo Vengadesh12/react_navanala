@@ -1136,7 +1136,7 @@ export const UserPermissionsPage: React.FC = () => {
                                   <td className="px-4 py-3">
                                     {isDirect ? (
                                       <div className="flex flex-col">
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 text-[10px] font-bold border border-emerald-300 dark:border-emerald-800 w-fit">
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 text-[10px] font-bold border border-emerald-300 dark:border-emerald-800 w-fit whitespace-nowrap">
                                           <CheckCircle sx={{ fontSize: 12 }} />
                                           Direct Grant
                                         </span>
@@ -1152,7 +1152,7 @@ export const UserPermissionsPage: React.FC = () => {
                                           👑 Super Admin
                                         </span>
                                         {p.isFromDepartment && (
-                                          <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2.5 py-0.5 text-[10px] font-medium border border-sky-200 dark:border-sky-800 w-fit">
+                                          <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2.5 py-0.5 text-[10px] font-medium border border-sky-200 dark:border-sky-800 w-fit whitespace-nowrap">
                                             Dept ({p.departmentName || userProfile.departmentName})
                                           </span>
                                         )}
