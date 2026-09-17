@@ -524,7 +524,7 @@ export const PermissionsPage: React.FC = () => {
                     >
                       <Shield sx={{ fontSize: 16, color: "#6366f1" }} />
                       Select Role to Configure:
-                    </label>
+                    </label>  
                     <div className="relative">
                       <CustomSelect
                         id="role-select"
@@ -688,7 +688,6 @@ export const PermissionsPage: React.FC = () => {
                         </div>
                         <div>
                           <h3 className="text-sm font-bold text-slate-900 dark:text-white">{cat.name}</h3>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">{cat.desc}</p>
                         </div>
                       </div>
 
@@ -728,12 +727,6 @@ export const PermissionsPage: React.FC = () => {
                               <strong className="block text-xs font-bold text-slate-800 dark:text-white">
                                 {permission.name}
                               </strong>
-                              <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400">
-                                {permission.description}
-                              </p>
-                              <span className="mt-2 inline-block rounded font-mono text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 dark:bg-slate-800 dark:text-slate-400">
-                                {permission.permissionKey}
-                              </span>
                             </div>
 
                             <ToggleSwitch

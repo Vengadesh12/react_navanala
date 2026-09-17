@@ -160,8 +160,12 @@ export const RolesPage: React.FC = () => {
           return (role.description || "").toLowerCase();
         case "members":
           return roleMembersCount[String(role.id)] || 0;
-        case "permissions":
+        case "permissions": {
+          const totalPerms = permissionMatrix?.permissions?.length || 0;
+          const isSuperAdmin = Boolean(role.isSuperAdmin || role.name?.toLowerCase().includes("super admin"));
+          if (isSuperAdmin && totalPerms > 0) return totalPerms;
           return rolePermissionsCount[String(role.id)] || 0;
+        }
         case "status":
           return 1;
         default:
@@ -528,17 +532,19 @@ export const RolesPage: React.FC = () => {
         {!loading && !error && filteredRoles.length > 0 && viewMode === "grid" && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filteredRoles.map((role) => {
-              const isSuper = Boolean(role.isSuperAdmin || role.isSystemRole || role.name?.toLowerCase().includes("super admin"));
+              const isSystem = Boolean(role.isSuperAdmin || role.isSystemRole || role.name?.toLowerCase().includes("super admin"));
+              const isSuperAdmin = Boolean(role.isSuperAdmin || role.name?.toLowerCase().includes("super admin"));
               const meta = getRoleMeta(role.id, role.name);
               const memberCount = roleMembersCount[String(role.id)] || 0;
-              const permCount = rolePermissionsCount[String(role.id)];
               const totalPerms = permissionMatrix?.permissions?.length || 0;
+              const permCount = rolePermissionsCount[String(role.id)] ?? (isSuperAdmin && totalPerms > 0 ? totalPerms : 0);
+              const hasFullPermissions = Boolean((totalPerms > 0 && permCount === totalPerms) || isSuperAdmin);
 
               return (
                 <div
                   key={role.id}
                   className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${
-                    isSuper
+                    isSuperAdmin
                       ? "border-purple-200/90 bg-gradient-to-b from-white via-purple-50/20 to-purple-50/40"
                       : "border-slate-200/80 hover:border-indigo-200 hover:bg-gradient-to-b hover:from-white hover:to-slate-50/40"
                   }`}
@@ -547,11 +553,11 @@ export const RolesPage: React.FC = () => {
                   <div>
                     <div className="flex items-start justify-between gap-3">
                       <div className={`grid h-12 w-12 place-items-center rounded-2xl border shadow-xs transition-transform group-hover:scale-105 ${meta.color}`}>
-                        {isSuper ? <Security sx={{ fontSize: 24 }} /> : <Shield sx={{ fontSize: 24 }} />}
+                        {isSystem ? <Security sx={{ fontSize: 24 }} /> : <Shield sx={{ fontSize: 24 }} />}
                       </div>
 
                       <div className="flex items-center gap-1.5">
-                        {isSuper ? (
+                        {isSystem ? (
                           <span className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-100/80 px-2.5 py-0.5 text-[11px] font-bold text-purple-800 shadow-2xs">
                             <Star sx={{ fontSize: 13, color: "#9333ea" }} />
                             System Role
@@ -585,16 +591,16 @@ export const RolesPage: React.FC = () => {
                         <span>{memberCount} {memberCount === 1 ? "Member" : "Members"}</span>
                       </Link>
 
-                      {isSuper ? (
+                      {hasFullPermissions ? (
                         <Link
                           to={`/permissions?roleId=${role.id}`}
-                          title="View Super Admin Permissions"
+                          title="View Full System Permissions"
                           className="inline-flex items-center gap-1 rounded-lg border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700 transition-colors hover:border-purple-300 hover:bg-purple-100"
                         >
                           <Key sx={{ fontSize: 14 }} />
-                          <span>Full Access</span>
+                          <span>Full System</span>
                         </Link>
-                      ) : permCount !== undefined && totalPerms > 0 ? (
+                      ) : totalPerms > 0 ? (
                         <Link
                           to={`/permissions?roleId=${role.id}`}
                           title={`Manage ${permCount} active permission(s) for ${role.name}`}
@@ -647,7 +653,7 @@ export const RolesPage: React.FC = () => {
                           </button>
                         )}
 
-                        {canDeleteRoles && !isSuper && (
+                        {canDeleteRoles && !isSystem && (
                           <button
                             type="button"
                             onClick={() => handleDeleteRole(role)}
@@ -696,11 +702,13 @@ export const RolesPage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {paginatedRoles.map((role) => {
-                    const isSuper = Boolean(role.isSuperAdmin || role.isSystemRole || role.name?.toLowerCase().includes("super admin"));
+                    const isSystem = Boolean(role.isSuperAdmin || role.isSystemRole || role.name?.toLowerCase().includes("super admin"));
+                    const isSuperAdmin = Boolean(role.isSuperAdmin || role.name?.toLowerCase().includes("super admin"));
                     const meta = getRoleMeta(role.id, role.name);
                     const memberCount = roleMembersCount[String(role.id)] || 0;
-                    const permCount = rolePermissionsCount[String(role.id)];
                     const totalPerms = permissionMatrix?.permissions?.length || 0;
+                    const permCount = rolePermissionsCount[String(role.id)] ?? (isSuperAdmin && totalPerms > 0 ? totalPerms : 0);
+                    const hasFullPermissions = Boolean((totalPerms > 0 && permCount === totalPerms) || isSuperAdmin);
 
                     return (
                       <tr key={role.id} className="transition-colors hover:bg-slate-50/80">
@@ -708,11 +716,11 @@ export const RolesPage: React.FC = () => {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2.5">
                             <span className={`grid h-8 w-8 place-items-center rounded-xl border ${meta.color}`}>
-                              {isSuper ? <Security sx={{ fontSize: 18 }} /> : <Shield sx={{ fontSize: 18 }} />}
+                              {isSystem ? <Security sx={{ fontSize: 18 }} /> : <Shield sx={{ fontSize: 18 }} />}
                             </span>
                             <div>
                               <strong className="font-bold text-slate-900 capitalize">{role.name}</strong>
-                              {isSuper && (
+                              {isSystem && (
                                 <span className="ml-2 inline-flex items-center gap-0.5 rounded bg-purple-100 px-1.5 py-0.2 text-[10px] font-bold text-purple-700">
                                   System
                                 </span>
@@ -733,7 +741,7 @@ export const RolesPage: React.FC = () => {
                           </Link>
                         </td>
                         <td className="px-6 py-4">
-                          {isSuper ? (
+                          {hasFullPermissions ? (
                             <Link
                               to={`/permissions?roleId=${role.id}`}
                               className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 hover:underline"
@@ -741,7 +749,7 @@ export const RolesPage: React.FC = () => {
                               <Key sx={{ fontSize: 14 }} />
                               <span>Full System</span>
                             </Link>
-                          ) : permCount !== undefined && totalPerms > 0 ? (
+                          ) : totalPerms > 0 ? (
                             <Link
                               to={`/permissions?roleId=${role.id}`}
                               className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:underline"
@@ -789,7 +797,7 @@ export const RolesPage: React.FC = () => {
                                 <Edit sx={{ fontSize: 16 }} />
                               </button>
                             )}
-                            {canDeleteRoles && !isSuper && (
+                            {canDeleteRoles && !isSystem && (
                               <button
                                 type="button"
                                 onClick={() => handleDeleteRole(role)}

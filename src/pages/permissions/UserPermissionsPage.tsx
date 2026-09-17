@@ -26,7 +26,6 @@ import {
 import { WorkspaceLayout } from "../../components/layout/WorkspaceLayout";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { MetricCard } from "../../components/common/MetricCard";
-import { CustomSelect } from "../../components/common/CustomSelect";
 import { permissionService } from "../../api/permission.service";
 import { useAuth } from "../../hooks/useAuth";
 import { getRoleMeta } from "../../config/workspace.config";
@@ -914,9 +913,10 @@ export const UserPermissionsPage: React.FC = () => {
                       <label className="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap hidden sm:inline">
                         Category:
                       </label>
-                      <CustomSelect
+                      <select
                         value={categoryFilter}
                         onChange={(e) => setCategoryFilter(e.target.value)}
+                        className="w-full sm:w-auto rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 cursor-pointer"
                       >
                         <option value="all">All Categories</option>
                         {availableCategories.map((c) => (
@@ -924,7 +924,7 @@ export const UserPermissionsPage: React.FC = () => {
                             {c.toUpperCase()}
                           </option>
                         ))}
-                      </CustomSelect>
+                      </select>
                     </div>
                   </div>
 
@@ -1152,7 +1152,7 @@ export const UserPermissionsPage: React.FC = () => {
                                           👑 Super Admin
                                         </span>
                                         {p.isFromDepartment && (
-                                          <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2.5 py-0.5 text-[10px] font-medium border border-sky-200 dark:border-sky-800 w-fit whitespace-nowrap">
+                                          <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 px-2.5 py-0.5 text-[10px] font-medium border border-sky-200 dark:border-sky-800 w-fit whitespace-nowrap ">
                                             Dept ({p.departmentName || userProfile.departmentName})
                                           </span>
                                         )}
@@ -1286,9 +1286,10 @@ export const UserPermissionsPage: React.FC = () => {
                     )}
                   </div>
                   {availableModalCategories.length > 0 && (
-                    <CustomSelect
+                    <select
                       value={modalCategory}
                       onChange={(e) => setModalCategory(e.target.value)}
+                      className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500 shrink-0 cursor-pointer"
                     >
                       <option value="all">All Categories</option>
                       {availableModalCategories.map((c) => (
@@ -1296,7 +1297,7 @@ export const UserPermissionsPage: React.FC = () => {
                           {c.toUpperCase()}
                         </option>
                       ))}
-                    </CustomSelect>
+                    </select>
                   )}
                 </div>
 

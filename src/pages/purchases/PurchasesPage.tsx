@@ -604,6 +604,13 @@ export const PurchasesPage: React.FC = () => {
     }
   };
 
+  // Helper to format telephone dialer URI
+  const getTelHref = (phone?: string): string => {
+    if (!phone) return "";
+    const cleaned = phone.trim().replace(/[^\d+]/g, "");
+    return cleaned ? `tel:${cleaned}` : `tel:${phone.trim()}`;
+  };
+
   // Render Access Restricted Screen
   if (!isAuthorized) {
     return (
@@ -1033,6 +1040,34 @@ export const PurchasesPage: React.FC = () => {
                             </span>
                           </div>
 
+                          {(purchase.vendorEmail || purchase.vendorContact) && (
+                            <div
+                              className="flex items-center gap-2 text-[11px] py-1 border-b border-slate-100 dark:border-slate-800 flex-wrap"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {purchase.vendorEmail && (
+                                <a
+                                  href={`mailto:${purchase.vendorEmail}`}
+                                  className="hover:underline flex items-center gap-0.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                  title={`Email ${purchase.vendorEmail}`}
+                                >
+                                  <EmailOutlined sx={{ fontSize: 12 }} />
+                                  <span className="truncate max-w-[120px]">{purchase.vendorEmail}</span>
+                                </a>
+                              )}
+                              {purchase.vendorContact && (
+                                <a
+                                  href={getTelHref(purchase.vendorContact)}
+                                  className="hover:underline flex items-center gap-0.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                                  title={`Call ${purchase.vendorContact}`}
+                                >
+                                  <PhoneOutlined sx={{ fontSize: 12 }} />
+                                  <span>{purchase.vendorContact}</span>
+                                </a>
+                              )}
+                            </div>
+                          )}
+
                           <div className="flex items-center justify-between text-[11px] py-1 border-b border-slate-100 dark:border-slate-800">
                             <span className="text-slate-400 flex items-center gap-1">
                               <LocalShippingOutlined sx={{ fontSize: 13 }} />
@@ -1221,6 +1256,16 @@ export const PurchasesPage: React.FC = () => {
                             <p className="text-[11px] text-slate-500 dark:text-slate-400">
                               {purchase.departmentName || "General Dept"}
                             </p>
+                            {purchase.employeeEmail && (
+                              <a
+                                href={`mailto:${purchase.employeeEmail}`}
+                                className="hover:underline flex items-center gap-0.5 text-[11px] text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors mt-0.5"
+                                title={`Email ${purchase.employeeEmail}`}
+                              >
+                                <EmailOutlined sx={{ fontSize: 11 }} />
+                                <span>{purchase.employeeEmail}</span>
+                              </a>
+                            )}
                           </div>
                         </td>
 
@@ -1235,17 +1280,22 @@ export const PurchasesPage: React.FC = () => {
                               {purchase.vendorEmail && (
                                 <a
                                   href={`mailto:${purchase.vendorEmail}`}
-                                  className="hover:underline flex items-center gap-0.5 text-slate-600 dark:text-slate-400"
+                                  className="hover:underline flex items-center gap-0.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+                                  title={`Email ${purchase.vendorEmail}`}
                                 >
                                   <EmailOutlined sx={{ fontSize: 12 }} />
                                   <span>{purchase.vendorEmail}</span>
                                 </a>
                               )}
                               {purchase.vendorContact && (
-                                <span className="flex items-center gap-0.5 text-slate-500">
+                                <a
+                                  href={getTelHref(purchase.vendorContact)}
+                                  className="hover:underline flex items-center gap-0.5 text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors cursor-pointer"
+                                  title={`Call ${purchase.vendorContact}`}
+                                >
                                   <PhoneOutlined sx={{ fontSize: 12 }} />
                                   <span>{purchase.vendorContact}</span>
-                                </span>
+                                </a>
                               )}
                             </div>
                           </div>
@@ -1878,19 +1928,33 @@ export const PurchasesPage: React.FC = () => {
 
                             {quote.vendorEmail && (
                               <div className="flex items-center justify-between text-[11px] py-1 border-b border-slate-100 dark:border-slate-800">
-                                <span className="text-slate-400">Email:</span>
-                                <span className="text-slate-700 dark:text-slate-300 truncate max-w-[140px]">
-                                  {quote.vendorEmail}
+                                <span className="text-slate-400 flex items-center gap-1">
+                                  <EmailOutlined sx={{ fontSize: 12 }} />
+                                  <span>Email:</span>
                                 </span>
+                                <a
+                                  href={`mailto:${quote.vendorEmail}`}
+                                  className="text-indigo-600 dark:text-indigo-400 hover:underline truncate max-w-[140px] text-right font-medium"
+                                  title={`Email ${quote.vendorEmail}`}
+                                >
+                                  {quote.vendorEmail}
+                                </a>
                               </div>
                             )}
 
                             {quote.vendorContact && (
                               <div className="flex items-center justify-between text-[11px] py-1 border-b border-slate-100 dark:border-slate-800">
-                                <span className="text-slate-400">Contact:</span>
-                                <span className="text-slate-700 dark:text-slate-300">
-                                  {quote.vendorContact}
+                                <span className="text-slate-400 flex items-center gap-1">
+                                  <PhoneOutlined sx={{ fontSize: 12 }} />
+                                  <span>Contact:</span>
                                 </span>
+                                <a
+                                  href={getTelHref(quote.vendorContact)}
+                                  className="text-indigo-600 dark:text-indigo-400 hover:underline text-right font-medium cursor-pointer"
+                                  title={`Call ${quote.vendorContact}`}
+                                >
+                                  {quote.vendorContact}
+                                </a>
                               </div>
                             )}
 
@@ -2181,8 +2245,30 @@ export const PurchasesPage: React.FC = () => {
                 <div className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
                   <span className="text-[10px] uppercase font-bold text-slate-400">Vendor</span>
                   <p className="font-bold text-indigo-600 dark:text-indigo-400 mt-1">{selectedPurchase.vendorName}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">{selectedPurchase.vendorEmail || "No email"}</p>
-                  <p className="text-[11px] text-slate-500">{selectedPurchase.vendorContact || "No phone"}</p>
+                  {selectedPurchase.vendorEmail ? (
+                    <a
+                      href={`mailto:${selectedPurchase.vendorEmail}`}
+                      className="text-[11px] text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline flex items-center gap-1 mt-1 transition-colors"
+                      title={`Email ${selectedPurchase.vendorEmail}`}
+                    >
+                      <EmailOutlined sx={{ fontSize: 12 }} />
+                      <span>{selectedPurchase.vendorEmail}</span>
+                    </a>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 mt-1">No email</p>
+                  )}
+                  {selectedPurchase.vendorContact ? (
+                    <a
+                      href={getTelHref(selectedPurchase.vendorContact)}
+                      className="text-[11px] text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline flex items-center gap-1 mt-1 transition-colors cursor-pointer"
+                      title={`Call ${selectedPurchase.vendorContact}`}
+                    >
+                      <PhoneOutlined sx={{ fontSize: 12 }} />
+                      <span>{selectedPurchase.vendorContact}</span>
+                    </a>
+                  ) : (
+                    <p className="text-[11px] text-slate-400 mt-0.5">No phone</p>
+                  )}
                 </div>
 
                 <div className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800">
