@@ -216,9 +216,22 @@ export const PurchasesPage: React.FC = () => {
         purchaseService.getSummary(),
       ]);
 
-      setPurchases(purchasesRes.data || []);
-      setApprovedProducts(approvedRes || []);
-      setSummary(summaryRes);
+      const purchaseList = Array.isArray(purchasesRes?.data)
+        ? purchasesRes.data
+        : Array.isArray(purchasesRes)
+        ? (purchasesRes as any)
+        : [];
+      const approvedList = Array.isArray(approvedRes)
+        ? approvedRes
+        : Array.isArray((approvedRes as any)?.data)
+        ? (approvedRes as any).data
+        : [];
+
+      setPurchases(purchaseList);
+      setApprovedProducts(approvedList);
+      if (summaryRes) {
+        setSummary(summaryRes);
+      }
     } catch (err: any) {
       showErrorAlert("Fetch Error", err?.message || "Failed to load purchase records.");
     } finally {
