@@ -606,9 +606,6 @@ export const RequestAccessPage: React.FC = () => {
                     <code className="inline-block mt-1 font-mono text-[11px] text-indigo-600 dark:text-indigo-400 bg-indigo-50/80 dark:bg-indigo-950/50 px-2 py-0.5 rounded-md border border-indigo-200/60 dark:border-indigo-900/50">
                       {perm.permissionKey}
                     </code>
-                    <p className="mt-2 text-xs leading-relaxed text-slate-500 dark:text-slate-400 line-clamp-2 min-h-[36px]">
-                      {perm.description || "System permission governing capability access."}
-                    </p>
                   </div>
 
                   <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">

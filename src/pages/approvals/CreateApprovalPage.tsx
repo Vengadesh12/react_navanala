@@ -755,7 +755,7 @@ export const CreateApprovalPage: React.FC = () => {
                             {item.itemName}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="rounded-md bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-900/40">
+                            <span className="rounded-md bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-[10px] font-semibold text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-900/40 whitespace-nowrap">
                               {item.category}
                             </span>
                             <span className="text-[10px] text-slate-400 font-medium">

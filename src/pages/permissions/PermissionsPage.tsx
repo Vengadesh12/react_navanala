@@ -215,6 +215,12 @@ export const PermissionsPage: React.FC = () => {
     return sortedSel.some((key, idx) => key !== sortedOrig[idx]);
   }, [selectedKeys, originalKeys]);
 
+  const { addedCount, removedCount } = useMemo(() => {
+    const added = selectedKeys.filter((k) => !originalKeys.includes(k)).length;
+    const removed = originalKeys.filter((k) => !selectedKeys.includes(k)).length;
+    return { addedCount: added, removedCount: removed };
+  }, [selectedKeys, originalKeys]);
+
   const handleScopeChange = async (newScope: "role" | "department") => {
     if (newScope === scope) return;
 
@@ -743,49 +749,70 @@ export const PermissionsPage: React.FC = () => {
               })}
             </div>
 
-            {/* Floating Save Bar when changes exist */}
+            {/* Fixed Floating Save Bar when changes exist */}
             {hasUnsavedChanges && (
-              <div className="sticky bottom-6 z-40 flex items-center justify-between rounded-2xl border border-slate-700 bg-slate-900 p-4 text-white shadow-2xl animate-fade-in mt-6">
-                <div className="flex items-center gap-3">
-                  <div className={`grid h-8 w-8 place-items-center rounded-lg text-white font-bold text-xs ${scope === "department" ? "bg-teal-600" : "bg-indigo-600"}`}>
-                    !
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">
-                      Unsaved Changes for {scope === "role" ? activeRole?.roleName : activeDept?.departmentName}
-                    </h4>
-                    <p className="text-[11px] text-slate-400">
-                      {selectedKeys.length} permissions currently assigned
-                    </p>
+              <>
+                {/* Bottom spacer so floating bar does not obscure content when scrolled to end */}
+                <div className="h-24 pointer-events-none" aria-hidden="true" />
+
+                <div className="fixed bottom-6 inset-x-0 lg:left-72 z-50 flex justify-center px-4 pointer-events-none transition-all duration-300">
+                  <div className="pointer-events-auto flex w-full max-w-4xl flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4 rounded-2xl border border-slate-700/80 bg-slate-900/95 p-4 text-white shadow-2xl backdrop-blur-md ring-1 ring-white/10 animate-fade-in">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-white font-bold text-sm shadow-inner ${
+                          scope === "department" ? "bg-teal-600 shadow-teal-700/50" : "bg-indigo-600 shadow-indigo-700/50"
+                        }`}
+                      >
+                        !
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="text-xs sm:text-sm font-bold text-white truncate">
+                          Unsaved Changes for {scope === "role" ? activeRole?.roleName : activeDept?.departmentName}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 flex flex-wrap items-center gap-1.5">
+                          <span>{selectedKeys.length} permissions currently assigned</span>
+                          {addedCount > 0 && (
+                            <span className="font-semibold text-emerald-400">
+                              (+{addedCount} added)
+                            </span>
+                          )}
+                          {removedCount > 0 && (
+                            <span className="font-semibold text-rose-400">
+                              (-{removedCount} removed)
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2.5 shrink-0 justify-end">
+                      <button
+                        type="button"
+                        onClick={handleDiscardChanges}
+                        className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800/90 px-3.5 py-2 text-xs font-semibold text-slate-200 shadow-xs transition-all hover:bg-slate-700 hover:text-white disabled:opacity-50 active:scale-95"
+                        disabled={saving}
+                      >
+                        <Undo sx={{ fontSize: 16 }} />
+                        <span>Discard</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSavePermissions}
+                        className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-white shadow-lg transition-all disabled:opacity-50 active:scale-95 ${
+                          scope === "department"
+                            ? "bg-teal-600 hover:bg-teal-500 shadow-teal-600/30"
+                            : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30"
+                        }`}
+                        disabled={saving}
+                      >
+                        <Save sx={{ fontSize: 16 }} />
+                        <span>{saving ? "Saving Changes..." : "Save Permissions"}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={handleDiscardChanges}
-                    className="inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-slate-700 bg-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-200 shadow-xs transition-all hover:bg-slate-700 disabled:opacity-50"
-                    disabled={saving}
-                  >
-                    <Undo sx={{ fontSize: 16 }} />
-                    <span>Discard</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleSavePermissions}
-                    className={`inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-semibold text-white shadow-xs transition-all disabled:opacity-50 ${
-                      scope === "department"
-                        ? "bg-teal-600 hover:bg-teal-500 shadow-teal-600/30"
-                        : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30"
-                    }`}
-                    disabled={saving}
-                  >
-                    <Save sx={{ fontSize: 16 }} />
-                    <span>{saving ? "Saving Changes..." : "Save Permissions"}</span>
-                  </button>
-                </div>
-              </div>
+              </>
             )}
           </>
         )}
